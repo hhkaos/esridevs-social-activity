@@ -1,0 +1,143 @@
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+    <script type="module" src=https://js.arcgis.com/calcite-components/2.13.0/calcite.esm.js></script>
+    <link rel="stylesheet" type="text/css" href=https://js.arcgis.com/calcite-components/2.13.0/calcite.css />
+    <title>EsriDevs Social Activity</title>
+    <style>
+        calcite-table {
+            width: 100%;
+        }
+        .container{
+          max-width: 960px;
+          margin: 0 auto;
+        }
+        .row {
+          display: flex;
+          flex-direction: row;
+          flex-wrap: wrap;
+          width: 100%;
+        }
+
+        .column {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          flex-basis: 100%;
+          flex: 1;
+        }
+        .right{
+          text-align: right;
+        }
+        .ribbon {
+          /* positioning */
+          position: fixed;
+          padding: 5px 45px;
+          width: 128px;
+          /* top right of the page */
+          top: 50px;
+          right: -50px;
+          -webkit-transform: rotate(45deg);
+          -moz-transform: rotate(45deg);
+          -ms-transform: rotate(45deg);
+          transform: rotate(45deg);
+          /* effects with some shadow */
+          box-shadow: 0 0 0 3px #141412, 0 0 20px -3px rgba(0, 0, 0, 0.5);
+          text-shadow: 0 0 0 #ffffff, 0 0 5px rgba(0, 0, 0, 0.3);
+          /* looks */
+          background-color: #141412;
+          color: #ffffff;
+          font-size: 13px;
+          font-family: sans-serif;
+          text-decoration: none;
+          font-weight: bold;
+          /* ribbon effects */
+          border: 2px dotted #ffffff;
+          /* webkit antialias fix */
+          -webkit-backface-visibility: hidden;
+          letter-spacing: .5px;
+          text-align: center;
+        }
+    </style>
+    <script>
+      
+      try {
+        const spreadsheetID = '1oKkHCNbOUpfERu1xC4ePU2XwDSvalEfE0YmTN39cyNg';
+        const tab = 'Activity'
+        const activityURL = `https://opensheet.elk.sh/${spreadsheetID}/${tab}`;
+        fetch(activityURL)
+        .then(response => console.log(response.status) || response)
+        .then(response => response.text())
+        .then(body => {
+          console.log(body)
+          const res = JSON.parse(body)
+          if ("content" in document.createElement("template")) {
+          
+            const tbody = document.querySelector("calcite-table");
+            const template = document.querySelector("#templateRow");
+            
+            res.forEach( e => {
+              const clone = template.content.cloneNode(true);
+              let td = clone.querySelectorAll("calcite-table-cell");
+              
+              td[0].innerText = e['Title'];
+              if(e['Linkedin']) td[1].innerHTML = `<a href="${e['Linkedin']}" target="_blank">Like / Repost</a>`;
+              if(e['X/Twitter']) td[2].innerHTML = `<a href="${e['X/Twitter']}" target="_blank">Like / RT</a>`;
+              td[3].innerText = e['Topics_Product']
+              td[4].innerText = e['Category'];
+
+              tbody.appendChild(clone);
+            })
+
+          } else {
+            // Find another way to add the rows to the table because
+            // the HTML template element is not supported.
+          }
+        })
+        
+      } catch (error) {
+        console.error(error.message);
+      }
+    </script>
+</head>
+
+<body>
+  <div class="container">
+    <div class='row'>
+      <h1 class="column">EsriDevs Social Activity</h1>
+      <span class="column right">
+        <calcite-button
+          href="https://docs.google.com/spreadsheets/d/1oKkHCNbOUpfERu1xC4ePU2XwDSvalEfE0YmTN39cyNg/edit?usp=sharing"
+          icon-end="launch"
+          label="Open spreadsheet"
+          target="_blank">
+        Add new activity
+      </calcite-button>
+      </span>
+    </div>
+    <calcite-table caption="Simple table" numbered interaction-mode="static" page-size="30" striped>
+        <calcite-table-row slot="table-header">
+            <calcite-table-header heading="Content title"></calcite-table-header>
+            <calcite-table-header heading="LinkedIn"></calcite-table-header>
+            <calcite-table-header heading="X"></calcite-table-header>
+            <calcite-table-header heading="Product"></calcite-table-header>
+            <calcite-table-header heading="Category"></calcite-table-header>
+        </calcite-table-row>
+        
+    </calcite-table>
+  </div>
+
+  <a href='https://github.com/hhkaos/esridevs-social-activity' class="ribbon" target="blank">CONTRIBUTE</a>
+
+  <template id="templateRow">
+    <calcite-table-row>
+      <calcite-table-cell></calcite-table-cell>
+      <calcite-table-cell></calcite-table-cell>
+      <calcite-table-cell></calcite-table-cell>
+      <calcite-table-cell></calcite-table-cell>
+      <calcite-table-cell></calcite-table-cell>
+  </calcite-table-row>
+  </template>
+</body>
+
+</html>
