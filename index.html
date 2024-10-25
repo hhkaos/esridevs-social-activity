@@ -73,6 +73,9 @@
             display: none;
           }
         }
+        .selected{
+          --calcite-table-row-background: #ade9ff
+        }
     </style>
     <script>
       
@@ -93,14 +96,29 @@
             
             res.forEach( e => {
               const clone = template.content.cloneNode(true);
+              let isFeatured = '';
+              if(e["Featured"]){
+                clone.firstElementChild.setAttribute("class","selected")
+                isFeatured = '⭐';
+              }
               let td = clone.querySelectorAll("calcite-table-cell");
-              
+
+
               td[0].innerText = e['Date'];
-              td[1].innerHTML = `<a href="${e['URL']}" target="_blank" class="emoji">${e['Title']}</a>`;
-              if(e['Linkedin']) td[2].innerHTML = `<a href="${e['Linkedin']}" target="_blank" class="emoji">👍 🔁</a>`;
-              if(e['X/Twitter']) td[3].innerHTML = `<a href="${e['X/Twitter']}" target="_blank" class="emoji">👍 🔁</a>`;
-              td[4].innerText = e['Topics_Product']
-              td[5].innerText = e['Category'];
+              if(e['URL'] && e['URL'].toLowerCase() != 'n/a'){
+                td[1].innerHTML = `<a href="${e['URL']}" target="_blank" class="emoji">${isFeatured} ${e['Title']}</a>`;
+              }else{
+                td[1].innerHTML = `${isFeatured} ${e['Title']}`;
+              }
+              td[2].innerText = e['Author'];
+              if(e['Linkedin'] && e['Linkedin'].toLowerCase() != 'n/a') {
+                td[3].innerHTML = `<a href="${e['Linkedin']}" target="_blank" class="emoji">🔁</a>`;
+              }
+              if(e['X/Twitter'] && e['X/Twitter'].toLowerCase() != 'n/a'){
+                td[4].innerHTML = `<a href="${e['X/Twitter']}" target="_blank" class="emoji">🔁</a>`;
+              }
+              td[5].innerText = e['Topics_Product']
+              td[6].innerText = e['Category'];
 
               tbody.appendChild(clone);
             })
@@ -134,12 +152,13 @@
     </div>
     <calcite-table caption="Simple table" interaction-mode="static" page-size="30" striped>
         <calcite-table-row slot="table-header">
-            <calcite-table-header heading="Date"></calcite-table-header>
+            <calcite-table-header heading="Date" alignment="center"></calcite-table-header>
             <calcite-table-header heading="Content title"></calcite-table-header>
-            <calcite-table-header heading="LinkedIn"></calcite-table-header>
-            <calcite-table-header heading="X"></calcite-table-header>
+            <calcite-table-header heading="Author" alignment="center"></calcite-table-header>
+            <calcite-table-header heading="LinkedIn" alignment="center"></calcite-table-header>
+            <calcite-table-header heading="X" alignment="center"></calcite-table-header>
             <calcite-table-header heading="Product"></calcite-table-header>
-            <calcite-table-header heading="Category"></calcite-table-header>
+            <calcite-table-header heading="Category" alignment="center"></calcite-table-header>
         </calcite-table-row>
         
     </calcite-table>
@@ -149,12 +168,13 @@
 
   <template id="templateRow">
     <calcite-table-row>
+      <calcite-table-cell alignment="center"></calcite-table-cell>
       <calcite-table-cell></calcite-table-cell>
+      <calcite-table-cell alignment="center"></calcite-table-cell>
+      <calcite-table-cell alignment="center"></calcite-table-cell>
+      <calcite-table-cell alignment="center"></calcite-table-cell>
       <calcite-table-cell></calcite-table-cell>
-      <calcite-table-cell></calcite-table-cell>
-      <calcite-table-cell></calcite-table-cell>
-      <calcite-table-cell></calcite-table-cell>
-      <calcite-table-cell></calcite-table-cell>
+      <calcite-table-cell alignment="center"></calcite-table-cell>
   </calcite-table-row>
   </template>
 </body>
