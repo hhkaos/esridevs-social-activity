@@ -4,97 +4,7 @@
     <script type="module" src=https://js.arcgis.com/calcite-components/2.13.0/calcite.esm.js></script>
     <link rel="stylesheet" type="text/css" href=https://js.arcgis.com/calcite-components/2.13.0/calcite.css />
     <title>EsriDevs Social Activity</title>
-    <style>
-        calcite-table {
-            width: 100%;
-        }
-        .container{
-          max-width: 960px;
-          margin: 0 auto;
-          width: 90%;
-        }
-        .row {
-          display: flex;
-          flex-direction: row;
-          flex-wrap: wrap;
-          width: 100%;
-        }
-
-        .column {
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          flex: 1; */
-        }
-        .right{
-          padding-left: 2rem;
-        }
-        .ribbon {
-          /* positioning */
-          position: fixed;
-          padding: 5px 45px;
-          width: 128px;
-          /* top right of the page */
-          top: 50px;
-          right: -50px;
-          -webkit-transform: rotate(45deg);
-          -moz-transform: rotate(45deg);
-          -ms-transform: rotate(45deg);
-          transform: rotate(45deg);
-          /* effects with some shadow */
-          box-shadow: 0 0 0 3px #141412, 0 0 20px -3px rgba(0, 0, 0, 0.5);
-          text-shadow: 0 0 0 #ffffff, 0 0 5px rgba(0, 0, 0, 0.3);
-          /* looks */
-          background-color: #141412;
-          color: #ffffff;
-          font-size: 13px;
-          font-family: sans-serif;
-          text-decoration: none;
-          font-weight: bold;
-          /* ribbon effects */
-          border: 2px dotted #ffffff;
-          /* webkit antialias fix */
-          -webkit-backface-visibility: hidden;
-          letter-spacing: .5px;
-          text-align: center;
-        }
-        .emoji{
-          text-decoration: none;
-        }
-        calcite-combobox{
-          width:33%;
-          margin-right: .3%;
-        }
-        .mb1{
-          margin-bottom: 1rem;
-        }
-
-        @media only screen and (max-width: 850px) {
-          h1 {
-            font-size: 1.2rem;
-          }
-        }
-        @media only screen and (max-width: 600px) {
-          .ribbon {
-            display: none;
-          }
-        }
-        .selected{
-          --calcite-table-row-background: #ade9ff
-        }
-        calcite-table-row:nth-child(odd of :not(.hidden)){
-          --calcite-table-row-background: #f3f3f3
-        }
-        .hidden{
-          display: none;
-        }
-        
-    </style>
-    
     <script>
-
-      
-      
       // Load the table
       try {
         const spreadsheetID = '1oKkHCNbOUpfERu1xC4ePU2XwDSvalEfE0YmTN39cyNg';
@@ -155,6 +65,107 @@
         console.error(error.message);
       }
     </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/introjs.css" integrity="sha512-4OzqLjfh1aJa7M33b5+h0CSx0Q3i9Qaxlrr1T/Z+Vz+9zs5A7GM3T3MFKXoreghi3iDOSbkPMXiMBhFO7UBW/g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+      calcite-table {
+          width: 100%;
+      }
+      .container{
+        max-width: 960px;
+        margin: 0 auto;
+        width: 90%;
+      }
+      .row {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        width: 100%;
+      }
+
+      .column {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        flex: 1; */
+      }
+      .right{
+        padding-left: 2rem;
+      }
+      .ribbon {
+        /* positioning */
+        position: fixed;
+        padding: 5px 45px;
+        width: 128px;
+        /* top right of the page */
+        top: 50px;
+        right: -50px;
+        -webkit-transform: rotate(45deg);
+        -moz-transform: rotate(45deg);
+        -ms-transform: rotate(45deg);
+        transform: rotate(45deg);
+        /* effects with some shadow */
+        box-shadow: 0 0 0 3px #141412, 0 0 20px -3px rgba(0, 0, 0, 0.5);
+        text-shadow: 0 0 0 #ffffff, 0 0 5px rgba(0, 0, 0, 0.3);
+        /* looks */
+        background-color: #141412;
+        color: #ffffff;
+        font-size: 13px;
+        font-family: sans-serif;
+        text-decoration: none;
+        font-weight: bold;
+        /* ribbon effects */
+        border: 2px dotted #ffffff;
+        /* webkit antialias fix */
+        -webkit-backface-visibility: hidden;
+        letter-spacing: .5px;
+        text-align: center;
+      }
+      .emoji{
+        text-decoration: none;
+      }
+      calcite-combobox{
+        width:33%;
+        margin-right: .3%;
+      }
+      .mb1{
+        margin-bottom: 1rem;
+      }
+
+      @media only screen and (max-width: 850px) {
+        h1 {
+          font-size: 1.2rem;
+        }
+      }
+      @media only screen and (max-width: 600px) {
+        .ribbon {
+          display: none;
+        }
+      }
+      .selected{
+        --calcite-table-row-background: #ade9ff
+      }
+      calcite-table-row:nth-child(odd of :not(.hidden)){
+        --calcite-table-row-background: #f3f3f3
+      }
+      .hidden{
+        display: none;
+      }
+      .introjs-tooltiptext{
+        font-family: "Avenir Next", Avenir, "Helvetica Neue", sans-serif;
+        font-size: 14px  
+      }
+      #help{
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+      }
+      #help img{
+        width: 25px;
+      }
+      #help:hover{
+        cursor: pointer;
+      }
+  </style>
 </head>
 
 <body>
@@ -168,13 +179,15 @@
           icon-end="launch"
           round width="auto"
           label="Open spreadsheet"
-          target="_blank">
+          target="_blank"
+          data-intro="Do you find something missing? <br/>Add a comment or contact us at <a href='mailto:developeroutreach@esri.com'>developeroutreach@esri.com</a> 📧" data-step="20"
+          >
         Add new activity
       </calcite-button>
       </span>
     </div>
 
-    <div class="row mb1">
+    <div class="row mb1" data-intro="🔎 Filter activity and <b>explore only what interests you</b>. <br/><br/>If you save this page as a bookmark ⭐️, the filters will remain in your next visit" data-step="10">
       <calcite-combobox placeholder="Select topics" id="topics" selection-display="fit">
         
       </calcite-combobox>
@@ -188,22 +201,31 @@
       </calcite-combobox>
     </div>
     
-
-    <calcite-table caption="Simple table" interaction-mode="static" bordered>
-        <calcite-table-row slot="table-header">
-            <calcite-table-header heading="Date" alignment="center"></calcite-table-header>
-            <calcite-table-header heading="Content title"></calcite-table-header>
-            <calcite-table-header heading="Author" alignment="center"></calcite-table-header>
-            <calcite-table-header heading="LinkedIn" alignment="center"></calcite-table-header>
-            <calcite-table-header heading="X" alignment="center"></calcite-table-header>
-            <calcite-table-header heading="Technology"></calcite-table-header>
-            <calcite-table-header heading="Content type" alignment="center"></calcite-table-header>
-        </calcite-table-row>
-        
-    </calcite-table>
+    <div data-intro="This timeline ⏳ include resources for developers using ArcGIS.<br/><br/>The LinkedIn and X (former Twitter) columns contain existing social media messages <b>we would like you to consider liking 👍🏻 or reposting 🔁</b>" data-step="1">
+      <calcite-table caption="Simple table" interaction-mode="static" bordered>
+          <calcite-table-row slot="table-header">
+              <calcite-table-header heading="Date" alignment="center"></calcite-table-header>
+              <calcite-table-header heading="Content title"></calcite-table-header>
+              <calcite-table-header heading="Author" alignment="center"></calcite-table-header>
+              <!-- <div data-intro="" data-step="2"> -->
+                <calcite-table-header heading="LinkedIn" alignment="center"></calcite-table-header>
+              <!-- </div> -->
+              <!-- <div data-intro="The same with the X (former Twitter) column" data-step="3"> -->
+                <calcite-table-header heading="X" alignment="center"></calcite-table-header>
+              <!-- </div> -->
+              <calcite-table-header heading="Technology"></calcite-table-header>
+              <calcite-table-header heading="Content type" alignment="center"></calcite-table-header>
+          </calcite-table-row>
+          
+      </calcite-table>
+    </div>
   </div>
 
   <a href='https://github.com/hhkaos/esridevs-social-activity' class="ribbon" target="blank">CONTRIBUTE</a>
+
+  <div id="help">
+    <img src="./assets/images/help.png" />
+  </div>
 
   <template id="templateRow">
     <calcite-table-row>
@@ -341,12 +363,17 @@
         document.querySelector('#topics').dispatchEvent(event);
         document.querySelector('#category').dispatchEvent(event);
         document.querySelector('#author').dispatchEvent(event);
+        if(!localStorage.getItem("tourDisplayed")){
+          introJs().start();
+          localStorage.setItem("tourDisplayed", true);
+        }
       }
     }
     initApp();
 
+    document.querySelector('#help').addEventListener("click", e => introJs().start())
   </script>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/intro.js" integrity="sha512-f26fxKZJiF0AjutUaQHNJ5KnXSisqyUQ3oyfaoen2apB1wLa5ccW3lmtaRe2jdP5kh4LF2gAHP9xQbx7wYhU5w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </body>
 
 </html>
