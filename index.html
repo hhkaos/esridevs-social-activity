@@ -220,14 +220,16 @@
   <template id="templateTopicRow">
     <calcite-combobox-item value="" text-label=""></calcite-combobox-item>
   </template>
-
+  <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
+  
   <script>
-    
+
+
     let flags
 
     try{
       const parts = new URL(window.location.href);
-      flags = JSON.parse(decodeURIComponent(parts.hash.substr(1)))
+      flags = JSON.parse(LZString.decompressFromBase64(parts.hash.substr(1)));
     }catch(error){
       flags = {
         "technologies": {},
@@ -235,6 +237,18 @@
         "authors": {},
       }
     }
+
+    const findValueInNestedJSON = (jsonObject, targetKey) => {
+        for (const outerKey in jsonObject) {
+            if (jsonObject.hasOwnProperty(outerKey)) {
+                const innerObject = jsonObject[outerKey];
+                if (innerObject.hasOwnProperty(targetKey)) {
+                    return innerObject[targetKey];
+                }
+            }
+        }
+        return null; 
+    };
 
     const loadCombobox = (options, idContainer, templateId) => {
         const topicsSelector = document.querySelector(idContainer);
@@ -244,7 +258,10 @@
           const clone = template.content.cloneNode(true);
           clone.firstElementChild.setAttribute("value", e)
           clone.firstElementChild.setAttribute("text-label", e)
-          clone.firstElementChild.setAttribute("selected", null)
+          // If check flags
+          if(findValueInNestedJSON(flags, e) === 1){
+            clone.firstElementChild.setAttribute("selected", null)
+          }
           topicsSelector.appendChild(clone);
         });
     };
@@ -257,6 +274,7 @@
           e.classList.add("hidden");
         })
       });
+
       e.currentTarget.querySelectorAll('[selected]').forEach(e => {
         flags[keyword][e.value] = 1;
         
@@ -271,7 +289,7 @@
         })
       });
 
-      // window.history.pushState( { title: "Services" }, "servicespage", "/#"+JSON.stringify(flags) );
+      window.history.pushState( { title: "Services" }, "servicespage", "/#"+LZString.compressToBase64(JSON.stringify(flags)));;
     }
 
     // Load filter bar
