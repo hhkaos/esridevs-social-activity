@@ -82,6 +82,12 @@
         .selected{
           --calcite-table-row-background: #ade9ff
         }
+        calcite-table-row:nth-child(odd of :not(.hidden)){
+          --calcite-table-row-background: #f3f3f3
+        }
+        .hidden{
+          display: none;
+        }
         
     </style>
     
@@ -248,7 +254,7 @@
         flags[keyword][e.value] = 0;
         const filter = `calcite-table-row[data-${keyword}='${e.value}']`;
         document.querySelectorAll(filter).forEach(e => {
-          e.style = "display:none";
+          e.classList.add("hidden");
         })
       });
       e.currentTarget.querySelectorAll('[selected]').forEach(e => {
@@ -259,7 +265,7 @@
           if( flags.authors[e.dataset.authors] &&
               flags.technologies[e.dataset.technologies] &&
               flags.categories[e.dataset.categories]){
-            e.style = "display:auto"
+                e.classList.remove("hidden");
           }
           e.dataset.authors
         })
@@ -270,6 +276,7 @@
 
     // Load filter bar
     const technologies = [
+      "General",
       "ArcGIS API for Python",
       "ArcGIS Dashboards",
       "ArcGIS Maps SDK for .NET",
@@ -279,7 +286,6 @@
       "ArcGIS REST JS",
       "Engineering",
       "Experience Builder",
-      "General",
       "Native SDKs"
     ];
     loadCombobox(technologies, "#topics", "#templateTopicRow");
