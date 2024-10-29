@@ -24,7 +24,6 @@
           display: flex;
           flex-direction: column;
           justify-content: center;
-          /* flex-basis: 100%;
           flex: 1; */
         }
         .right{
@@ -62,6 +61,13 @@
         .emoji{
           text-decoration: none;
         }
+        calcite-combobox{
+          width:33%;
+          margin-right: .3%;
+        }
+        .mb1{
+          margin-bottom: 1rem;
+        }
 
         @media only screen and (max-width: 850px) {
           h1 {
@@ -76,9 +82,14 @@
         .selected{
           --calcite-table-row-background: #ade9ff
         }
+        
     </style>
+    
     <script>
+
       
+      
+      // Load the table
       try {
         const spreadsheetID = '1oKkHCNbOUpfERu1xC4ePU2XwDSvalEfE0YmTN39cyNg';
         const tab = 'Activity'
@@ -96,6 +107,7 @@
             
             res.forEach( e => {
               const clone = template.content.cloneNode(true);
+              const row = clone.firstElementChild;
               let isFeatured = '';
               if(e["Featured"]){
                 clone.firstElementChild.setAttribute("class","selected")
@@ -111,21 +123,25 @@
                 td[1].innerHTML = `${isFeatured} ${e['Title']}`;
               }
               td[2].innerText = e['Author'];
+              row.setAttribute("data-authors", e['Author'])
+              tbody.appendChild(clone);
+
               if(e['Linkedin'] && e['Linkedin'].toLowerCase() != 'n/a') {
                 td[3].innerHTML = `<a href="${e['Linkedin']}" target="_blank" class="emoji">🔁</a>`;
               }
               if(e['X/Twitter'] && e['X/Twitter'].toLowerCase() != 'n/a'){
                 td[4].innerHTML = `<a href="${e['X/Twitter']}" target="_blank" class="emoji">🔁</a>`;
               }
-              td[5].innerText = e['Topics_Product']
+              td[5].innerText = e['Topics_Product'];
+              row.setAttribute("data-technologies", e['Topics_Product'])
               td[6].innerText = e['Category'];
-
+              row.setAttribute("data-categories", e['Category'])
               tbody.appendChild(clone);
             })
 
           } else {
             // Find another way to add the rows to the table because
-            // the HTML template element is not supported.
+            // the HTML template element is not supported. ;D
           }
         })
         
@@ -137,7 +153,8 @@
 
 <body>
   <div class="container">
-    <div class='row'>
+    
+    <div class="row">
       <h1 class="column">EsriDevs Social Activity</h1>
       <span class="column right">
         <calcite-button
@@ -150,15 +167,31 @@
       </calcite-button>
       </span>
     </div>
-    <calcite-table caption="Simple table" interaction-mode="static" page-size="30" striped>
+
+    <div class="row mb1">
+      <calcite-combobox placeholder="Select topics" id="topics" selection-display="fit">
+        
+      </calcite-combobox>
+
+      <calcite-combobox placeholder="Content type" id="category" selection-display="fit">
+        
+      </calcite-combobox>
+
+      <calcite-combobox placeholder="Author" id="author" selection-display="fit">
+        
+      </calcite-combobox>
+    </div>
+    
+
+    <calcite-table caption="Simple table" interaction-mode="static" bordered>
         <calcite-table-row slot="table-header">
             <calcite-table-header heading="Date" alignment="center"></calcite-table-header>
             <calcite-table-header heading="Content title"></calcite-table-header>
             <calcite-table-header heading="Author" alignment="center"></calcite-table-header>
             <calcite-table-header heading="LinkedIn" alignment="center"></calcite-table-header>
             <calcite-table-header heading="X" alignment="center"></calcite-table-header>
-            <calcite-table-header heading="Product"></calcite-table-header>
-            <calcite-table-header heading="Category" alignment="center"></calcite-table-header>
+            <calcite-table-header heading="Technology"></calcite-table-header>
+            <calcite-table-header heading="Content type" alignment="center"></calcite-table-header>
         </calcite-table-row>
         
     </calcite-table>
@@ -175,8 +208,117 @@
       <calcite-table-cell alignment="center"></calcite-table-cell>
       <calcite-table-cell></calcite-table-cell>
       <calcite-table-cell alignment="center"></calcite-table-cell>
-  </calcite-table-row>
+    </calcite-table-row>
   </template>
+
+  <template id="templateTopicRow">
+    <calcite-combobox-item value="" text-label=""></calcite-combobox-item>
+  </template>
+
+  <script>
+    
+    let flags
+
+    try{
+      const parts = new URL(window.location.href);
+      flags = JSON.parse(decodeURIComponent(parts.hash.substr(1)))
+    }catch(error){
+      flags = {
+        "technologies": {},
+        "categories": {},
+        "authors": {},
+      }
+    }
+
+    const loadCombobox = (options, idContainer, templateId) => {
+        const topicsSelector = document.querySelector(idContainer);
+        const template = document.querySelector(templateId);
+        
+        options.forEach((e, i , array) => {
+          const clone = template.content.cloneNode(true);
+          clone.firstElementChild.setAttribute("value", e)
+          clone.firstElementChild.setAttribute("text-label", e)
+          clone.firstElementChild.setAttribute("selected", null)
+          topicsSelector.appendChild(clone);
+        });
+    };
+
+    const updateFlags = (e, keyword) => {
+      e.currentTarget.querySelectorAll(':not([selected])').forEach(e => {
+        flags[keyword][e.value] = 0;
+        const filter = `calcite-table-row[data-${keyword}='${e.value}']`;
+        document.querySelectorAll(filter).forEach(e => {
+          e.style = "display:none";
+        })
+      });
+      e.currentTarget.querySelectorAll('[selected]').forEach(e => {
+        flags[keyword][e.value] = 1;
+        
+        const filter = `calcite-table-row[data-${keyword}='${e.value}']`;
+        document.querySelectorAll(filter).forEach(e => {
+          if( flags.authors[e.dataset.authors] &&
+              flags.technologies[e.dataset.technologies] &&
+              flags.categories[e.dataset.categories]){
+            e.style = "display:auto"
+          }
+          e.dataset.authors
+        })
+      });
+
+      // window.history.pushState( { title: "Services" }, "servicespage", "/#"+JSON.stringify(flags) );
+    }
+
+    // Load filter bar
+    const technologies = [
+      "ArcGIS API for Python",
+      "ArcGIS Dashboards",
+      "ArcGIS Maps SDK for .NET",
+      "ArcGIS Maps SDK for Flutter",
+      "ArcGIS Maps SDK for Javascript",
+      "ArcGIS Online",
+      "ArcGIS REST JS",
+      "Engineering",
+      "Experience Builder",
+      "General",
+      "Native SDKs"
+    ];
+    loadCombobox(technologies, "#topics", "#templateTopicRow");
+    document.querySelector('#topics').addEventListener("calciteComboboxChange",  (e) => updateFlags(e, 'technologies') );
+
+    const categories = [
+      "Blog",
+      "Course",
+      "DevSummit video",
+      "Livestream",
+      "Podcast",
+      "Social post"
+    ];
+    loadCombobox(categories, "#category", "#templateTopicRow");
+    document.querySelector('#category').addEventListener("calciteComboboxChange",  (e) => updateFlags(e, 'categories') );
+
+    const authors = [
+      "Esri",
+      "Community",
+      "Employee"
+    ];
+    loadCombobox(authors, "#author", "#templateTopicRow");
+    document.querySelector('#author').addEventListener("calciteComboboxChange",  (e) => updateFlags(e, 'authors') );
+
+    const initApp = () => {
+      const hidrated = document.querySelector('#author').getAttribute("calcite-hydrated");
+      if(hidrated != ''){
+        setTimeout(initApp, 1000);
+      }else{
+        const event = new Event("calciteComboboxChange");
+        document.querySelector('#topics').dispatchEvent(event);
+        document.querySelector('#category').dispatchEvent(event);
+        document.querySelector('#author').dispatchEvent(event);
+      }
+    }
+    initApp();
+
+  </script>
+
 </body>
 
 </html>
