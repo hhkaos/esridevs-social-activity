@@ -31,8 +31,7 @@
               }
               let td = clone.querySelectorAll("calcite-table-cell");
 
-
-              td[0].innerText = e['Date'];
+              td[0].innerText = formatDate(e['Date']);
               if(e['URL'] && e['URL'].toLowerCase() != 'n/a'){
                 td[1].innerHTML = `<a href="${e['URL']}" target="_blank" class="emoji">${isFeatured} ${e['Title']}</a>`;
               }else{
@@ -86,7 +85,7 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
-        flex: 1; */
+        flex: 1; 
       }
       .right{
         padding-left: 2rem;
@@ -375,6 +374,23 @@
     initApp();
 
     document.querySelector('#help').addEventListener("click", e => introJs().start())
+
+    // Function to format the date to "DD Month YYYY"
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+
+      // Check if the date is valid
+      if (isNaN(date)) return dateString;
+
+      // Extract day, month, and year
+      const day = date.getDate();
+      const month = date.toLocaleString('default', { month: 'long' });
+      const year = date.getFullYear();
+
+      // Return formatted string as "DD Month YYYY"
+      return `${day} ${month} ${year}`;
+    }
+
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/intro.js" integrity="sha512-f26fxKZJiF0AjutUaQHNJ5KnXSisqyUQ3oyfaoen2apB1wLa5ccW3lmtaRe2jdP5kh4LF2gAHP9xQbx7wYhU5w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </body>
