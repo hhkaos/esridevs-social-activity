@@ -319,27 +319,32 @@
 
     // Load filter bar
     const technologies = [
-      "Arcade",
-      "ArcGIS API for Python",
-      "ArcGIS Dashboards",
-      "ArcGIS Location Platform",
-      "ArcGIS Maps SDK for .NET",
-      "ArcGIS Maps SDK for Flutter",
-      "ArcGIS Maps SDK for Javascript",
-      "ArcGIS Online",
-      "ArcGIS Pro SDK",
-      "ArcGIS REST JS",
-      "ArcGIS services",
-      "Arcpy",
-      "Calcite Design System",
-      "Engineering",
-      "Experience Builder",
-      "Game Engines",
-      "General",
-      "Living Atlas",
-      "Native SDKs",
-      "R",
-      "Web technologies" 
+		"Arcade",
+		"ArcGIS API for Python",
+		"ArcGIS Dashboards",
+		"ArcGIS Enterprise SDK",
+		"ArcGIS GeoAnalytics Engine",
+		"ArcGIS Location Platform",
+		"ArcGIS Maps SDK for .NET",
+		"ArcGIS Maps SDK for Flutter",
+		"ArcGIS Maps SDK for Javascript",
+		"ArcGIS Maps SDK for Kotlin",
+		"ArcGIS Maps SDK for Qt",
+		"ArcGIS Maps SDK for Swift",
+		"ArcGIS Online",
+		"ArcGIS Pro SDK",
+		"ArcGIS REST JS",
+		"ArcGIS services",
+		"Arcpy",
+		"Calcite Design System",
+		"Engineering",
+		"Experience Builder",
+		"Game Engines",
+		"General",
+		"Living Atlas",
+		"Native SDKs",
+		"R",
+		"Web technologies"
     ];
     loadCombobox(technologies, "#topics", "#templateTopicRow");
     document.querySelector('#topics').addEventListener("calciteComboboxChange",  (e) => updateFlags(e, 'technologies') );
@@ -361,7 +366,8 @@
     const authors = [
       "Esri",
       "Community",
-      "Employee"
+      "Employee",
+      "Distributor"
     ];
     loadCombobox(authors, "#author", "#templateTopicRow");
     document.querySelector('#author').addEventListener("calciteComboboxChange",  (e) => updateFlags(e, 'authors') );
