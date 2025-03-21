@@ -322,6 +322,7 @@
 		"Arcade",
 		"ArcGIS API for Python",
 		"ArcGIS Dashboards",
+		"ArcGIS Enterprise",
 		"ArcGIS Enterprise SDK",
 		"ArcGIS GeoAnalytics Engine",
 		"ArcGIS Location Platform",
@@ -335,6 +336,7 @@
 		"ArcGIS Pro SDK",
 		"ArcGIS REST JS",
 		"ArcGIS services",
+		"ArcGIS StoryMaps",
 		"Arcpy",
 		"Calcite Design System",
 		"Engineering",
@@ -343,22 +345,28 @@
 		"General",
 		"Living Atlas",
 		"Native SDKs",
+		"Other",
 		"R",
+		"Security and authentication",
+		"Survey123",
 		"Web technologies"
     ];
     loadCombobox(technologies, "#topics", "#templateTopicRow");
     document.querySelector('#topics').addEventListener("calciteComboboxChange",  (e) => updateFlags(e, 'technologies') );
 
     const categories = [
-      "Blog",
-      "Course",
-      "DevSummit video",
-      "Livestream",
-      "Other",
-      "Podcast",
-      "Social post",
-      "Source code",
-      "Video"
+	"Blog",
+	"Course",
+	"DevSummit video",
+	"In-person event ",
+	"Livestream",
+	"Other",
+	"Podcast",
+	"Social post",
+	"Source code",
+	"Training seminar",
+	"Video",
+	"Video Short"
     ];
     loadCombobox(categories, "#category", "#templateTopicRow");
     document.querySelector('#category').addEventListener("calciteComboboxChange",  (e) => updateFlags(e, 'categories') );
