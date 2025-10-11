@@ -1,0 +1,98 @@
+calcite-table {
+          width: 100%;
+      }
+      .container{
+        max-width: 960px;
+        margin: 0 auto;
+        width: 90%;
+      }
+      .row {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        width: 100%;
+      }
+
+      .column {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        flex: 1; 
+      }
+      .right{
+        padding-left: 2rem;
+      }
+      .ribbon {
+        /* positioning */
+        position: fixed;
+        padding: 5px 45px;
+        width: 128px;
+        /* top right of the page */
+        top: 50px;
+        right: -50px;
+        -webkit-transform: rotate(45deg);
+        -moz-transform: rotate(45deg);
+        -ms-transform: rotate(45deg);
+        transform: rotate(45deg);
+        /* effects with some shadow */
+        box-shadow: 0 0 0 3px #141412, 0 0 20px -3px rgba(0, 0, 0, 0.5);
+        text-shadow: 0 0 0 #ffffff, 0 0 5px rgba(0, 0, 0, 0.3);
+        /* looks */
+        background-color: #141412;
+        color: #ffffff;
+        font-size: 13px;
+        font-family: sans-serif;
+        text-decoration: none;
+        font-weight: bold;
+        /* ribbon effects */
+        border: 2px dotted #ffffff;
+        /* webkit antialias fix */
+        -webkit-backface-visibility: hidden;
+        letter-spacing: .5px;
+        text-align: center;
+      }
+      .emoji{
+        text-decoration: none;
+      }
+      calcite-combobox{
+        width:33%;
+        margin-right: .3%;
+      }
+      .mb1{
+        margin-bottom: 1rem;
+      }
+
+      @media only screen and (max-width: 850px) {
+        h1 {
+          font-size: 1.2rem;
+        }
+      }
+      @media only screen and (max-width: 600px) {
+        .ribbon {
+          display: none;
+        }
+      }
+      .selected{
+        --calcite-table-row-background: #ade9ff
+      }
+      calcite-table-row:nth-child(odd of :not(.hidden)){
+        --calcite-table-row-background: #f3f3f3
+      }
+      .hidden{
+        display: none;
+      }
+      .introjs-tooltiptext{
+        font-family: "Avenir Next", Avenir, "Helvetica Neue", sans-serif;
+        font-size: 14px  
+      }
+      #help{
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+      }
+      #help img{
+        width: 25px;
+      }
+      #help:hover{
+        cursor: pointer;
+      }
