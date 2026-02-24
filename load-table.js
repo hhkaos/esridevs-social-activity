@@ -129,6 +129,7 @@ const {
   extractSocialLinks,
   sanitizeActivityRows,
   runPostRefreshUiSync,
+  createRenderGate,
 } = window.activityUtils || {};
 
 if (
@@ -140,6 +141,7 @@ if (
     extractSocialLinks,
     sanitizeActivityRows,
     runPostRefreshUiSync,
+    createRenderGate,
   ]
     .some((fn) => typeof fn !== 'function')
 ) {
@@ -258,6 +260,85 @@ const isTruthyCell = (value) => {
   return ['true', 'yes', 'y', '1'].includes(normalized);
 };
 
+const TABLE_RENDER_CHUNK_SIZE = 50;
+const renderGate = createRenderGate();
+window.tableRenderGate = renderGate;
+
+const getFrameScheduler = () => (typeof window.requestAnimationFrame === 'function'
+  ? window.requestAnimationFrame.bind(window)
+  : (cb) => window.setTimeout(cb, 16));
+const scheduleFrame = getFrameScheduler();
+
+const FILTER_INPUT_SELECTORS = [
+  '#topics',
+  '#category',
+  '#channel',
+  '#author',
+  '#contributors',
+  '#language',
+  '#date-from',
+  '#date-to',
+  '#reset-filters-btn',
+  '#share-view-btn',
+  '#col-picker-btn',
+  '#tab-trends-trigger',
+];
+
+const setSelectEnabledState = (select, enabled) => {
+  if (!select) return;
+  select.disabled = !enabled;
+  if (!select.tomselect) return;
+  if (enabled) {
+    select.tomselect.enable();
+  } else {
+    select.tomselect.disable();
+  }
+};
+
+const setInteractiveUiEnabled = (enabled) => {
+  FILTER_INPUT_SELECTORS.forEach((selector) => {
+    const el = document.querySelector(selector);
+    if (!el) return;
+    el.disabled = !enabled;
+    if (selector === '#tab-trends-trigger') {
+      el.classList.toggle('disabled', !enabled);
+      el.setAttribute('aria-disabled', String(!enabled));
+    }
+  });
+
+  document.querySelectorAll('select.filter-multiselect').forEach((select) => {
+    setSelectEnabledState(select, enabled);
+  });
+
+  document.querySelectorAll('#col-picker-panel input[type="checkbox"]').forEach((checkbox) => {
+    checkbox.disabled = !enabled;
+  });
+};
+
+const showRenderingStatus = (processed, total) => {
+  if (loadingTimerId) {
+    window.clearInterval(loadingTimerId);
+    loadingTimerId = null;
+  }
+  if (!loadingStatusEl) return;
+  loadingStatusEl.hidden = false;
+  loadingStatusEl.classList.remove('is-error');
+  const suffix = total > 0 ? ` (${processed}/${total})` : '';
+  setLoadingMessage(`Rendering activity table${suffix}`);
+};
+
+const beginTableRender = (totalRows) => {
+  renderGate.reset();
+  setInteractiveUiEnabled(false);
+  showRenderingStatus(0, totalRows);
+};
+
+const completeTableRender = () => {
+  setInteractiveUiEnabled(true);
+  renderGate.markComplete();
+  stopLoadingStatus();
+};
+
 const TABLE_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
   month: 'short',
   day: 'numeric',
@@ -304,24 +385,26 @@ function buildDropdownData(dropdownRows, authorsRows) {
   };
 }
 
-function processAndRender(activityRows, dropdownRows, authorsRows) {
+async function processAndRender(activityRows, dropdownRows, authorsRows) {
   const sanitizedActivityRows = sanitizeActivityRows(activityRows);
   const dedupedActivityRows = dedupeActivityRows(sanitizedActivityRows);
   window.activityData = dedupedActivityRows;
   window.dropdownData = buildDropdownData(dropdownRows, authorsRows);
-  renderTableRows(dedupedActivityRows);
+  beginTableRender(dedupedActivityRows.length);
+  await renderTableRows(dedupedActivityRows);
+  completeTableRender();
   if (typeof window.onDataLoaded === 'function') {
     window.onDataLoaded();
   }
 }
 
-function refreshTableOnly(freshActivity) {
+async function refreshTableOnly(freshActivity) {
   const sanitizedActivityRows = sanitizeActivityRows(freshActivity);
   const dedupedActivityRows = dedupeActivityRows(sanitizedActivityRows);
   window.activityData = dedupedActivityRows;
-  const tableBody = document.querySelector('#main-table tbody');
-  if (tableBody) tableBody.innerHTML = '';
-  renderTableRows(dedupedActivityRows);
+  beginTableRender(dedupedActivityRows.length);
+  await renderTableRows(dedupedActivityRows);
+  completeTableRender();
   runPostRefreshUiSync({
     syncColumnVisibility: window.syncColumnVisibilityWithToggles,
     applyFilters: window.applyFilters,
@@ -336,89 +419,121 @@ function refreshTableOnly(freshActivity) {
 
 // ── Rendering ─────────────────────────────────────────────────────────────────
 
+function createTableRowClone(entry, template) {
+  const clone = template.content.cloneNode(true);
+  const row = clone.firstElementChild;
+  const featured = isTruthyCell(entry['Featured']);
+
+  if (featured) row.classList.add('selected');
+
+  const td = clone.querySelectorAll('td');
+  const isFeatured = featured ? '⭐ ' : '';
+
+  const date = pickFirst(entry, ['Date']);
+  const title = pickFirst(entry, ['Title', 'Content title']);
+  const contentLinks = Array.isArray(entry.__contentLinks) ? entry.__contentLinks : extractContentLinks(entry);
+  const author = pickFirst(entry, ['Author', 'Authors']);
+  const contributors = pickFirst(entry, ['Authors', 'Contributors', 'Contributor']);
+  const channel = pickFirst(entry, ['Channel']);
+  const language = pickFirst(entry, ['Language', 'Languages']);
+  const technology = pickFirst(entry, ['Topics_Product', 'Technology', 'Technologies']);
+  const category = pickFirst(entry, ['Category', 'Category / Content type', 'Content type']);
+  const socialLinks = Array.isArray(entry.__socialLinks) ? entry.__socialLinks : extractSocialLinks(entry);
+
+  const hasRenderableData = [
+    title,
+    date,
+    author,
+    contributors,
+    channel,
+    language,
+    technology,
+    category,
+  ].some(isMeaningfulValue)
+    || contentLinks.length > 0
+    || socialLinks.length > 0;
+
+  if (!hasRenderableData) return null;
+
+  td[0].innerText = formatDate(date);
+  row.setAttribute('data-date', date);
+
+  const domainLinks = contentLinks
+    .map((link) => `<a href="${link.url}" target="_blank" rel="noopener noreferrer" class="table-title-link small">${getDomainLabel(link.url)}</a>`)
+    .join(', ');
+
+  td[1].innerHTML = `
+    <span>${isFeatured}${title}</span>
+    ${domainLinks ? `<div class="small text-muted mt-1">Posted in: ${domainLinks}</div>` : ''}
+  `;
+
+  td[2].innerText = author;
+  row.setAttribute('data-authors', author);
+  row.setAttribute('data-contributors', contributors);
+
+  td[3].innerText = channel;
+  row.setAttribute('data-channels', channel);
+
+  td[4].innerText = language;
+  row.setAttribute('data-languages', language);
+
+  if (socialLinks.length) {
+    td[5].innerHTML = `<div class="social-links">${socialLinks.map(renderSocialLink).join('')}</div>`;
+  } else {
+    const socialHelpTooltipHtml = `No social links available.<br>If you know this content was shared, <a href='https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit?usp=sharing' target='_blank' rel='noopener noreferrer'>add it via Add new activity</a> or contact <a href='mailto:developers@esri.com'>developers@esri.com</a>.`;
+    td[5].innerHTML = `<span class="social-na" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="${socialHelpTooltipHtml}" aria-label="No social links available. Hover for details.">N/A <i class="fa-solid fa-circle-info social-na__icon" aria-hidden="true"></i></span>`;
+  }
+
+  td[6].innerText = technology;
+  row.setAttribute('data-technologies', technology);
+
+  td[7].innerText = category;
+  row.setAttribute('data-categories', category);
+
+  return clone;
+}
+
 function renderTableRows(rows) {
-  if (!('content' in document.createElement('template'))) return;
+  if (!('content' in document.createElement('template'))) return Promise.resolve();
 
   const tableBody = document.querySelector('#main-table tbody');
   const template = document.querySelector('#templateRow');
-  if (!tableBody || !template) return;
+  if (!tableBody || !template) return Promise.resolve();
 
-  rows.forEach(e => {
-    const clone = template.content.cloneNode(true);
-    const row = clone.firstElementChild;
-    const featured = isTruthyCell(e['Featured']);
+  tableBody.innerHTML = '';
+  const safeRows = Array.isArray(rows) ? rows : [];
+  const totalRows = safeRows.length;
 
-    if (featured) row.classList.add('selected');
+  return new Promise((resolve) => {
+    let index = 0;
+    const renderChunk = () => {
+      const fragment = document.createDocumentFragment();
+      let processedInChunk = 0;
 
-    const td = clone.querySelectorAll('td');
-    const isFeatured = featured ? '⭐ ' : '';
+      while (index < totalRows && processedInChunk < TABLE_RENDER_CHUNK_SIZE) {
+        const clone = createTableRowClone(safeRows[index], template);
+        if (clone) fragment.appendChild(clone);
+        index += 1;
+        processedInChunk += 1;
+      }
 
-    const date = pickFirst(e, ['Date']);
-    const title = pickFirst(e, ['Title', 'Content title']);
-    const contentLinks = Array.isArray(e.__contentLinks) ? e.__contentLinks : extractContentLinks(e);
-    const primaryUrl = contentLinks[0]?.url || '';
-    const author = pickFirst(e, ['Author', 'Authors']);
-    const contributors = pickFirst(e, ['Authors', 'Contributors', 'Contributor']);
-    const channel = pickFirst(e, ['Channel']);
-    const language = pickFirst(e, ['Language', 'Languages']);
-    const technology = pickFirst(e, ['Topics_Product', 'Technology', 'Technologies']);
-    const category = pickFirst(e, ['Category', 'Category / Content type', 'Content type']);
-    const socialLinks = Array.isArray(e.__socialLinks) ? e.__socialLinks : extractSocialLinks(e);
+      if (fragment.childNodes.length > 0) {
+        tableBody.appendChild(fragment);
+      }
 
-    const hasRenderableData = [
-      title,
-      date,
-      author,
-      contributors,
-      channel,
-      language,
-      technology,
-      category,
-    ].some(isMeaningfulValue)
-      || contentLinks.length > 0
-      || socialLinks.length > 0;
+      showRenderingStatus(index, totalRows);
 
-    if (!hasRenderableData) return;
+      if (index < totalRows) {
+        scheduleFrame(renderChunk);
+        return;
+      }
 
-    td[0].innerText = formatDate(date);
-    row.setAttribute('data-date', date);
+      initSocialTooltips();
+      resolve();
+    };
 
-    const domainLinks = contentLinks
-      .map((link) => `<a href="${link.url}" target="_blank" rel="noopener noreferrer" class="table-title-link small">${getDomainLabel(link.url)}</a>`)
-      .join(', ');
-
-    td[1].innerHTML = `
-      <span>${isFeatured}${title}</span>
-      ${domainLinks ? `<div class="small text-muted mt-1">Posted in: ${domainLinks}</div>` : ''}
-    `;
-
-    td[2].innerText = author;
-    row.setAttribute('data-authors', author);
-    row.setAttribute('data-contributors', contributors);
-
-    td[3].innerText = channel;
-    row.setAttribute('data-channels', channel);
-
-    td[4].innerText = language;
-    row.setAttribute('data-languages', language);
-
-    if (socialLinks.length) {
-      td[5].innerHTML = `<div class="social-links">${socialLinks.map(renderSocialLink).join('')}</div>`;
-    } else {
-      const socialHelpTooltipHtml = `No social links available.<br>If you know this content was shared, <a href='https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit?usp=sharing' target='_blank' rel='noopener noreferrer'>add it via Add new activity</a> or contact <a href='mailto:developers@esri.com'>developers@esri.com</a>.`;
-      td[5].innerHTML = `<span class="social-na" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="${socialHelpTooltipHtml}" aria-label="No social links available. Hover for details.">N/A <i class="fa-solid fa-circle-info social-na__icon" aria-hidden="true"></i></span>`;
-    }
-
-    td[6].innerText = technology;
-    row.setAttribute('data-technologies', technology);
-
-    td[7].innerText = category;
-    row.setAttribute('data-categories', category);
-
-    tableBody.appendChild(clone);
+    scheduleFrame(renderChunk);
   });
-
-  initSocialTooltips();
 }
 
 function formatDate(dateString) {
@@ -433,6 +548,7 @@ function formatDate(dateString) {
 // are guaranteed to have run and exposed their callbacks on window.
 
 const cachedData = loadDataCache();
+setInteractiveUiEnabled(false);
 
 // If we have cached data, hide the loading spinner right away so users see no flash.
 if (cachedData && loadingStatusEl) {
@@ -452,7 +568,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
   if (cachedData) {
     // Render from cache immediately — all other scripts are now ready
-    processAndRender(cachedData.activityRows, cachedData.dropdownRows, cachedData.authorsRows);
+    processAndRender(cachedData.activityRows, cachedData.dropdownRows, cachedData.authorsRows)
+      .catch((err) => {
+        console.error('Failed to render cached data:', err);
+        showLoadingError();
+      });
     showToast('Checking for updates\u2026', 'checking');
 
     dataFetchPromise
@@ -461,8 +581,14 @@ window.addEventListener('DOMContentLoaded', () => {
         if (dataHasChanged(freshActivity, cachedData.activityRows)) {
           showToast('New data available \u2014 refreshing\u2026', 'updating');
           setTimeout(() => {
-            refreshTableOnly(freshActivity);
-            showToast('Activity feed updated', 'uptodate', 3000);
+            refreshTableOnly(freshActivity)
+              .then(() => {
+                showToast('Activity feed updated', 'uptodate', 3000);
+              })
+              .catch((err) => {
+                console.error('Failed to refresh table:', err);
+                hideToast();
+              });
           }, 2000);
         } else {
           showToast('Already up to date', 'uptodate', 2500);
@@ -478,8 +604,7 @@ window.addEventListener('DOMContentLoaded', () => {
     dataFetchPromise
       .then(([activityRows, dropdownRows, authorsRows]) => {
         saveDataCache(sanitizeActivityRows(activityRows), dropdownRows, authorsRows);
-        processAndRender(activityRows, dropdownRows, authorsRows);
-        stopLoadingStatus();
+        return processAndRender(activityRows, dropdownRows, authorsRows);
       })
       .catch(err => {
         console.error('Failed to load data:', err);

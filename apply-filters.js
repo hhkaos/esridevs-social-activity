@@ -192,13 +192,19 @@ const loadMultiSelect = (options, id, keyword) => {
 };
 
 const passesFilter = (map, value, splitValues = false) => {
-  if (!value) return true;
-  if (!splitValues) return map[value] !== 0;
-  return value
-    .split(',')
-    .map(v => v.trim())
-    .filter(Boolean)
-    .some(v => map[v] !== 0);
+  if (typeof window.activityUtils?.matchesSelectionMap === 'function') {
+    return window.activityUtils.matchesSelectionMap(map, value, { splitValues });
+  }
+
+  const hasActiveSelections = Object.values(map || {}).some((selection) => selection === 1);
+  if (!hasActiveSelections) return true;
+
+  const candidates = splitValues
+    ? `${value ?? ''}`.split(',').map((item) => `${item}`.trim()).filter(Boolean)
+    : [`${value ?? ''}`.trim()].filter(Boolean);
+
+  if (candidates.length === 0) return false;
+  return candidates.some((candidate) => map[candidate] === 1);
 };
 
 const parseISODate = (value) => {
@@ -256,7 +262,7 @@ const isRowVisible = (row) => {
   const { channels, technologies, categories, authors, contributors, languages } = flags;
   return isDateInRange(row.dataset.date) && [
     [channels, row.dataset.channels, false],
-    [technologies, row.dataset.technologies, false],
+    [technologies, row.dataset.technologies, true],
     [categories, row.dataset.categories, false],
     [authors, row.dataset.authors, false],
     [contributors, row.dataset.contributors, true],
@@ -265,13 +271,18 @@ const isRowVisible = (row) => {
 };
 
 const trendsTabIsActive = () => document.querySelector('#tab-trends')?.classList.contains('active');
+const isTableRenderReady = () => {
+  if (!window.tableRenderGate || typeof window.tableRenderGate.isComplete !== 'function') return true;
+  return window.tableRenderGate.isComplete();
+};
 
 const getActiveTab = () => (
   document.querySelector('#tab-trends-trigger')?.classList.contains('active') ? 'trends' : 'table'
 );
 
 const setActiveTab = (tabKey) => {
-  const desired = normalizeActiveTab(tabKey);
+  const requested = normalizeActiveTab(tabKey);
+  const desired = requested === 'trends' && !isTableRenderReady() ? 'table' : requested;
   const tableTrigger = document.querySelector('#tab-table-trigger');
   const trendsTrigger = document.querySelector('#tab-trends-trigger');
   const tablePane = document.querySelector('#tab-table');
@@ -288,10 +299,11 @@ const setActiveTab = (tabKey) => {
   trendsPane?.classList.toggle('show', !tableIsActive);
   trendsPane?.classList.toggle('active', !tableIsActive);
 
-  appState.activeTab = desired;
+  appState.activeTab = requested;
 };
 
 const applyFilters = () => {
+  if (!isTableRenderReady()) return;
   const rows = [...document.querySelectorAll('#main-table tbody tr')];
   let visibleRows = 0;
 
@@ -489,6 +501,7 @@ document.querySelector('#tab-table-trigger')?.addEventListener('click', () => {
 
 document.querySelector('#tab-trends-trigger')?.addEventListener('click', () => {
   setActiveTab('trends');
+  if (!isTableRenderReady()) return;
   if (typeof window.renderCharts === 'function') window.renderCharts();
 });
 
@@ -547,3 +560,12 @@ shareViewBtn?.addEventListener('click', async () => {
 });
 
 setActiveTab(appState.activeTab);
+
+if (window.tableRenderGate && typeof window.tableRenderGate.onComplete === 'function') {
+  window.tableRenderGate.onComplete(() => {
+    setActiveTab(appState.activeTab);
+    if (trendsTabIsActive() && typeof window.renderCharts === 'function') {
+      window.renderCharts();
+    }
+  });
+}

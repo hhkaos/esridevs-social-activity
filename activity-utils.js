@@ -8,6 +8,18 @@
 
   const hasText = (value) => normalizeCell(value) !== '';
   const hasLink = (value) => hasText(value) && normalizeCell(value).toLowerCase() !== 'n/a';
+  const hasActiveSelections = (map) => Object.values(map || {}).some((selection) => selection === 1);
+  const matchesSelectionMap = (map, value, { splitValues = false } = {}) => {
+    if (!hasActiveSelections(map)) return true;
+
+    const raw = `${value ?? ''}`;
+    const candidates = splitValues
+      ? raw.split(',').map((item) => normalizeCell(item)).filter(Boolean)
+      : [normalizeCell(raw)].filter(Boolean);
+
+    if (candidates.length === 0) return false;
+    return candidates.some((candidate) => map[candidate] === 1);
+  };
   const isMeaningfulValue = (value) => {
     const normalized = normalizeCell(value).toLowerCase();
     if (!normalized) return false;
@@ -127,15 +139,49 @@
     if (typeof applyFilters === 'function') applyFilters();
   };
 
+  const createRenderGate = () => {
+    let ready = false;
+    let callbacks = [];
+
+    const flush = () => {
+      const queued = callbacks;
+      callbacks = [];
+      queued.forEach((cb) => cb());
+    };
+
+    return {
+      isComplete: () => ready,
+      onComplete: (callback) => {
+        if (typeof callback !== 'function') return;
+        if (ready) {
+          callback();
+          return;
+        }
+        callbacks.push(callback);
+      },
+      markComplete: () => {
+        if (ready) return;
+        ready = true;
+        flush();
+      },
+      reset: () => {
+        ready = false;
+        callbacks = [];
+      },
+    };
+  };
+
   const api = {
     hasText,
     hasLink,
+    matchesSelectionMap,
     isMeaningfulValue,
     pickFirst,
     extractContentLinks,
     extractSocialLinks,
     sanitizeActivityRows,
     runPostRefreshUiSync,
+    createRenderGate,
   };
 
   global.activityUtils = Object.assign({}, global.activityUtils || {}, api);

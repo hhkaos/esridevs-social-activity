@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version tag to release (e.g. v0.1.0)'
+        required: true
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build all packages
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
+
+      - name: Resolve version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Package VS Code extension (.vsix)
+        working-directory: packages/vscode
+        run: npx @vscode/vsce package --no-dependencies
+
+      - name: Package Chrome extension (.zip)
+        working-directory: packages/chrome
+        run: zip -r "arcgis-api-key-explorer-chrome-${{ steps.version.outputs.tag }}.zip" dist/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ArcGIS API Key Explorer ${{ steps.version.outputs.tag }}
+          generate_release_notes: true
+          files: |
+            packages/vscode/*.vsix
+            packages/chrome/arcgis-api-key-explorer-chrome-${{ steps.version.outputs.tag }}.zip

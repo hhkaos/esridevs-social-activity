@@ -6,7 +6,9 @@ const require = createRequire(import.meta.url);
 const {
   sanitizeActivityRows,
   extractSocialLinks,
+  matchesSelectionMap,
   runPostRefreshUiSync,
+  createRenderGate,
 } = require('../activity-utils.js');
 
 test('sanitizeActivityRows removes blank rows with invisible characters', () => {
@@ -82,6 +84,23 @@ test('extractSocialLinks maps EsriDevs Shared fallback to X when X/Twitter is em
   assert.equal(socialLinks[0].platform, 'x');
 });
 
+test('matchesSelectionMap allows all values when no selections are active', () => {
+  assert.equal(matchesSelectionMap({}, 'Arcade'), true);
+  assert.equal(matchesSelectionMap({ Arcade: 0, StoryMaps: 0 }, 'StoryMaps'), true);
+});
+
+test('matchesSelectionMap rejects non-selected values when a filter is active', () => {
+  const activeTopicFilter = { Arcade: 1, StoryMaps: 0 };
+  assert.equal(matchesSelectionMap(activeTopicFilter, 'StoryMaps'), false);
+  assert.equal(matchesSelectionMap(activeTopicFilter, 'ArcGIS Maps SDK for JavaScript'), false);
+});
+
+test('matchesSelectionMap supports comma-delimited cells for topic matching', () => {
+  const activeTopicFilter = { Arcade: 1, StoryMaps: 0 };
+  assert.equal(matchesSelectionMap(activeTopicFilter, 'ArcGIS Dashboards, Arcade', { splitValues: true }), true);
+  assert.equal(matchesSelectionMap(activeTopicFilter, 'ArcGIS Dashboards, StoryMaps', { splitValues: true }), false);
+});
+
 test('runPostRefreshUiSync executes column sync and filters hooks', () => {
   const calls = [];
   runPostRefreshUiSync({
@@ -95,4 +114,42 @@ test('runPostRefreshUiSync executes column sync and filters hooks', () => {
 test('runPostRefreshUiSync tolerates missing hooks', () => {
   assert.doesNotThrow(() => runPostRefreshUiSync({}));
   assert.doesNotThrow(() => runPostRefreshUiSync());
+});
+
+test('createRenderGate queues completion handlers until marked complete', () => {
+  const gate = createRenderGate();
+  const calls = [];
+
+  gate.onComplete(() => calls.push('first'));
+  gate.onComplete(() => calls.push('second'));
+
+  assert.equal(gate.isComplete(), false);
+  assert.deepEqual(calls, []);
+
+  gate.markComplete();
+  assert.equal(gate.isComplete(), true);
+  assert.deepEqual(calls, ['first', 'second']);
+});
+
+test('createRenderGate invokes completion handler immediately after completion', () => {
+  const gate = createRenderGate();
+  const calls = [];
+
+  gate.markComplete();
+  gate.onComplete(() => calls.push('late'));
+
+  assert.deepEqual(calls, ['late']);
+});
+
+test('createRenderGate reset requires a new completion mark', () => {
+  const gate = createRenderGate();
+  const calls = [];
+
+  gate.markComplete();
+  gate.reset();
+  gate.onComplete(() => calls.push('after-reset'));
+  assert.deepEqual(calls, []);
+
+  gate.markComplete();
+  assert.deepEqual(calls, ['after-reset']);
 });
