@@ -396,11 +396,6 @@ const initApp = () => {
   ['#topics', '#category', '#channel', '#author', '#contributors', '#language'].forEach((id) => {
     document.querySelector(id)?.dispatchEvent(event);
   });
-
-  if (!localStorage.getItem('tourDisplayed')) {
-    introJs().start();
-    localStorage.setItem('tourDisplayed', true);
-  }
 };
 
 const TOGGLEABLE_COLS = [
@@ -485,8 +480,6 @@ window.onDataLoaded = () => {
   if (typeof previousOnDataLoaded === 'function') previousOnDataLoaded();
   syncColumnVisibilityWithToggles();
 };
-
-document.querySelector('#help')?.addEventListener('click', () => introJs().start());
 
 document.querySelector('#tab-table-trigger')?.addEventListener('click', () => {
   setActiveTab('table');

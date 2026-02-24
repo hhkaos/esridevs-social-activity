@@ -682,24 +682,6 @@ body {
   }
 }
 
-/* ── Help button ───────────────────────────────────────────────────────────── */
-#help {
-  position: fixed;
-  bottom: 12px;
-  right: 12px;
-  cursor: pointer;
-}
-
-#help img {
-  width: 28px;
-}
-
-/* ── Intro.js ──────────────────────────────────────────────────────────────── */
-.introjs-tooltiptext {
-  font-family: "Avenir Next", Avenir, "Helvetica Neue", sans-serif;
-  font-size: 14px;
-}
-
 /* ── Update toast ──────────────────────────────────────────────────────────── */
 #update-toast {
   position: fixed;
