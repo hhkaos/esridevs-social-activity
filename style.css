@@ -346,7 +346,8 @@ body {
 #main-table th,
 #main-table td {
   white-space: normal;
-  word-break: break-word;
+  word-break: normal;
+  overflow-wrap: anywhere;
   vertical-align: middle;
   border-color: #e4ebf9;
 }
@@ -363,6 +364,8 @@ body {
   font-weight: 700;
   border-top: 0;
   border-bottom-width: 2px;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 #main-table td {
@@ -400,7 +403,8 @@ body {
 #main-table th:nth-child(2),
 #main-table td:nth-child(2) {
   text-align: left;
-  min-width: 430px;
+  min-width: 300px;
+  width: 38%;
 }
 
 #main-table td:nth-child(2) .table-title-link {
@@ -421,23 +425,76 @@ body {
 #main-table td:nth-child(5),
 #main-table th:nth-child(6),
 #main-table td:nth-child(6),
-#main-table th:nth-child(7),
-#main-table td:nth-child(7),
-#main-table th:nth-child(9),
-#main-table td:nth-child(9) {
+#main-table th:nth-child(8),
+#main-table td:nth-child(8) {
   text-align: center;
+}
+
+#main-table th:nth-child(7),
+#main-table td:nth-child(7) {
+  text-align: center;
+  min-width: 180px;
+}
+
+#main-table th:nth-child(6),
+#main-table td:nth-child(6) {
+  min-width: 92px;
 }
 
 #main-table th:nth-child(8),
 #main-table td:nth-child(8) {
-  text-align: left;
-  min-width: 180px;
+  min-width: 130px;
+}
+
+.social-links {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .social-link {
-  text-decoration: none;
-  font-size: 1rem;
+  text-decoration: none !important;
+  font-size: 1.05rem;
   line-height: 1;
+  color: #4b5c83;
+}
+
+.social-link:hover,
+.social-link:focus-visible {
+  color: #243a6c;
+}
+
+.social-link--linkedin {
+  color: #0a66c2;
+}
+
+.social-link--x {
+  color: #111111;
+}
+
+.social-link--bluesky {
+  color: #1185fe;
+}
+
+.social-na {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  color: #5f6f96;
+  font-size: 0.86rem;
+  font-weight: 600;
+  background: #edf3ff;
+  border: 1px solid #c9d4ef;
+  border-radius: 999px;
+  padding: 0.12rem 0.45rem;
+  border-bottom: 1px dotted #8b9dc8;
+  cursor: help;
+}
+
+.social-na__icon {
+  font-size: 0.8rem;
 }
 
 @media (max-width: 700px) {

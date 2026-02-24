@@ -120,12 +120,169 @@ const fetchJsonOrThrow = (url) =>
   });
 
 const hasText = (value) => `${value ?? ''}`.trim() !== '';
+const hasLink = (value) => hasText(value) && `${value}`.trim().toLowerCase() !== 'n/a';
 
 const pickFirst = (row, keys) => {
   for (const key of keys) {
     if (hasText(row?.[key])) return `${row[key]}`.trim();
   }
   return '';
+};
+
+const mergeUniqueItems = (currentItems, nextItems = []) => {
+  const merged = Array.isArray(currentItems) ? [...currentItems] : [];
+  const seen = new Set(merged.map((item) => item?.url || `${item}`));
+
+  nextItems.forEach((item) => {
+    const key = item?.url || `${item}`;
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    merged.push(item);
+  });
+
+  return merged;
+};
+
+const normalizeForKey = (value) => `${value ?? ''}`
+  .toLowerCase()
+  .replace(/\s+/g, ' ')
+  .trim();
+
+const detectSocialPlatform = (url, fallback = 'shared') => {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    if (host.includes('linkedin.com')) return 'linkedin';
+    if (host.includes('x.com') || host.includes('twitter.com')) return 'x';
+    if (host.includes('bsky.app') || host.includes('bluesky')) return 'bluesky';
+  } catch {
+    return fallback;
+  }
+  return fallback;
+};
+
+const socialPlatformName = (platform) => ({
+  linkedin: 'LinkedIn',
+  x: 'X/Twitter',
+  bluesky: 'Bluesky',
+  shared: 'EsriDevs Shared',
+}[platform] || 'EsriDevs Shared');
+
+const socialIconClass = (platform) => ({
+  linkedin: 'fa-brands fa-linkedin',
+  x: 'fa-brands fa-x-twitter',
+  bluesky: 'fa-brands fa-bluesky',
+  shared: 'fa-solid fa-share-nodes',
+}[platform] || 'fa-solid fa-share-nodes');
+
+const renderSocialLink = ({ url, platform, title }) =>
+  `<a href="${url}" target="_blank" rel="noopener noreferrer" class="social-link social-link--${platform}" title="${title}" aria-label="${title}">
+    <i class="${socialIconClass(platform)}" aria-hidden="true"></i>
+  </a>`;
+
+const initSocialTooltips = () => {
+  if (!window.bootstrap?.Tooltip) return;
+  document.querySelectorAll('.social-na[data-bs-toggle="tooltip"]').forEach((el) => {
+    window.bootstrap.Tooltip.getOrCreateInstance(el, {
+      html: true,
+      container: 'body',
+      trigger: 'hover focus',
+    });
+  });
+};
+
+const buildSocialLinks = ({ linkedin, xPost, bluesky, esriDevsShared }) => {
+  const links = [];
+
+  if (hasLink(linkedin)) {
+    links.push({ url: linkedin, platform: 'linkedin', title: 'Open LinkedIn post' });
+  }
+
+  if (hasLink(xPost)) {
+    links.push({ url: xPost, platform: 'x', title: 'Open X/Twitter post' });
+  }
+
+  if (hasLink(bluesky)) {
+    links.push({ url: bluesky, platform: 'bluesky', title: 'Open Bluesky post' });
+  }
+
+  if (hasLink(esriDevsShared)) {
+    const platform = detectSocialPlatform(esriDevsShared, 'shared');
+    links.push({
+      url: esriDevsShared,
+      platform,
+      title: `Open EsriDevs Shared (${socialPlatformName(platform)})`,
+    });
+  }
+
+  return links;
+};
+
+const extractContentLinks = (row) => {
+  const directUrl = pickFirst(row, ['URL', 'Url', 'Link']);
+  return hasLink(directUrl)
+    ? [{ url: directUrl, title: 'Open content link' }]
+    : [];
+};
+
+const getDomainLabel = (url) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./i, '');
+  } catch {
+    return 'link';
+  }
+};
+
+const extractSocialLinks = (row) => {
+  const linkedin = pickFirst(row, ['Linkedin', 'LinkedIn']);
+  const xPost = pickFirst(row, ['X/Twitter', 'X', 'Twitter']);
+  const bluesky = pickFirst(row, ['Bluesky', 'BlueSky']);
+  const esriDevsShared = pickFirst(row, ['EsriDevs Shared', 'EsriDevs shared']);
+
+  let resolvedXPost = xPost;
+  if (!hasLink(resolvedXPost) && hasLink(esriDevsShared)) {
+    resolvedXPost = esriDevsShared;
+  }
+
+  return buildSocialLinks({
+    linkedin,
+    xPost: resolvedXPost,
+    bluesky,
+    esriDevsShared: hasLink(xPost) ? esriDevsShared : '',
+  });
+};
+
+const dedupeActivityRows = (rows) => {
+  const byTitle = new Map();
+
+  rows.forEach((row, index) => {
+    const title = pickFirst(row, ['Title', 'Content title']);
+    const rowKey = normalizeForKey(title) || `row:${index}`;
+    const contentLinks = extractContentLinks(row);
+    const socialLinks = extractSocialLinks(row);
+
+    if (!byTitle.has(rowKey)) {
+      byTitle.set(rowKey, {
+        ...row,
+        __contentLinks: contentLinks,
+        __socialLinks: socialLinks,
+      });
+      return;
+    }
+
+    const existing = byTitle.get(rowKey);
+    existing.__contentLinks = mergeUniqueItems(existing.__contentLinks, contentLinks);
+    existing.__socialLinks = mergeUniqueItems(existing.__socialLinks, socialLinks);
+
+    if (!isTruthyCell(existing['Featured']) && isTruthyCell(row['Featured'])) {
+      existing['Featured'] = row['Featured'];
+    }
+
+    if (!hasText(existing['Date']) && hasText(row['Date'])) {
+      existing['Date'] = row['Date'];
+    }
+  });
+
+  return [...byTitle.values()];
 };
 
 const uniqueColumnValues = (rows, keys) => [
@@ -188,19 +345,21 @@ function buildDropdownData(dropdownRows, authorsRows) {
 }
 
 function processAndRender(activityRows, dropdownRows, authorsRows) {
-  window.activityData = activityRows;
+  const dedupedActivityRows = dedupeActivityRows(activityRows);
+  window.activityData = dedupedActivityRows;
   window.dropdownData = buildDropdownData(dropdownRows, authorsRows);
-  renderTableRows(activityRows);
+  renderTableRows(dedupedActivityRows);
   if (typeof window.onDataLoaded === 'function') {
     window.onDataLoaded();
   }
 }
 
 function refreshTableOnly(freshActivity) {
-  window.activityData = freshActivity;
+  const dedupedActivityRows = dedupeActivityRows(freshActivity);
+  window.activityData = dedupedActivityRows;
   const tableBody = document.querySelector('#main-table tbody');
   if (tableBody) tableBody.innerHTML = '';
-  renderTableRows(freshActivity);
+  renderTableRows(dedupedActivityRows);
   if (typeof window.applyFilters === 'function') {
     window.applyFilters();
   }
@@ -233,24 +392,26 @@ function renderTableRows(rows) {
 
     const date = pickFirst(e, ['Date']);
     const title = pickFirst(e, ['Title', 'Content title']);
-    const url = pickFirst(e, ['URL', 'Url', 'Link']);
+    const contentLinks = Array.isArray(e.__contentLinks) ? e.__contentLinks : extractContentLinks(e);
+    const primaryUrl = contentLinks[0]?.url || '';
     const author = pickFirst(e, ['Author', 'Authors']);
     const contributors = pickFirst(e, ['Authors', 'Contributors', 'Contributor']);
     const channel = pickFirst(e, ['Channel']);
     const language = pickFirst(e, ['Language', 'Languages']);
-    const linkedin = pickFirst(e, ['Linkedin', 'LinkedIn']);
-    const xPost = pickFirst(e, ['X/Twitter', 'X', 'Twitter']);
     const technology = pickFirst(e, ['Topics_Product', 'Technology', 'Technologies']);
     const category = pickFirst(e, ['Category', 'Category / Content type', 'Content type']);
 
     td[0].innerText = formatDate(date);
     row.setAttribute('data-date', date);
 
-    if (url && url.toLowerCase() !== 'n/a') {
-      td[1].innerHTML = `<a href="${url}" target="_blank" class="table-title-link">${isFeatured}${title}</a>`;
-    } else {
-      td[1].innerHTML = `${isFeatured}${title}`;
-    }
+    const domainLinks = contentLinks
+      .map((link) => `<a href="${link.url}" target="_blank" rel="noopener noreferrer" class="table-title-link small">${getDomainLabel(link.url)}</a>`)
+      .join(', ');
+
+    td[1].innerHTML = `
+      <span>${isFeatured}${title}</span>
+      ${domainLinks ? `<div class="small text-muted mt-1">Posted in: ${domainLinks}</div>` : ''}
+    `;
 
     td[2].innerText = author;
     row.setAttribute('data-authors', author);
@@ -262,21 +423,24 @@ function renderTableRows(rows) {
     td[4].innerText = language;
     row.setAttribute('data-languages', language);
 
-    if (linkedin && linkedin.toLowerCase() !== 'n/a') {
-      td[5].innerHTML = `<a href="${linkedin}" target="_blank" class="social-link" title="Like or repost on LinkedIn">🔁</a>`;
-    }
-    if (xPost && xPost.toLowerCase() !== 'n/a') {
-      td[6].innerHTML = `<a href="${xPost}" target="_blank" class="social-link" title="Like or repost on X">🔁</a>`;
+    const socialLinks = Array.isArray(e.__socialLinks) ? e.__socialLinks : extractSocialLinks(e);
+    if (socialLinks.length) {
+      td[5].innerHTML = `<div class="social-links">${socialLinks.map(renderSocialLink).join('')}</div>`;
+    } else {
+      const socialHelpTooltipHtml = `No social links available.<br>If you know this content was shared, <a href='https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit?usp=sharing' target='_blank' rel='noopener noreferrer'>add it via Add new activity</a> or contact <a href='mailto:developers@esri.com'>developers@esri.com</a>.`;
+      td[5].innerHTML = `<span class="social-na" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="${socialHelpTooltipHtml}" aria-label="No social links available. Hover for details.">N/A <i class="fa-solid fa-circle-info social-na__icon" aria-hidden="true"></i></span>`;
     }
 
-    td[7].innerText = technology;
+    td[6].innerText = technology;
     row.setAttribute('data-technologies', technology);
 
-    td[8].innerText = category;
+    td[7].innerText = category;
     row.setAttribute('data-categories', category);
 
     tableBody.appendChild(clone);
   });
+
+  initSocialTooltips();
 }
 
 function formatDate(dateString) {

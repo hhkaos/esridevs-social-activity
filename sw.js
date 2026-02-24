@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v3';
 const SHELL_CACHE = `esridevs-shell-${CACHE_VERSION}`;
 
 const SHELL_ASSETS = [

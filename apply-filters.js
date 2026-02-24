@@ -1,6 +1,6 @@
 /**
  * flags holds the current filter state for all filter dimensions.
- * It is restored from the URL hash (LZString-compressed) when present.
+ * It is restored from URL state (query param or legacy hash) when present.
  */
 let flags;
 const LEGACY_DEFAULT_START_DATE = '2024-08-01';
@@ -18,8 +18,7 @@ const DEFAULT_COLUMN_VISIBILITY = {
   author: false,
   channel: false,
   language: false,
-  linkedin: false,
-  x: false,
+  social: true,
   contributor: false,
   category: true,
 };
@@ -64,11 +63,16 @@ const normalizeColumnVisibility = (input) => {
 
 const normalizeActiveTab = (value) => (value === 'trends' ? 'trends' : 'table');
 
-const parseHashState = () => {
+const decodeShareState = (encoded) => {
+  if (!encoded) return null;
   try {
-    const hash = window.location.hash.slice(1);
-    if (!hash) return null;
-    const decompressed = LZString.decompressFromBase64(hash);
+    const normalized = `${encoded}`
+      // URLSearchParams can decode `+` as spaces.
+      .replace(/\s/g, '+')
+      // Accept URL-safe base64 variants as well.
+      .replace(/-/g, '+')
+      .replace(/_/g, '/');
+    const decompressed = LZString.decompressFromBase64(normalized);
     if (!decompressed) return null;
     const parsed = JSON.parse(decompressed);
     if (!parsed || typeof parsed !== 'object') return null;
@@ -78,7 +82,30 @@ const parseHashState = () => {
   }
 };
 
-const parsedHashState = parseHashState();
+const getStateFromUrl = () => {
+  const url = new URL(window.location.href);
+  let stateFromQuery = '';
+  for (const [key, value] of url.searchParams.entries()) {
+    if (key.toLowerCase() === 'state') {
+      stateFromQuery = value;
+      break;
+    }
+  }
+
+  const queryState = decodeShareState(stateFromQuery);
+  if (queryState) {
+    return { source: 'query', encoded: stateFromQuery, state: queryState };
+  }
+
+  const hash = window.location.hash.slice(1);
+  if (!hash) return { source: null, encoded: '', state: null };
+  const hashState = decodeShareState(hash);
+  if (!hashState) return { source: null, encoded: '', state: null };
+  return { source: 'hash', encoded: hash, state: hashState };
+};
+
+const stateFromUrl = getStateFromUrl();
+const parsedHashState = stateFromUrl.state;
 const hasNestedState = parsedHashState && typeof parsedHashState === 'object' && parsedHashState.filters;
 
 const appState = {
@@ -86,6 +113,23 @@ const appState = {
   columns: normalizeColumnVisibility(hasNestedState ? parsedHashState.columns : null),
   activeTab: normalizeActiveTab(hasNestedState ? parsedHashState.activeTab : null),
 };
+
+if (stateFromUrl.source === 'hash') {
+  const cleanedUrl = new URL(window.location.href);
+  cleanedUrl.hash = '';
+  [...cleanedUrl.searchParams.keys()]
+    .filter((key) => key.toLowerCase() === 'state')
+    .forEach((key) => cleanedUrl.searchParams.delete(key));
+  window.history.replaceState({}, '', cleanedUrl.toString());
+}
+
+if (stateFromUrl.source === 'query') {
+  const cleanedUrl = new URL(window.location.href);
+  [...cleanedUrl.searchParams.keys()]
+    .filter((key) => key.toLowerCase() === 'state')
+    .forEach((key) => cleanedUrl.searchParams.delete(key));
+  window.history.replaceState({}, '', cleanedUrl.toString());
+}
 
 flags = appState.filters;
 window.flags = flags;
@@ -363,8 +407,7 @@ const TOGGLEABLE_COLS = [
   { key: 'author', filterId: '#filter-author' },
   { key: 'channel', filterId: '#filter-channel' },
   { key: 'language', filterId: '#filter-language' },
-  { key: 'linkedin' },
-  { key: 'x' },
+  { key: 'social' },
   { key: 'contributor', filterId: '#filter-contributors' },
   { key: 'category', filterId: '#filter-category' },
 ];
@@ -464,6 +507,13 @@ const getSerializableShareState = () => ({
   activeTab: getActiveTab(),
 });
 
+const buildShareUrl = (encodedState) => {
+  const url = new URL(window.location.href);
+  url.hash = '';
+  url.searchParams.set('state', encodedState);
+  return url.toString();
+};
+
 const copyTextToClipboard = async (text) => {
   if (navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(text);
@@ -491,15 +541,13 @@ const setShareFeedback = (message, isError = false) => {
 const shareViewBtn = document.querySelector('#share-view-btn');
 shareViewBtn?.addEventListener('click', async () => {
   const encoded = LZString.compressToBase64(JSON.stringify(getSerializableShareState()));
-  const shareUrl = `${window.location.origin}${window.location.pathname}${window.location.search}#${encoded}`;
-
-  window.history.replaceState({}, '', `#${encoded}`);
+  const shareUrl = buildShareUrl(encoded);
 
   try {
     await copyTextToClipboard(shareUrl);
     setShareFeedback('Shareable link copied to clipboard.');
   } catch {
-    setShareFeedback('Unable to copy link. You can copy the URL from the address bar.', true);
+    setShareFeedback('Unable to copy link. Please try again.', true);
   }
 });
 

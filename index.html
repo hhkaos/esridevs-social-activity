@@ -6,6 +6,7 @@
   <title>EsriDevs Social Activity</title>
   <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/morph/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/introjs.css" integrity="sha512-4OzqLjfh1aJa7M33b5+h0CSx0Q3i9Qaxlrr1T/Z+Vz+9zs5A7GM3T3MFKXoreghi3iDOSbkPMXiMBhFO7UBW/g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="./style.css" />
 </head>
@@ -20,7 +21,7 @@
         class="btn btn-outline-primary btn-sm"
         href="https://docs.google.com/spreadsheets/d/1oKkHCNbOUpfERu1xC4ePU2XwDSvalEfE0YmTN39cyNg/edit?usp=sharing"
         target="_blank"
-        data-intro="Do you find something missing? <br/>Add a comment or contact us at <a href='mailto:developeroutreach@esri.com'>developeroutreach@esri.com</a> 📧"
+        data-intro="Do you find something missing? <br/>Add a comment or contact us at <a href='mailto:developers@esri.com'>developers@esri.com</a> 📧"
         data-step="20">
         Add new activity
       </a>
@@ -96,8 +97,7 @@
             <label class="col-picker-item"><input type="checkbox" id="col-toggle-author"> Author</label>
             <label class="col-picker-item"><input type="checkbox" id="col-toggle-channel"> Channel</label>
             <label class="col-picker-item"><input type="checkbox" id="col-toggle-language"> Language</label>
-            <label class="col-picker-item"><input type="checkbox" id="col-toggle-linkedin"> LinkedIn</label>
-            <label class="col-picker-item"><input type="checkbox" id="col-toggle-x"> X</label>
+            <label class="col-picker-item"><input type="checkbox" id="col-toggle-social" checked> Social</label>
             <label class="col-picker-item"><input type="checkbox" id="col-toggle-contributor"> Contributor</label>
             <label class="col-picker-item"><input type="checkbox" id="col-toggle-category" checked> Content type</label>
           </div>
@@ -116,10 +116,10 @@
     <!-- ── Tabs ────────────────────────────────────────────────────────────── -->
     <ul class="nav nav-tabs" id="main-tabs" role="tablist">
       <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="tab-table-trigger" data-bs-toggle="tab" data-bs-target="#tab-table" type="button" role="tab" aria-controls="tab-table" aria-selected="true">Table</button>
+        <button class="nav-link active" id="tab-table-trigger" data-bs-toggle="tab" data-bs-target="#tab-table" type="button" role="tab" aria-controls="tab-table" aria-selected="true">Activity Feed</button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-trends-trigger" data-bs-toggle="tab" data-bs-target="#tab-trends" type="button" role="tab" aria-controls="tab-trends" aria-selected="false">Trends</button>
+        <button class="nav-link" id="tab-trends-trigger" data-bs-toggle="tab" data-bs-target="#tab-trends" type="button" role="tab" aria-controls="tab-trends" aria-selected="false">Insights</button>
       </li>
     </ul>
 
@@ -135,7 +135,7 @@
 
         <!-- Activity table -->
         <div class="table-container"
-          data-intro="This timeline ⏳ includes resources for developers using ArcGIS.<br/><br/>The LinkedIn and X (former Twitter) columns contain existing social media messages <b>we would like you to consider liking 👍🏻 or reposting 🔁</b>"
+          data-intro="This timeline ⏳ includes resources for developers using ArcGIS.<br/><br/>The Social column contains existing social media messages <b>we would like you to consider liking 👍🏻 or reposting 🔁</b>"
           data-step="1">
           <table id="main-table" class="table table-bordered table-sm align-middle" aria-label="Activity table">
             <thead>
@@ -145,8 +145,7 @@
                 <th class="text-center" data-col="author">Author</th>
                 <th class="text-center" data-col="channel">Channel</th>
                 <th class="text-center" data-col="language">Language</th>
-                <th class="text-center" data-col="linkedin">LinkedIn</th>
-                <th class="text-center" data-col="x">X</th>
+                <th class="text-center" data-col="social">Social</th>
                 <th>Technology</th>
                 <th class="text-center" data-col="category">Content type</th>
               </tr>
@@ -223,6 +222,11 @@
       </div>
 
     </div>
+
+    <footer class="mt-4 mb-2 text-center text-muted small">
+      If you are missing something on this page, found a bug, or have a suggestion, contact
+      <a href="mailto:developers@esri.com">developers@esri.com</a>.
+    </footer>
   </div>
 
   <!-- Update toast — shown when background data refresh finds new content -->
@@ -260,8 +264,7 @@
       <td class="text-center" data-col="author"></td>  <!-- author -->
       <td class="text-center" data-col="channel"></td> <!-- channel -->
       <td class="text-center" data-col="language"></td><!-- language -->
-      <td class="text-center" data-col="linkedin"></td><!-- linkedin -->
-      <td class="text-center" data-col="x"></td>       <!-- x -->
+      <td class="text-center" data-col="social"></td>  <!-- social -->
       <td></td>                                        <!-- technology -->
       <td class="text-center" data-col="category"></td><!-- category -->
     </tr>
