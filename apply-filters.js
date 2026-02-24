@@ -264,6 +264,9 @@ const applyFilters = () => {
   }
 };
 
+// Expose for use by the background-refresh logic in load-table.js
+window.applyFilters = applyFilters;
+
 const resetMultiSelect = (selector, keyword) => {
   const select = document.querySelector(selector);
   if (!select) return;

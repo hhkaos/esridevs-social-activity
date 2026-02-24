@@ -1,7 +1,67 @@
 const SPREADSHEET_ID = '1oKkHCNbOUpfERu1xC4ePU2XwDSvalEfE0YmTN39cyNg';
+const DATA_CACHE_KEY = 'esridevs_data_v1';
 
 window.activityData = [];
 window.dropdownData = {};
+
+// ── Cache helpers ─────────────────────────────────────────────────────────────
+
+function loadDataCache() {
+  try {
+    const raw = localStorage.getItem(DATA_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveDataCache(activityRows, dropdownRows, authorsRows) {
+  try {
+    localStorage.setItem(DATA_CACHE_KEY, JSON.stringify({ activityRows, dropdownRows, authorsRows }));
+  } catch (err) {
+    console.warn('Cache write failed (storage quota?):', err);
+  }
+}
+
+function dataHasChanged(freshActivity, cachedActivity) {
+  if (freshActivity.length !== cachedActivity.length) return true;
+  const freshSig = JSON.stringify(freshActivity.slice(0, 3));
+  const cachedSig = JSON.stringify(cachedActivity.slice(0, 3));
+  return freshSig !== cachedSig;
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+
+const toastEl = document.querySelector('#update-toast');
+const toastTextEl = document.querySelector('#update-toast-text');
+let toastTimer = null;
+
+function showToast(message, type, autoDismissMs = 0) {
+  if (!toastEl) return;
+  if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+
+  const iconEl = toastEl.querySelector('.update-toast__icon');
+  const icons = { checking: '↻', updating: '↻', uptodate: '✓' };
+  if (iconEl) iconEl.textContent = icons[type] || '↻';
+
+  toastEl.dataset.type = type;
+  if (toastTextEl) toastTextEl.textContent = message;
+  toastEl.hidden = false;
+  void toastEl.offsetWidth; // force reflow for re-animation
+  toastEl.classList.add('toast-visible');
+
+  if (autoDismissMs > 0) {
+    toastTimer = setTimeout(hideToast, autoDismissMs);
+  }
+}
+
+function hideToast() {
+  if (!toastEl) return;
+  toastEl.classList.remove('toast-visible');
+  setTimeout(() => { if (toastEl) toastEl.hidden = true; }, 350);
+}
+
+// ── Loading status ────────────────────────────────────────────────────────────
 
 const LOADING_MESSAGES = [
   'Reading spreadsheet updates',
@@ -50,6 +110,8 @@ const showLoadingError = () => {
   loadingStatusEl.classList.add('is-error');
   setLoadingMessage('Could not load activity feed. Please refresh');
 };
+
+// ── Data helpers ──────────────────────────────────────────────────────────────
 
 const fetchJsonOrThrow = (url) =>
   fetch(url).then((response) => {
@@ -107,41 +169,50 @@ const parseDateInput = (value) => {
   return new Date(Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()));
 };
 
-startLoadingStatus();
+// ── Data processing ───────────────────────────────────────────────────────────
 
-Promise.all([
-  fetchJsonOrThrow(`https://opensheet.elk.sh/${SPREADSHEET_ID}/Activity`),
-  fetchJsonOrThrow(`https://opensheet.elk.sh/${SPREADSHEET_ID}/Dropdowns`),
-  fetchJsonOrThrow(`https://opensheet.elk.sh/${SPREADSHEET_ID}/Authors`)
-]).then(([activityRows, dropdownRows, authorsRows]) => {
-  window.activityData = activityRows;
-
-  // Build dropdown options from sheet columns while supporting alternate header names.
-  // Authors sheet can expose different headers; use the first non-empty cell from each row.
+function buildDropdownData(dropdownRows, authorsRows) {
   const authorsFromSheet = [...new Set(
     authorsRows
       .map((row) => Object.values(row).map(v => `${v ?? ''}`.trim()).find(Boolean))
       .filter(Boolean)
   )];
-  window.dropdownData = {
+  return {
     technologies: uniqueColumnValues(dropdownRows, ['Technologies', 'Technology', 'Topics_Product']),
     categories:   uniqueColumnValues(dropdownRows, ['Category / Content type', 'Category', 'Content type']),
     channels:     uniqueColumnValues(dropdownRows, ['Channel']),
     authors:      uniqueColumnValues(dropdownRows, ['Author', 'Authors']),
     contributors: authorsFromSheet,
-    languages:    uniqueColumnValues(dropdownRows, ['Languages', 'Language'])
+    languages:    uniqueColumnValues(dropdownRows, ['Languages', 'Language']),
   };
+}
 
+function processAndRender(activityRows, dropdownRows, authorsRows) {
+  window.activityData = activityRows;
+  window.dropdownData = buildDropdownData(dropdownRows, authorsRows);
   renderTableRows(activityRows);
-
   if (typeof window.onDataLoaded === 'function') {
     window.onDataLoaded();
   }
-  stopLoadingStatus();
-}).catch(err => {
-  console.error('Failed to load data:', err);
-  showLoadingError();
-});
+}
+
+function refreshTableOnly(freshActivity) {
+  window.activityData = freshActivity;
+  const tableBody = document.querySelector('#main-table tbody');
+  if (tableBody) tableBody.innerHTML = '';
+  renderTableRows(freshActivity);
+  if (typeof window.applyFilters === 'function') {
+    window.applyFilters();
+  }
+  if (typeof window.renderCharts === 'function') {
+    const trendsPane = document.querySelector('#tab-trends');
+    if (trendsPane?.classList.contains('active')) {
+      window.renderCharts();
+    }
+  }
+}
+
+// ── Rendering ─────────────────────────────────────────────────────────────────
 
 function renderTableRows(rows) {
   if (!('content' in document.createElement('template'))) return;
@@ -204,7 +275,7 @@ function renderTableRows(rows) {
     td[8].innerText = category;
     row.setAttribute('data-categories', category);
 
-    tableBody.appendChild(clone); // Single append - avoids duplicate rows
+    tableBody.appendChild(clone);
   });
 }
 
@@ -213,3 +284,64 @@ function formatDate(dateString) {
   if (!date) return dateString || '';
   return TABLE_DATE_FORMATTER.format(date);
 }
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+// Start the fetch immediately to maximize parallelism, regardless of cache state.
+// Rendering is deferred to DOMContentLoaded so that apply-filters.js and charts.js
+// are guaranteed to have run and exposed their callbacks on window.
+
+const cachedData = loadDataCache();
+
+// If we have cached data, hide the loading spinner right away so users see no flash.
+if (cachedData && loadingStatusEl) {
+  loadingStatusEl.hidden = true;
+} else {
+  startLoadingStatus();
+}
+
+const dataFetchPromise = Promise.all([
+  fetchJsonOrThrow(`https://opensheet.elk.sh/${SPREADSHEET_ID}/Activity`),
+  fetchJsonOrThrow(`https://opensheet.elk.sh/${SPREADSHEET_ID}/Dropdowns`),
+  fetchJsonOrThrow(`https://opensheet.elk.sh/${SPREADSHEET_ID}/Authors`),
+]);
+
+window.addEventListener('DOMContentLoaded', () => {
+  document.querySelector('#update-toast-close')?.addEventListener('click', hideToast);
+
+  if (cachedData) {
+    // Render from cache immediately — all other scripts are now ready
+    processAndRender(cachedData.activityRows, cachedData.dropdownRows, cachedData.authorsRows);
+    showToast('Checking for updates\u2026', 'checking');
+
+    dataFetchPromise
+      .then(([freshActivity, freshDropdowns, freshAuthors]) => {
+        saveDataCache(freshActivity, freshDropdowns, freshAuthors);
+        if (dataHasChanged(freshActivity, cachedData.activityRows)) {
+          showToast('New data available \u2014 refreshing\u2026', 'updating');
+          setTimeout(() => {
+            refreshTableOnly(freshActivity);
+            showToast('Activity feed updated', 'uptodate', 3000);
+          }, 2000);
+        } else {
+          showToast('Already up to date', 'uptodate', 2500);
+        }
+      })
+      .catch(err => {
+        console.error('Background refresh failed:', err);
+        hideToast();
+      });
+
+  } else {
+    // No cache — wait for fresh data before rendering
+    dataFetchPromise
+      .then(([activityRows, dropdownRows, authorsRows]) => {
+        saveDataCache(activityRows, dropdownRows, authorsRows);
+        processAndRender(activityRows, dropdownRows, authorsRows);
+        stopLoadingStatus();
+      })
+      .catch(err => {
+        console.error('Failed to load data:', err);
+        showLoadingError();
+      });
+  }
+});
