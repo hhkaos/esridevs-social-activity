@@ -1,226 +1,503 @@
 /**
- * Flags object holds the current filter state for each filter type.
- * It is loaded from the URL hash if present, otherwise initialized empty.
+ * flags holds the current filter state for all filter dimensions.
+ * It is restored from the URL hash (LZString-compressed) when present.
  */
 let flags;
+const LEGACY_DEFAULT_START_DATE = '2024-08-01';
+let DEFAULT_START_DATE = '';
+const getTodayISODate = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+const DEFAULT_END_DATE = getTodayISODate();
 
-// --- Filter options arrays ---
-const technologies = [
-  "Arcade",
-  "ArcGIS API for Python",
-  "ArcGIS Dashboards",
-  "ArcGIS Enterprise",
-  "ArcGIS Enterprise SDK",
-  "ArcGIS GeoAnalytics Engine",
-  "ArcGIS Location Platform",
-  "ArcGIS Maps SDK for .NET",
-  "ArcGIS Maps SDK for Flutter",
-  "ArcGIS Maps SDK for Javascript",
-  "ArcGIS Maps SDK for Kotlin",
-  "ArcGIS Maps SDK for Qt",
-  "ArcGIS Maps SDK for Swift",
-  "ArcGIS Online",
-  "ArcGIS Pro SDK",
-  "ArcGIS REST JS",
-  "ArcGIS services",
-  "ArcGIS StoryMaps",
-  "Arcpy",
-  "Calcite Design System",
-  "Engineering",
-  "Experience Builder",
-  "Game Engines",
-  "General",
-  "Living Atlas",
-  "Native SDKs",
-  "Other",
-  "R",
-  "Security and authentication",
-  "Survey123",
-  "Web technologies"
-];
-
-const categories = [
-  "Blog",
-  "Course",
-  "DevSummit video",
-  "Documentation",
-  "In-person event ",
-  "Livestream",
-  "Other",
-  "Podcast",
-  "Social post",
-  "Source code",
-  "Training seminar",
-  "Video",
-  "Video Short",
-  "Press release",
-  "Book",
-  "Tutorial"
-];
-
-const channels = [
-  "Esri",
-  "Community",
-  "Employee"
-];
-
-const authors = [
-  "Esri",
-  "Distributor",
-  "Community",
-  "Multiple",
-  "Unknown"
-];
-
-const languages = [
-  "English",
-  "German",
-  "Korean",
-  "Spanish"
-];
-
-try {
-  // Try to load filter state from URL hash (compressed)
-  const parts = new URL(window.location.href);
-  if (parts.hash == '') {
-    throw new Error('No hash');
-  }
-  flags = JSON.parse(LZString.decompressFromBase64(parts.hash.substr(1)));
-} catch (error) {
-  // Default filter state if no hash present
-  flags = {
-    "technologies": {},
-    "categories": {},
-    "channels": {},
-    "authors": {},
-    "languages": {}
-  }
-}
-
-/**
- * Searches for a value in a nested JSON object.
- * Used to check if a filter option is selected in flags.
- * @param {Object} jsonObject - The flags object
- * @param {string} targetKey - The filter option value
- * @returns {any} - The value if found, otherwise null
- */
-const findValueInNestedJSON = (jsonObject, targetKey) => {
-  for (const outerKey in jsonObject) {
-    if (jsonObject.hasOwnProperty(outerKey)) {
-      const innerObject = jsonObject[outerKey];
-      if (innerObject.hasOwnProperty(targetKey)) {
-        return innerObject[targetKey];
-      }
-    }
-  }
-  return null;
+const DEFAULT_COLUMN_VISIBILITY = {
+  author: false,
+  channel: false,
+  language: false,
+  linkedin: false,
+  x: false,
+  contributor: false,
+  category: true,
 };
 
-/**
- * Loads options into a Calcite combobox from an array.
- * Sets the selected state based on flags.
- * @param {Array} options - Array of option strings
- * @param {string} idContainer - CSS selector for the combobox
- * @param {string} templateId - CSS selector for the combobox item template
- */
-const loadCombobox = (options, idContainer, templateId) => {
-  const topicsSelector = document.querySelector(idContainer);
-  const template = document.querySelector(templateId);
+const createDefaultFlags = () => ({
+  technologies: {},
+  categories: {},
+  channels: {},
+  authors: {},
+  contributors: {},
+  languages: {},
+  dateRange: { from: DEFAULT_START_DATE, to: DEFAULT_END_DATE },
+});
 
-  options.forEach((e, i, array) => {
+const normalizeFlags = (input) => {
+  const normalized = createDefaultFlags();
+  if (!input || typeof input !== 'object') return normalized;
+
+  ['technologies', 'categories', 'channels', 'authors', 'contributors', 'languages'].forEach((key) => {
+    if (input[key] && typeof input[key] === 'object') normalized[key] = input[key];
+  });
+
+  if (input.dateRange && typeof input.dateRange === 'object') {
+    const from = typeof input.dateRange.from === 'string' ? input.dateRange.from : DEFAULT_START_DATE;
+    const to = typeof input.dateRange.to === 'string' ? input.dateRange.to : DEFAULT_END_DATE;
+    normalized.dateRange = { from, to };
+  }
+
+  return normalized;
+};
+
+const normalizeColumnVisibility = (input) => {
+  const normalized = { ...DEFAULT_COLUMN_VISIBILITY };
+  if (!input || typeof input !== 'object') return normalized;
+
+  Object.keys(DEFAULT_COLUMN_VISIBILITY).forEach((key) => {
+    if (typeof input[key] === 'boolean') normalized[key] = input[key];
+  });
+
+  return normalized;
+};
+
+const normalizeActiveTab = (value) => (value === 'trends' ? 'trends' : 'table');
+
+const parseHashState = () => {
+  try {
+    const hash = window.location.hash.slice(1);
+    if (!hash) return null;
+    const decompressed = LZString.decompressFromBase64(hash);
+    if (!decompressed) return null;
+    const parsed = JSON.parse(decompressed);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const parsedHashState = parseHashState();
+const hasNestedState = parsedHashState && typeof parsedHashState === 'object' && parsedHashState.filters;
+
+const appState = {
+  filters: normalizeFlags(hasNestedState ? parsedHashState.filters : parsedHashState),
+  columns: normalizeColumnVisibility(hasNestedState ? parsedHashState.columns : null),
+  activeTab: normalizeActiveTab(hasNestedState ? parsedHashState.activeTab : null),
+};
+
+flags = appState.filters;
+window.flags = flags;
+const filtersSummaryEl = document.querySelector('#filters-summary');
+
+const hasActiveRestriction = (map) => Object.values(map || {}).some((value) => value === 0);
+
+const updateFilterSummary = (visibleRows, totalRows) => {
+  if (!filtersSummaryEl) return;
+  const resultWord = visibleRows === 1 ? 'result' : 'results';
+  filtersSummaryEl.textContent = `${visibleRows}/${totalRows} ${resultWord}`;
+};
+
+const setItemSelected = (item, selected) => {
+  item.selected = selected;
+};
+
+const syncTomSelectValue = (select) => {
+  if (!select?.tomselect) return;
+  const selectedValues = [...select.options]
+    .filter((option) => option.selected)
+    .map((option) => option.value);
+  select.tomselect.setValue(selectedValues, true);
+};
+
+const enhanceWithTomSelect = (selector) => {
+  const select = document.querySelector(selector);
+  if (!select || typeof window.TomSelect !== 'function' || select.tomselect) return;
+
+  const placeholder = select.dataset.placeholder || 'Any';
+  const ts = new TomSelect(select, {
+    plugins: ['remove_button'],
+    closeAfterSelect: false,
+    hideSelected: false,
+    maxOptions: null,
+    create: false,
+    persist: false,
+    placeholder,
+  });
+
+};
+
+const loadMultiSelect = (options, id, keyword) => {
+  const select = document.querySelector(id);
+  if (!select) return;
+  const safeOptions = Array.isArray(options) ? options : [];
+  const template = document.querySelector('#templateTopicRow');
+  const keywordFlags = flags[keyword] || {};
+  const hasRestrictions = hasActiveRestriction(keywordFlags);
+
+  safeOptions.forEach((value) => {
     const clone = template.content.cloneNode(true);
-    clone.firstElementChild.setAttribute("value", e);
-    clone.firstElementChild.setAttribute("text-label", e);
-    // Set selected if flagged or not present in flags
-    const val = findValueInNestedJSON(flags, e);
-    if (val === 1 || val === null) {
-      clone.firstElementChild.setAttribute("selected", null);
-    }
-    topicsSelector.appendChild(clone);
+    const item = clone.firstElementChild;
+    item.value = value;
+    item.textContent = value;
+    const val = keywordFlags[value];
+    if (hasRestrictions && val !== 0) setItemSelected(item, true);
+    select.appendChild(clone);
   });
 };
 
-/**
- * Updates the flags object and table row visibility when a filter changes.
- * @param {Event} e - The combobox change event
- * @param {string} keyword - The filter type (e.g. 'technologies')
- */
-const updateFlags = (e, keyword) => {
-  // Unselected options: set flag to 0 and hide matching rows
-  e.currentTarget.querySelectorAll(':not([selected])').forEach(e => {
-    flags[keyword][e.value] = 0;
-    const filter = `calcite-table-row[data-${keyword}='${e.value}']`;
-    document.querySelectorAll(filter).forEach(e => {
-      e.classList.add("hidden");
-    });
-  });
-
-  // Selected options: set flag to 1 and show matching rows if all filters match
-  e.currentTarget.querySelectorAll('[selected]').forEach(e => {
-    flags[keyword][e.value] = 1;
-
-    const filter = `calcite-table-row[data-${keyword}='${e.value}']`;
-    document.querySelectorAll(filter).forEach(e => {
-      if (
-        flags.channels[e.dataset.channels] &&
-        flags.technologies[e.dataset.technologies] &&
-        flags.categories[e.dataset.categories]
-      ) {
-        e.classList.remove("hidden");
-      }
-    });
-  });
-
-  // Update URL hash with new filter state
-  window.history.pushState(
-    { title: "Services" },
-    "servicespage",
-    "#" + LZString.compressToBase64(JSON.stringify(flags))
-  );
+const passesFilter = (map, value, splitValues = false) => {
+  if (!value) return true;
+  if (!splitValues) return map[value] !== 0;
+  return value
+    .split(',')
+    .map(v => v.trim())
+    .filter(Boolean)
+    .some(v => map[v] !== 0);
 };
 
-loadCombobox(technologies, "#topics", "#templateTopicRow");
-document.querySelector('#topics').addEventListener("calciteComboboxChange", (e) => updateFlags(e, 'technologies'));
+const parseISODate = (value) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || '');
+  if (!m) return null;
+  const date = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  if (
+    date.getUTCFullYear() !== +m[1] ||
+    date.getUTCMonth() !== (+m[2] - 1) ||
+    date.getUTCDate() !== +m[3]
+  ) return null;
+  return date;
+};
 
-loadCombobox(categories, "#category", "#templateTopicRow");
-document.querySelector('#category').addEventListener("calciteComboboxChange", (e) => updateFlags(e, 'categories'));
+const parseRowDate = (value) => {
+  if (!value) return null;
+  const exactIso = parseISODate(value);
+  if (exactIso) return exactIso;
+  const date = new Date(value);
+  if (isNaN(date)) return null;
+  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+};
 
-loadCombobox(channels, "#channel", "#templateTopicRow");
-document.querySelector('#channel').addEventListener("calciteComboboxChange", (e) => updateFlags(e, 'channels'));
+const toISODate = (date) => {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
-/**
- * Initializes the app, triggers filter events, and starts the intro tour if needed.
- */
-const initApp = () => {
-  const hidrated = document.querySelector('#channel').getAttribute("calcite-hydrated");
-  if (hidrated != '') {
-    setTimeout(initApp, 1000);
-  } else {
-    const event = new Event("calciteComboboxChange");
-    document.querySelector('#topics').dispatchEvent(event);
-    document.querySelector('#category').dispatchEvent(event);
-    document.querySelector('#channel').dispatchEvent(event);
-    if (!localStorage.getItem("tourDisplayed")) {
-      introJs().start();
-      localStorage.setItem("tourDisplayed", true);
-    }
+const getEarliestActivityDateISO = () => {
+  const rows = window.activityData || [];
+  let earliest = null;
+
+  rows.forEach((row) => {
+    const parsed = parseRowDate(row?.Date);
+    if (!parsed) return;
+    if (!earliest || parsed < earliest) earliest = parsed;
+  });
+
+  return earliest ? toISODate(earliest) : '';
+};
+
+const isDateInRange = (dateString) => {
+  const rowDate = parseRowDate(dateString);
+  if (!rowDate) return true;
+  const fromDate = parseISODate(flags.dateRange.from);
+  const toDate = parseISODate(flags.dateRange.to);
+  if (fromDate && rowDate < fromDate) return false;
+  if (toDate && rowDate > toDate) return false;
+  return true;
+};
+
+const isRowVisible = (row) => {
+  const { channels, technologies, categories, authors, contributors, languages } = flags;
+  return isDateInRange(row.dataset.date) && [
+    [channels, row.dataset.channels, false],
+    [technologies, row.dataset.technologies, false],
+    [categories, row.dataset.categories, false],
+    [authors, row.dataset.authors, false],
+    [contributors, row.dataset.contributors, true],
+    [languages, row.dataset.languages, false],
+  ].every(([map, val, splitValues]) => passesFilter(map, val, splitValues));
+};
+
+const trendsTabIsActive = () => document.querySelector('#tab-trends')?.classList.contains('active');
+
+const getActiveTab = () => (
+  document.querySelector('#tab-trends-trigger')?.classList.contains('active') ? 'trends' : 'table'
+);
+
+const setActiveTab = (tabKey) => {
+  const desired = normalizeActiveTab(tabKey);
+  const tableTrigger = document.querySelector('#tab-table-trigger');
+  const trendsTrigger = document.querySelector('#tab-trends-trigger');
+  const tablePane = document.querySelector('#tab-table');
+  const trendsPane = document.querySelector('#tab-trends');
+
+  const tableIsActive = desired === 'table';
+  tableTrigger?.classList.toggle('active', tableIsActive);
+  trendsTrigger?.classList.toggle('active', !tableIsActive);
+  tableTrigger?.setAttribute('aria-selected', String(tableIsActive));
+  trendsTrigger?.setAttribute('aria-selected', String(!tableIsActive));
+
+  tablePane?.classList.toggle('show', tableIsActive);
+  tablePane?.classList.toggle('active', tableIsActive);
+  trendsPane?.classList.toggle('show', !tableIsActive);
+  trendsPane?.classList.toggle('active', !tableIsActive);
+
+  appState.activeTab = desired;
+};
+
+const applyFilters = () => {
+  const rows = [...document.querySelectorAll('#main-table tbody tr')];
+  let visibleRows = 0;
+
+  rows.forEach((row) => {
+    const showRow = isRowVisible(row);
+    if (showRow) visibleRows += 1;
+    row.classList.toggle('hidden', !showRow);
+  });
+
+  updateFilterSummary(visibleRows, rows.length);
+
+  if (trendsTabIsActive() && typeof window.renderCharts === 'function') {
+    window.renderCharts();
   }
 };
-initApp();
 
-// Help button triggers intro tour
-document.querySelector('#help').addEventListener("click", e => introJs().start());
+const resetMultiSelect = (selector, keyword) => {
+  const select = document.querySelector(selector);
+  if (!select) return;
 
-/**
- * Formats a date string as "DD Month YYYY".
- * @param {string} dateString - The date string to format
- * @returns {string} - Formatted date or original string if invalid
- */
-function formatDate(dateString) {
-  const date = new Date(dateString);
-  if (isNaN(date)) return dateString;
-  const day = date.getDate();
-  const month = date.toLocaleString('default', { month: 'long' });
-  const year = date.getFullYear();
-  return `${day} ${month} ${year}`;
-}
+  [...select.options].forEach((option) => setItemSelected(option, false));
+  syncTomSelectValue(select);
+  flags[keyword] = {};
+};
+
+const updateFlags = (e, keyword) => {
+  const items = [...e.currentTarget.options];
+  const selectedCount = items.filter((item) => item.selected).length;
+
+  if (selectedCount === 0) {
+    // Empty selection means "all values".
+    flags[keyword] = {};
+  } else {
+    flags[keyword] = {};
+    items.forEach((item) => {
+      flags[keyword][item.value] = item.selected ? 1 : 0;
+    });
+  }
+
+  applyFilters();
+};
+
+window.onDataLoaded = () => {
+  const dd = window.dropdownData || {};
+  const earliestDate = getEarliestActivityDateISO();
+
+  if (earliestDate) {
+    DEFAULT_START_DATE = earliestDate;
+    const shouldUseNewDefaultStart =
+      !flags.dateRange.from || flags.dateRange.from === LEGACY_DEFAULT_START_DATE;
+    if (shouldUseNewDefaultStart) {
+      flags.dateRange.from = DEFAULT_START_DATE;
+    }
+  }
+
+  loadMultiSelect(dd.technologies, '#topics', 'technologies');
+  enhanceWithTomSelect('#topics');
+  document.querySelector('#topics')?.addEventListener('change', (e) => updateFlags(e, 'technologies'));
+
+  loadMultiSelect(dd.categories, '#category', 'categories');
+  enhanceWithTomSelect('#category');
+  document.querySelector('#category')?.addEventListener('change', (e) => updateFlags(e, 'categories'));
+
+  loadMultiSelect(dd.channels, '#channel', 'channels');
+  enhanceWithTomSelect('#channel');
+  document.querySelector('#channel')?.addEventListener('change', (e) => updateFlags(e, 'channels'));
+
+  loadMultiSelect(dd.authors, '#author', 'authors');
+  enhanceWithTomSelect('#author');
+  document.querySelector('#author')?.addEventListener('change', (e) => updateFlags(e, 'authors'));
+
+  loadMultiSelect(dd.contributors, '#contributors', 'contributors');
+  enhanceWithTomSelect('#contributors');
+  document.querySelector('#contributors')?.addEventListener('change', (e) => updateFlags(e, 'contributors'));
+
+  loadMultiSelect(dd.languages, '#language', 'languages');
+  enhanceWithTomSelect('#language');
+  document.querySelector('#language')?.addEventListener('change', (e) => updateFlags(e, 'languages'));
+
+  const dateFromInput = document.querySelector('#date-from');
+  const dateToInput = document.querySelector('#date-to');
+  if (dateFromInput) dateFromInput.value = flags.dateRange.from;
+  if (dateToInput) dateToInput.value = flags.dateRange.to;
+
+  const handleDateRangeChange = () => {
+    flags.dateRange.from = dateFromInput?.value || '';
+    flags.dateRange.to = dateToInput?.value || '';
+    applyFilters();
+  };
+
+  dateFromInput?.addEventListener('change', handleDateRangeChange);
+  dateToInput?.addEventListener('change', handleDateRangeChange);
+
+  initApp();
+};
+
+const initApp = () => {
+  const event = new Event('change');
+  ['#topics', '#category', '#channel', '#author', '#contributors', '#language'].forEach((id) => {
+    document.querySelector(id)?.dispatchEvent(event);
+  });
+
+  if (!localStorage.getItem('tourDisplayed')) {
+    introJs().start();
+    localStorage.setItem('tourDisplayed', true);
+  }
+};
+
+const TOGGLEABLE_COLS = [
+  { key: 'author', filterId: '#filter-author' },
+  { key: 'channel', filterId: '#filter-channel' },
+  { key: 'language', filterId: '#filter-language' },
+  { key: 'linkedin' },
+  { key: 'x' },
+  { key: 'contributor', filterId: '#filter-contributors' },
+  { key: 'category', filterId: '#filter-category' },
+];
+
+const colPickerBtn = document.querySelector('#col-picker-btn');
+const colPickerPanel = document.querySelector('#col-picker-panel');
+
+colPickerBtn?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  colPickerPanel?.classList.toggle('open');
+});
+
+document.addEventListener('click', () => colPickerPanel?.classList.remove('open'));
+
+const applyColumnToggleState = ({ key, filterId }, checked) => {
+  document.querySelectorAll(`[data-col="${key}"]`).forEach((el) => {
+    el.classList.toggle('hidden', !checked);
+  });
+
+  if (filterId) {
+    const filterEl = document.querySelector(filterId);
+    if (filterEl) filterEl.style.display = checked ? '' : 'none';
+  }
+};
+
+TOGGLEABLE_COLS.forEach((col) => {
+  const cb = document.querySelector(`#col-toggle-${col.key}`);
+  if (!cb) return;
+  cb.checked = appState.columns[col.key];
+
+  cb.addEventListener('change', () => {
+    appState.columns[col.key] = cb.checked;
+    applyColumnToggleState(col, cb.checked);
+  });
+});
+
+const syncColumnVisibilityWithToggles = () => {
+  TOGGLEABLE_COLS.forEach((col) => {
+    const cb = document.querySelector(`#col-toggle-${col.key}`);
+    if (!cb) return;
+    applyColumnToggleState(col, cb.checked);
+  });
+};
+
+syncColumnVisibilityWithToggles();
+
+const resetFiltersBtn = document.querySelector('#reset-filters-btn');
+resetFiltersBtn?.addEventListener('click', () => {
+  resetMultiSelect('#topics', 'technologies');
+  resetMultiSelect('#category', 'categories');
+  resetMultiSelect('#channel', 'channels');
+  resetMultiSelect('#author', 'authors');
+  resetMultiSelect('#contributors', 'contributors');
+  resetMultiSelect('#language', 'languages');
+
+  flags.dateRange = { from: DEFAULT_START_DATE, to: DEFAULT_END_DATE };
+  const dateFromInput = document.querySelector('#date-from');
+  const dateToInput = document.querySelector('#date-to');
+  if (dateFromInput) dateFromInput.value = DEFAULT_START_DATE;
+  if (dateToInput) dateToInput.value = DEFAULT_END_DATE;
+
+  TOGGLEABLE_COLS.forEach((col) => {
+    const cb = document.querySelector(`#col-toggle-${col.key}`);
+    if (!cb) return;
+    cb.checked = DEFAULT_COLUMN_VISIBILITY[col.key];
+    appState.columns[col.key] = cb.checked;
+    applyColumnToggleState(col, cb.checked);
+  });
+
+  applyFilters();
+});
+
+const previousOnDataLoaded = window.onDataLoaded;
+window.onDataLoaded = () => {
+  if (typeof previousOnDataLoaded === 'function') previousOnDataLoaded();
+  syncColumnVisibilityWithToggles();
+};
+
+document.querySelector('#help')?.addEventListener('click', () => introJs().start());
+
+document.querySelector('#tab-table-trigger')?.addEventListener('click', () => {
+  setActiveTab('table');
+});
+
+document.querySelector('#tab-trends-trigger')?.addEventListener('click', () => {
+  setActiveTab('trends');
+  if (typeof window.renderCharts === 'function') window.renderCharts();
+});
+
+const getSerializableShareState = () => ({
+  filters: flags,
+  columns: TOGGLEABLE_COLS.reduce((acc, col) => {
+    const cb = document.querySelector(`#col-toggle-${col.key}`);
+    acc[col.key] = cb ? !!cb.checked : !!appState.columns[col.key];
+    return acc;
+  }, {}),
+  activeTab: getActiveTab(),
+});
+
+const copyTextToClipboard = async (text) => {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const helper = document.createElement('textarea');
+  helper.value = text;
+  helper.setAttribute('readonly', '');
+  helper.style.position = 'absolute';
+  helper.style.left = '-9999px';
+  document.body.appendChild(helper);
+  helper.select();
+  document.execCommand('copy');
+  document.body.removeChild(helper);
+};
+
+const setShareFeedback = (message, isError = false) => {
+  const feedback = document.querySelector('#share-view-feedback');
+  if (!feedback) return;
+  feedback.textContent = message;
+  feedback.classList.toggle('is-error', isError);
+};
+
+const shareViewBtn = document.querySelector('#share-view-btn');
+shareViewBtn?.addEventListener('click', async () => {
+  const encoded = LZString.compressToBase64(JSON.stringify(getSerializableShareState()));
+  const shareUrl = `${window.location.origin}${window.location.pathname}${window.location.search}#${encoded}`;
+
+  window.history.replaceState({}, '', `#${encoded}`);
+
+  try {
+    await copyTextToClipboard(shareUrl);
+    setShareFeedback('Shareable link copied to clipboard.');
+  } catch {
+    setShareFeedback('Unable to copy link. You can copy the URL from the address bar.', true);
+  }
+});
+
+setActiveTab(appState.activeTab);
