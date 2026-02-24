@@ -24,9 +24,11 @@ function saveDataCache(activityRows, dropdownRows, authorsRows) {
 }
 
 function dataHasChanged(freshActivity, cachedActivity) {
-  if (freshActivity.length !== cachedActivity.length) return true;
-  const freshSig = JSON.stringify(freshActivity.slice(0, 3));
-  const cachedSig = JSON.stringify(cachedActivity.slice(0, 3));
+  const sanitizedFresh = sanitizeActivityRows(freshActivity);
+  const sanitizedCached = sanitizeActivityRows(cachedActivity);
+  if (sanitizedFresh.length !== sanitizedCached.length) return true;
+  const freshSig = JSON.stringify(sanitizedFresh.slice(0, 3));
+  const cachedSig = JSON.stringify(sanitizedCached.slice(0, 3));
   return freshSig !== cachedSig;
 }
 
@@ -128,6 +130,11 @@ const pickFirst = (row, keys) => {
   }
   return '';
 };
+
+const sanitizeActivityRows = (rows = []) => rows.filter((row) => {
+  const title = pickFirst(row, ['Title', 'Content title']);
+  return hasText(title);
+});
 
 const mergeUniqueItems = (currentItems, nextItems = []) => {
   const merged = Array.isArray(currentItems) ? [...currentItems] : [];
@@ -252,16 +259,31 @@ const extractSocialLinks = (row) => {
 };
 
 const dedupeActivityRows = (rows) => {
-  const byTitle = new Map();
+  const byEntry = new Map();
 
   rows.forEach((row, index) => {
-    const title = pickFirst(row, ['Title', 'Content title']);
-    const rowKey = normalizeForKey(title) || `row:${index}`;
+    const rowKey = [
+      pickFirst(row, ['Title', 'Content title']),
+      pickFirst(row, ['Date']),
+      pickFirst(row, ['URL', 'Url', 'Link']),
+      pickFirst(row, ['Linkedin', 'LinkedIn']),
+      pickFirst(row, ['X/Twitter', 'X', 'Twitter']),
+      pickFirst(row, ['Bluesky', 'BlueSky']),
+      pickFirst(row, ['EsriDevs Shared', 'EsriDevs shared']),
+      pickFirst(row, ['Author', 'Authors']),
+      pickFirst(row, ['Contributors', 'Contributor']),
+      pickFirst(row, ['Channel']),
+      pickFirst(row, ['Language', 'Languages']),
+      pickFirst(row, ['Topics_Product', 'Technology', 'Technologies']),
+      pickFirst(row, ['Category', 'Category / Content type', 'Content type']),
+    ]
+      .map(normalizeForKey)
+      .join('|') || `row:${index}`;
     const contentLinks = extractContentLinks(row);
     const socialLinks = extractSocialLinks(row);
 
-    if (!byTitle.has(rowKey)) {
-      byTitle.set(rowKey, {
+    if (!byEntry.has(rowKey)) {
+      byEntry.set(rowKey, {
         ...row,
         __contentLinks: contentLinks,
         __socialLinks: socialLinks,
@@ -269,7 +291,7 @@ const dedupeActivityRows = (rows) => {
       return;
     }
 
-    const existing = byTitle.get(rowKey);
+    const existing = byEntry.get(rowKey);
     existing.__contentLinks = mergeUniqueItems(existing.__contentLinks, contentLinks);
     existing.__socialLinks = mergeUniqueItems(existing.__socialLinks, socialLinks);
 
@@ -282,7 +304,7 @@ const dedupeActivityRows = (rows) => {
     }
   });
 
-  return [...byTitle.values()];
+  return [...byEntry.values()];
 };
 
 const uniqueColumnValues = (rows, keys) => [
@@ -345,7 +367,8 @@ function buildDropdownData(dropdownRows, authorsRows) {
 }
 
 function processAndRender(activityRows, dropdownRows, authorsRows) {
-  const dedupedActivityRows = dedupeActivityRows(activityRows);
+  const sanitizedActivityRows = sanitizeActivityRows(activityRows);
+  const dedupedActivityRows = dedupeActivityRows(sanitizedActivityRows);
   window.activityData = dedupedActivityRows;
   window.dropdownData = buildDropdownData(dropdownRows, authorsRows);
   renderTableRows(dedupedActivityRows);
@@ -355,7 +378,8 @@ function processAndRender(activityRows, dropdownRows, authorsRows) {
 }
 
 function refreshTableOnly(freshActivity) {
-  const dedupedActivityRows = dedupeActivityRows(freshActivity);
+  const sanitizedActivityRows = sanitizeActivityRows(freshActivity);
+  const dedupedActivityRows = dedupeActivityRows(sanitizedActivityRows);
   window.activityData = dedupedActivityRows;
   const tableBody = document.querySelector('#main-table tbody');
   if (tableBody) tableBody.innerHTML = '';
@@ -479,7 +503,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     dataFetchPromise
       .then(([freshActivity, freshDropdowns, freshAuthors]) => {
-        saveDataCache(freshActivity, freshDropdowns, freshAuthors);
+        saveDataCache(sanitizeActivityRows(freshActivity), freshDropdowns, freshAuthors);
         if (dataHasChanged(freshActivity, cachedData.activityRows)) {
           showToast('New data available \u2014 refreshing\u2026', 'updating');
           setTimeout(() => {
@@ -499,7 +523,7 @@ window.addEventListener('DOMContentLoaded', () => {
     // No cache — wait for fresh data before rendering
     dataFetchPromise
       .then(([activityRows, dropdownRows, authorsRows]) => {
-        saveDataCache(activityRows, dropdownRows, authorsRows);
+        saveDataCache(sanitizeActivityRows(activityRows), dropdownRows, authorsRows);
         processAndRender(activityRows, dropdownRows, authorsRows);
         stopLoadingStatus();
       })
