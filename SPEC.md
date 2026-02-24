@@ -32,16 +32,18 @@ The app has no backend in this repository and runs directly in the browser.
 - `apply-filters.js`: filter state, URL share-state decode/encode, row visibility logic, reset/share, column toggles, tab state.
 - `charts.js`: Chart.js rendering from filtered dataset, chart card expansion modal behavior.
 - `style.css`: presentation layer.
+- `sw-update-utils.js`: shared helpers for service-worker update prompt and navigation request detection.
 - `sw.js`: service worker shell cache strategy.
 
 ## 4.2 Shared global contracts
 
 - `window.activityData`: canonical in-memory activity rows after sanitize/dedupe.
 - `window.dropdownData`: options for filter dropdowns.
-- `window.flags`: active filter state, including `dateRange`.
+- `window.flags`: active filter state, including `datePreset` and `dateRange`.
 - `window.onDataLoaded()`: called after data is processed to initialize filters/UI.
 - `window.applyFilters()`: applies current filter state to table rows.
 - `window.renderCharts()`: renders/re-renders insights charts from filtered data.
+- `window.handleActivityDataRefresh()`: recomputes date preset ranges after background activity refresh.
 
 ## 5. External Dependencies
 
@@ -103,7 +105,8 @@ Rows are normalized from variant sheet headers into this logical shape during re
 ## 7.2 Filters
 
 - Multi-select filters: Topic, Content type, Channel, Author, Contributors, Language.
-- Date range filter: inclusive `from` and `to`.
+- Date filter supports presets (`Last 30 days`, `Last 60 days`, `This month`, `This quarter`, `Last quarter`, `This year`, `Past year`) and a custom inclusive `from`/`to` range.
+- Non-custom presets are computed from the latest available activity date.
 - Empty multi-select means "no restriction".
 - Contributors filter supports split values from comma-separated cells.
 - Filter summary shows visible count / total count.
@@ -129,7 +132,7 @@ Defaults:
 Reset action:
 
 - Clears all multi-select restrictions.
-- Restores date range to defaults.
+- Restores date filter to the default `Last 60 days` preset.
 - Restores default column visibility.
 - Reapplies filtering and chart synchronization.
 
@@ -167,9 +170,11 @@ Each chart card can be expanded into a modal with a larger chart.
 
 ## 8.2 Service worker shell cache
 
-- Cache-first for same-origin shell assets.
+- Network-first for navigation/document requests with cache fallback.
+- Cache-first for same-origin static shell assets.
 - opensheet API requests are excluded from service worker caching.
 - Cache versioning removes stale shell caches on activate.
+- In-app update prompts can trigger `SKIP_WAITING`, and the page reloads after controller handoff.
 
 ## 9. Error Handling and Resilience
 

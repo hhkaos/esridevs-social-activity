@@ -26,6 +26,100 @@
     return !['n/a', 'na', 'none', '-', '--', 'tbd'].includes(normalized);
   };
 
+  const toISODateLocal = (date) => {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const parseDateToLocalDay = (value) => {
+    const raw = normalizeCell(value);
+    if (!raw) return null;
+
+    const isoDate = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (isoDate) {
+      const [, yearStr, monthStr, dayStr] = isoDate;
+      const year = Number(yearStr);
+      const month = Number(monthStr);
+      const day = Number(dayStr);
+      const parsed = new Date(year, month - 1, day);
+      if (
+        parsed.getFullYear() !== year
+        || parsed.getMonth() !== month - 1
+        || parsed.getDate() !== day
+      ) return null;
+      return parsed;
+    }
+
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+  };
+
+  const getLatestActivityDate = (rows = []) => {
+    let latest = null;
+    rows.forEach((row) => {
+      const parsed = parseDateToLocalDay(row?.Date);
+      if (!parsed) return;
+      if (!latest || parsed > latest) latest = parsed;
+    });
+    return latest;
+  };
+
+  const addDaysLocal = (date, days) => {
+    const shifted = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    shifted.setDate(shifted.getDate() + days);
+    return shifted;
+  };
+
+  const getDateRangeForPreset = (preset, anchorDate) => {
+    if (!(anchorDate instanceof Date) || Number.isNaN(anchorDate.getTime())) return null;
+
+    const toDate = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), anchorDate.getDate());
+    let fromDate = null;
+    let finalToDate = toDate;
+
+    switch (preset) {
+      case 'last30':
+        fromDate = addDaysLocal(toDate, -29);
+        break;
+      case 'last60':
+        fromDate = addDaysLocal(toDate, -59);
+        break;
+      case 'thisMonth':
+        fromDate = new Date(toDate.getFullYear(), toDate.getMonth(), 1);
+        break;
+      case 'thisQuarter': {
+        const quarterStartMonth = Math.floor(toDate.getMonth() / 3) * 3;
+        fromDate = new Date(toDate.getFullYear(), quarterStartMonth, 1);
+        break;
+      }
+      case 'lastQuarter': {
+        const quarterStartMonth = Math.floor(toDate.getMonth() / 3) * 3;
+        const thisQuarterStart = new Date(toDate.getFullYear(), quarterStartMonth, 1);
+        finalToDate = addDaysLocal(thisQuarterStart, -1);
+        const previousQuarterStartMonth = Math.floor(finalToDate.getMonth() / 3) * 3;
+        fromDate = new Date(finalToDate.getFullYear(), previousQuarterStartMonth, 1);
+        break;
+      }
+      case 'thisYear':
+        fromDate = new Date(toDate.getFullYear(), 0, 1);
+        break;
+      case 'pastYear':
+        fromDate = addDaysLocal(toDate, -364);
+        break;
+      default:
+        return null;
+    }
+
+    return {
+      from: toISODateLocal(fromDate),
+      to: toISODateLocal(finalToDate),
+    };
+  };
+
   const pickFirst = (row, keys) => {
     for (const key of keys) {
       const normalized = normalizeCell(row?.[key]);
@@ -179,6 +273,10 @@
     pickFirst,
     extractContentLinks,
     extractSocialLinks,
+    toISODateLocal,
+    parseDateToLocalDay,
+    getLatestActivityDate,
+    getDateRangeForPreset,
     sanitizeActivityRows,
     runPostRefreshUiSync,
     createRenderGate,

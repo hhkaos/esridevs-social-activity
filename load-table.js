@@ -276,6 +276,7 @@ const FILTER_INPUT_SELECTORS = [
   '#author',
   '#contributors',
   '#language',
+  '#date-preset',
   '#date-from',
   '#date-to',
   '#reset-filters-btn',
@@ -402,6 +403,9 @@ async function refreshTableOnly(freshActivity) {
   const sanitizedActivityRows = sanitizeActivityRows(freshActivity);
   const dedupedActivityRows = dedupeActivityRows(sanitizedActivityRows);
   window.activityData = dedupedActivityRows;
+  if (typeof window.handleActivityDataRefresh === 'function') {
+    window.handleActivityDataRefresh();
+  }
   beginTableRender(dedupedActivityRows.length);
   await renderTableRows(dedupedActivityRows);
   completeTableRender();

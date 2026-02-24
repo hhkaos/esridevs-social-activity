@@ -14,6 +14,10 @@ If something isn't working the way you expected, please take a look at [previous
 
 We welcome contributions from anyone and everyone. Please see our [guidelines for contributing](./CONTRIBUTING.md).
 
+## AI Instructions
+
+- Feature survey workflow: [`.github/instructions/feature-surveyor.instructions.md`](./.github/instructions/feature-surveyor.instructions.md)
+
 ## License
 
 

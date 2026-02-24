@@ -10,6 +10,13 @@
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
+  <div id="app-update-banner" class="app-update-banner" hidden role="status" aria-live="polite">
+    <span class="app-update-banner__text">A new version is available.</span>
+    <div class="app-update-banner__actions">
+      <button id="app-update-btn" class="btn btn-sm btn-primary" type="button">Update</button>
+      <button id="app-update-dismiss-btn" class="btn btn-sm btn-outline-secondary" type="button">Later</button>
+    </div>
+  </div>
 
   <div class="container">
 
@@ -69,7 +76,20 @@
 
         <div class="date-range-filter">
           <span class="filter-field__label">Date range</span>
-          <div class="date-range-filter__inputs">
+          <label class="date-preset-wrap" for="date-preset">
+            <span>Preset</span>
+            <select id="date-preset" class="form-select" aria-label="Date range preset">
+              <option value="last30">Last 30 days</option>
+              <option value="last60">Last 60 days</option>
+              <option value="thisMonth">This month</option>
+              <option value="thisQuarter">This quarter</option>
+              <option value="lastQuarter">Last quarter</option>
+              <option value="thisYear">This year</option>
+              <option value="pastYear">Past year</option>
+              <option value="custom">Custom range</option>
+            </select>
+          </label>
+          <div id="date-range-custom-inputs" class="date-range-filter__inputs">
             <label class="date-input-wrap" for="date-from">
               <span>From</span>
               <input type="date" id="date-from" aria-label="Start date">
@@ -263,12 +283,68 @@
     <option value=""></option>
   </template>
 
+  <script src="./sw-update-utils.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(err => {
+      const bannerEl = document.querySelector('#app-update-banner');
+      const updateBtn = document.querySelector('#app-update-btn');
+      const dismissBtn = document.querySelector('#app-update-dismiss-btn');
+      let didRequestReload = false;
+
+      const showUpdateBanner = () => {
+        if (!bannerEl) return;
+        bannerEl.hidden = false;
+      };
+
+      const hideUpdateBanner = () => {
+        if (!bannerEl) return;
+        bannerEl.hidden = true;
+      };
+
+      const shouldShowUpdatePrompt = (
+        typeof window.swUpdateUtils?.shouldShowUpdatePrompt === 'function'
+          ? window.swUpdateUtils.shouldShowUpdatePrompt
+          : ({ workerState, hasController }) => workerState === 'installed' && !!hasController
+      );
+
+      window.addEventListener('load', async () => {
+        try {
+          const registration = await navigator.serviceWorker.register('./sw.js');
+
+          const promptIfWaiting = () => {
+            if (registration.waiting) showUpdateBanner();
+          };
+
+          promptIfWaiting();
+
+          registration.addEventListener('updatefound', () => {
+            const incomingWorker = registration.installing;
+            if (!incomingWorker) return;
+
+            incomingWorker.addEventListener('statechange', () => {
+              if (shouldShowUpdatePrompt({
+                workerState: incomingWorker.state,
+                hasController: navigator.serviceWorker.controller,
+              })) {
+                showUpdateBanner();
+              }
+            });
+          });
+
+          updateBtn?.addEventListener('click', () => {
+            if (!registration.waiting) return;
+            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          });
+          dismissBtn?.addEventListener('click', hideUpdateBanner);
+        } catch (err) {
           console.warn('Service worker registration failed:', err);
-        });
+        }
+      });
+
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (didRequestReload) return;
+        didRequestReload = true;
+        window.location.reload();
       });
     }
   </script>

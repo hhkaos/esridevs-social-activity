@@ -3,16 +3,18 @@
  * It is restored from URL state (query param or legacy hash) when present.
  */
 let flags;
-const LEGACY_DEFAULT_START_DATE = '2024-08-01';
-let DEFAULT_START_DATE = '';
-const getTodayISODate = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-const DEFAULT_END_DATE = getTodayISODate();
+const DATE_PRESET_CUSTOM = 'custom';
+const DATE_PRESET_LAST_60 = 'last60';
+const DATE_PRESETS = new Set([
+  'last30',
+  DATE_PRESET_LAST_60,
+  'thisMonth',
+  'thisQuarter',
+  'lastQuarter',
+  'thisYear',
+  'pastYear',
+  DATE_PRESET_CUSTOM,
+]);
 
 const DEFAULT_COLUMN_VISIBILITY = {
   author: false,
@@ -30,8 +32,13 @@ const createDefaultFlags = () => ({
   authors: {},
   contributors: {},
   languages: {},
-  dateRange: { from: DEFAULT_START_DATE, to: DEFAULT_END_DATE },
+  datePreset: DATE_PRESET_LAST_60,
+  dateRange: { from: '', to: '' },
 });
+
+const normalizeDatePreset = (value, fallback = DATE_PRESET_LAST_60) => (
+  typeof value === 'string' && DATE_PRESETS.has(value) ? value : fallback
+);
 
 const normalizeFlags = (input) => {
   const normalized = createDefaultFlags();
@@ -41,10 +48,17 @@ const normalizeFlags = (input) => {
     if (input[key] && typeof input[key] === 'object') normalized[key] = input[key];
   });
 
+  if (Object.prototype.hasOwnProperty.call(input, 'datePreset')) {
+    normalized.datePreset = normalizeDatePreset(input.datePreset, DATE_PRESET_CUSTOM);
+  }
+
   if (input.dateRange && typeof input.dateRange === 'object') {
-    const from = typeof input.dateRange.from === 'string' ? input.dateRange.from : DEFAULT_START_DATE;
-    const to = typeof input.dateRange.to === 'string' ? input.dateRange.to : DEFAULT_END_DATE;
+    const from = typeof input.dateRange.from === 'string' ? input.dateRange.from : '';
+    const to = typeof input.dateRange.to === 'string' ? input.dateRange.to : '';
     normalized.dateRange = { from, to };
+    if (!Object.prototype.hasOwnProperty.call(input, 'datePreset')) {
+      normalized.datePreset = DATE_PRESET_CUSTOM;
+    }
   }
 
   return normalized;
@@ -228,25 +242,77 @@ const parseRowDate = (value) => {
   return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
 };
 
-const toISODate = (date) => {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+const getDateInputs = () => ({
+  preset: document.querySelector('#date-preset'),
+  from: document.querySelector('#date-from'),
+  to: document.querySelector('#date-to'),
+  customWrap: document.querySelector('#date-range-custom-inputs'),
+});
+
+const getLatestActivityDate = () => {
+  if (typeof window.activityUtils?.getLatestActivityDate === 'function') {
+    return window.activityUtils.getLatestActivityDate(window.activityData || []);
+  }
+  return null;
 };
 
-const getEarliestActivityDateISO = () => {
-  const rows = window.activityData || [];
-  let earliest = null;
-
-  rows.forEach((row) => {
-    const parsed = parseRowDate(row?.Date);
-    if (!parsed) return;
-    if (!earliest || parsed < earliest) earliest = parsed;
-  });
-
-  return earliest ? toISODate(earliest) : '';
+const getDateRangeForPreset = (preset, latestDate) => {
+  if (typeof window.activityUtils?.getDateRangeForPreset === 'function') {
+    return window.activityUtils.getDateRangeForPreset(preset, latestDate);
+  }
+  return null;
 };
+
+const syncDateInputValues = () => {
+  const dateInputs = getDateInputs();
+  if (dateInputs.from) dateInputs.from.value = flags.dateRange.from || '';
+  if (dateInputs.to) dateInputs.to.value = flags.dateRange.to || '';
+};
+
+const syncDatePresetUi = () => {
+  const dateInputs = getDateInputs();
+  const isCustom = flags.datePreset === DATE_PRESET_CUSTOM;
+  if (dateInputs.preset) dateInputs.preset.value = normalizeDatePreset(flags.datePreset, DATE_PRESET_CUSTOM);
+  if (dateInputs.customWrap) dateInputs.customWrap.classList.toggle('hidden', !isCustom);
+  if (dateInputs.from) dateInputs.from.disabled = !isCustom;
+  if (dateInputs.to) dateInputs.to.disabled = !isCustom;
+};
+
+const applyDatePreset = (preset, { reapplyFilters = true } = {}) => {
+  const normalizedPreset = normalizeDatePreset(preset, DATE_PRESET_CUSTOM);
+  flags.datePreset = normalizedPreset;
+
+  if (normalizedPreset === DATE_PRESET_CUSTOM) {
+    syncDatePresetUi();
+    syncDateInputValues();
+    if (reapplyFilters) applyFilters();
+    return;
+  }
+
+  const latestDate = getLatestActivityDate();
+  const nextDateRange = getDateRangeForPreset(normalizedPreset, latestDate);
+
+  if (!nextDateRange) {
+    flags.datePreset = DATE_PRESET_CUSTOM;
+    flags.dateRange = { from: '', to: '' };
+    syncDatePresetUi();
+    syncDateInputValues();
+    if (reapplyFilters) applyFilters();
+    return;
+  }
+
+  flags.dateRange = nextDateRange;
+  syncDatePresetUi();
+  syncDateInputValues();
+  if (reapplyFilters) applyFilters();
+};
+
+const handleActivityDataRefresh = () => {
+  if (flags.datePreset === DATE_PRESET_CUSTOM) return;
+  applyDatePreset(flags.datePreset, { reapplyFilters: false });
+};
+
+window.handleActivityDataRefresh = handleActivityDataRefresh;
 
 const isDateInRange = (dateString) => {
   const rowDate = parseRowDate(dateString);
@@ -351,16 +417,6 @@ const updateFlags = (e, keyword) => {
 
 window.onDataLoaded = () => {
   const dd = window.dropdownData || {};
-  const earliestDate = getEarliestActivityDateISO();
-
-  if (earliestDate) {
-    DEFAULT_START_DATE = earliestDate;
-    const shouldUseNewDefaultStart =
-      !flags.dateRange.from || flags.dateRange.from === LEGACY_DEFAULT_START_DATE;
-    if (shouldUseNewDefaultStart) {
-      flags.dateRange.from = DEFAULT_START_DATE;
-    }
-  }
 
   loadMultiSelect(dd.technologies, '#topics', 'technologies');
   enhanceWithTomSelect('#topics');
@@ -386,19 +442,22 @@ window.onDataLoaded = () => {
   enhanceWithTomSelect('#language');
   document.querySelector('#language')?.addEventListener('change', (e) => updateFlags(e, 'languages'));
 
-  const dateFromInput = document.querySelector('#date-from');
-  const dateToInput = document.querySelector('#date-to');
-  if (dateFromInput) dateFromInput.value = flags.dateRange.from;
-  if (dateToInput) dateToInput.value = flags.dateRange.to;
+  const dateInputs = getDateInputs();
 
   const handleDateRangeChange = () => {
-    flags.dateRange.from = dateFromInput?.value || '';
-    flags.dateRange.to = dateToInput?.value || '';
+    if (flags.datePreset !== DATE_PRESET_CUSTOM) return;
+    flags.dateRange.from = dateInputs.from?.value || '';
+    flags.dateRange.to = dateInputs.to?.value || '';
     applyFilters();
   };
 
-  dateFromInput?.addEventListener('change', handleDateRangeChange);
-  dateToInput?.addEventListener('change', handleDateRangeChange);
+  dateInputs.preset?.addEventListener('change', () => {
+    applyDatePreset(dateInputs.preset?.value || DATE_PRESET_CUSTOM);
+  });
+  dateInputs.from?.addEventListener('change', handleDateRangeChange);
+  dateInputs.to?.addEventListener('change', handleDateRangeChange);
+
+  applyDatePreset(flags.datePreset, { reapplyFilters: false });
 
   initApp();
 };
@@ -472,11 +531,8 @@ resetFiltersBtn?.addEventListener('click', () => {
   resetMultiSelect('#contributors', 'contributors');
   resetMultiSelect('#language', 'languages');
 
-  flags.dateRange = { from: DEFAULT_START_DATE, to: DEFAULT_END_DATE };
-  const dateFromInput = document.querySelector('#date-from');
-  const dateToInput = document.querySelector('#date-to');
-  if (dateFromInput) dateFromInput.value = DEFAULT_START_DATE;
-  if (dateToInput) dateToInput.value = DEFAULT_END_DATE;
+  flags.datePreset = DATE_PRESET_LAST_60;
+  applyDatePreset(DATE_PRESET_LAST_60, { reapplyFilters: false });
 
   TOGGLEABLE_COLS.forEach((col) => {
     const cb = document.querySelector(`#col-toggle-${col.key}`);

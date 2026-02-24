@@ -1,4 +1,6 @@
-const CACHE_VERSION = 'v3';
+importScripts('./sw-update-utils.js');
+
+const CACHE_VERSION = 'v5';
 const SHELL_CACHE = `esridevs-shell-${CACHE_VERSION}`;
 
 const SHELL_ASSETS = [
@@ -8,6 +10,7 @@ const SHELL_ASSETS = [
   './load-table.js',
   './apply-filters.js',
   './charts.js',
+  './sw-update-utils.js',
 ];
 
 self.addEventListener('install', (event) => {
@@ -28,13 +31,43 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
+  const isNavigationRequest = (
+    typeof self.swUpdateUtils?.isNavigationRequest === 'function'
+      ? self.swUpdateUtils.isNavigationRequest
+      : (request) => request?.mode === 'navigate' || request?.destination === 'document'
+  );
 
   // API calls are handled by client-side caching — let them pass through
   if (url.hostname === 'opensheet.elk.sh') return;
+
+  // Network-first for app shell navigation to reduce stale index.html issues.
+  if (isNavigationRequest(event.request)) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            caches.open(SHELL_CACHE).then((cache) => cache.put(event.request, response.clone()));
+          }
+          return response;
+        })
+        .catch(async () => {
+          const cached = await caches.match(event.request);
+          if (cached) return cached;
+          return caches.match('./index.html');
+        })
+    );
+    return;
+  }
 
   // Cache-first for same-origin assets (HTML, CSS, JS)
   if (url.origin === self.location.origin) {
