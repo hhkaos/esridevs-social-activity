@@ -1,3 +1,5 @@
+<!doctype html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
@@ -166,8 +168,8 @@
       }
   </style>
 </head>
-
 <body>
+
   <div class="container">
     
     <div class="row">
@@ -182,85 +184,246 @@
           data-intro="Do you find something missing? <br/>Add a comment or contact us at <a href='mailto:developeroutreach@esri.com'>developeroutreach@esri.com</a> 📧" data-step="20"
           >
         Add new activity
-      </calcite-button>
-      </span>
+      </a>
     </div>
 
-    <div class="row mb1" data-intro="🔎 Filter activity and <b>explore only what interests you</b>. <br/><br/>If you save this page as a bookmark ⭐️, the filters will remain in your next visit" data-step="10">
-      <calcite-combobox placeholder="Select topics" id="topics" selection-display="fit">
-        
-      </calcite-combobox>
+    <!-- Filters row -->
+    <div class="filters-row"
+      data-intro="🔎 Filter activity and <b>explore only what interests you</b>.<br/><br/>If you save this page as a bookmark ⭐️, the filters will remain in your next visit"
+      data-step="10">
+      <div class="filters-row__header">
+        <p class="filters-title">Filter activity</p>
+        <p id="filters-summary" class="filters-summary" role="status" aria-live="polite"></p>
+      </div>
 
-      <calcite-combobox placeholder="Content type" id="category" selection-display="fit">
-        
-      </calcite-combobox>
+      <div class="filters-grid">
+        <div class="filters-group">
+          <span class="filter-field__label">Filter options</span>
+          <div class="columns-config-filter">
+            <label class="filter-field" id="filter-topics">
+              <span class="filter-field__label">Topic</span>
+              <select id="topics" class="form-select filter-multiselect" data-placeholder="Any topic" multiple></select>
+            </label>
 
-      <calcite-combobox placeholder="Author" id="author" selection-display="fit">
-        
-      </calcite-combobox>
+            <label class="filter-field" id="filter-category">
+              <span class="filter-field__label">Content type</span>
+              <select id="category" class="form-select filter-multiselect" data-placeholder="Any content type" multiple></select>
+            </label>
+
+            <label class="filter-field" id="filter-channel">
+              <span class="filter-field__label">Channel</span>
+              <select id="channel" class="form-select filter-multiselect" data-placeholder="Any channel" multiple></select>
+            </label>
+
+            <label class="filter-field" id="filter-author">
+              <span class="filter-field__label">Author</span>
+              <select id="author" class="form-select filter-multiselect" data-placeholder="Any author" multiple></select>
+            </label>
+
+            <label class="filter-field" id="filter-contributors">
+              <span class="filter-field__label">Contributors</span>
+              <select id="contributors" class="form-select filter-multiselect" data-placeholder="Any contributor" multiple></select>
+            </label>
+
+            <label class="filter-field" id="filter-language">
+              <span class="filter-field__label">Language</span>
+              <select id="language" class="form-select filter-multiselect" data-placeholder="Any language" multiple></select>
+            </label>
+          </div>
+        </div>
+
+        <div class="date-range-filter">
+          <span class="filter-field__label">Date range</span>
+          <div class="date-range-filter__inputs">
+            <label class="date-input-wrap" for="date-from">
+              <span>From</span>
+              <input type="date" id="date-from" aria-label="Start date">
+            </label>
+            <label class="date-input-wrap" for="date-to">
+              <span>To</span>
+              <input type="date" id="date-to" aria-label="End date">
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="filters-actions">
+        <div class="col-picker-wrap">
+          <button id="col-picker-btn" class="btn btn-outline-secondary btn-sm" type="button">
+            <span class="btn-icon" aria-hidden="true">⚙</span>Configure columns
+          </button>
+          <div id="col-picker-panel" class="col-picker-panel">
+            <p class="col-picker-heading">Show / hide columns</p>
+            <label class="col-picker-item"><input type="checkbox" id="col-toggle-author"> Author</label>
+            <label class="col-picker-item"><input type="checkbox" id="col-toggle-channel"> Channel</label>
+            <label class="col-picker-item"><input type="checkbox" id="col-toggle-language"> Language</label>
+            <label class="col-picker-item"><input type="checkbox" id="col-toggle-linkedin"> LinkedIn</label>
+            <label class="col-picker-item"><input type="checkbox" id="col-toggle-x"> X</label>
+            <label class="col-picker-item"><input type="checkbox" id="col-toggle-contributor"> Contributor</label>
+            <label class="col-picker-item"><input type="checkbox" id="col-toggle-category" checked> Content type</label>
+          </div>
+        </div>
+
+        <button id="reset-filters-btn" class="btn btn-outline-secondary btn-sm" type="button">
+          <span class="btn-icon" aria-hidden="true">↺</span>Reset filters
+        </button>
+        <button id="share-view-btn" class="btn btn-primary btn-sm" type="button">
+          <span class="btn-icon" aria-hidden="true">🔗</span>Share view
+        </button>
+        <span id="share-view-feedback" class="share-view-feedback" role="status" aria-live="polite"></span>
+      </div>
     </div>
-    
-    <div data-intro="This timeline ⏳ include resources for developers using ArcGIS.<br/><br/>The LinkedIn and X (former Twitter) columns contain existing social media messages <b>we would like you to consider liking 👍🏻 or reposting 🔁</b>" data-step="1">
-      <calcite-table caption="Simple table" interaction-mode="static" bordered>
-          <calcite-table-row slot="table-header">
-              <calcite-table-header heading="Date" alignment="center"></calcite-table-header>
-              <calcite-table-header heading="Content title"></calcite-table-header>
-              <calcite-table-header heading="Author" alignment="center"></calcite-table-header>
-              <!-- <div data-intro="" data-step="2"> -->
-                <calcite-table-header heading="LinkedIn" alignment="center"></calcite-table-header>
-              <!-- </div> -->
-              <!-- <div data-intro="The same with the X (former Twitter) column" data-step="3"> -->
-                <calcite-table-header heading="X" alignment="center"></calcite-table-header>
-              <!-- </div> -->
-              <calcite-table-header heading="Technology"></calcite-table-header>
-              <calcite-table-header heading="Content type" alignment="center"></calcite-table-header>
-          </calcite-table-row>
-          
-      </calcite-table>
+
+    <!-- ── Tabs ────────────────────────────────────────────────────────────── -->
+    <ul class="nav nav-tabs" id="main-tabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-table-trigger" data-bs-toggle="tab" data-bs-target="#tab-table" type="button" role="tab" aria-controls="tab-table" aria-selected="true">Table</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-trends-trigger" data-bs-toggle="tab" data-bs-target="#tab-trends" type="button" role="tab" aria-controls="tab-trends" aria-selected="false">Trends</button>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="tab-table" role="tabpanel" aria-labelledby="tab-table-trigger">
+
+        <!-- ── Table tab ───────────────────────────────────────────────────── -->
+
+        <div id="loading-status" class="loading-status" role="status" aria-live="polite">
+          <span class="loading-status__dot" aria-hidden="true"></span>
+          <span id="loading-status-text">Loading activity feed...</span>
+        </div>
+
+        <!-- Activity table -->
+        <div class="table-container"
+          data-intro="This timeline ⏳ includes resources for developers using ArcGIS.<br/><br/>The LinkedIn and X (former Twitter) columns contain existing social media messages <b>we would like you to consider liking 👍🏻 or reposting 🔁</b>"
+          data-step="1">
+          <table id="main-table" class="table table-bordered table-sm align-middle" aria-label="Activity table">
+            <thead>
+              <tr>
+                <th class="text-center">Date</th>
+                <th>Content title</th>
+                <th class="text-center" data-col="author">Author</th>
+                <th class="text-center" data-col="channel">Channel</th>
+                <th class="text-center" data-col="language">Language</th>
+                <th class="text-center" data-col="linkedin">LinkedIn</th>
+                <th class="text-center" data-col="x">X</th>
+                <th>Technology</th>
+                <th class="text-center" data-col="category">Content type</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+      </div>
+
+      <!-- ── Trends tab ──────────────────────────────────────────────────── -->
+      <div class="tab-pane fade" id="tab-trends" role="tabpanel" aria-labelledby="tab-trends-trigger">
+        <p class="charts-note">
+          Charts reflect current filter selections. Use the filters above to adjust results.
+        </p>
+        <nav class="charts-index" aria-label="Charts in this dashboard">
+          <a class="charts-index__link" href="#chart-section-volume">Volume</a>
+          <a class="charts-index__link" href="#chart-section-breakdown">Breakdown</a>
+          <a class="charts-index__link" href="#chart-section-topics">Topics</a>
+        </nav>
+
+        <section id="chart-section-volume" class="charts-section" aria-label="Volume charts">
+          <h3 class="charts-section__title">Volume</h3>
+          <div class="charts-grid">
+            <div id="chart-overtime-card" class="chart-card chart-card--wide" data-chart-id="chart-overtime" role="button" tabindex="0" aria-label="Open chart: Content published over time">
+              <h4 class="chart-title">Content published over time</h4>
+              <p class="chart-card__hint">Click to expand</p>
+              <canvas id="chart-overtime"></canvas>
+            </div>
+            <div id="chart-author-card" class="chart-card chart-card--wide" data-chart-id="chart-author" role="button" tabindex="0" aria-label="Open chart: Author breakdown over time">
+              <h4 class="chart-title">Author breakdown over time</h4>
+              <p class="chart-card__hint">Click to expand</p>
+              <canvas id="chart-author"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <section id="chart-section-breakdown" class="charts-section" aria-label="Breakdown charts">
+          <h3 class="charts-section__title">Breakdown</h3>
+          <div class="charts-grid">
+            <div id="chart-type-card" class="chart-card" data-chart-id="chart-type" role="button" tabindex="0" aria-label="Open chart: Content type">
+              <h4 class="chart-title">Content type</h4>
+              <p class="chart-card__hint">Click to expand</p>
+              <canvas id="chart-type"></canvas>
+            </div>
+            <div id="chart-channel-card" class="chart-card" data-chart-id="chart-channel" role="button" tabindex="0" aria-label="Open chart: Channel">
+              <h4 class="chart-title">Channel</h4>
+              <p class="chart-card__hint">Click to expand</p>
+              <canvas id="chart-channel"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <section id="chart-section-topics" class="charts-section" aria-label="Topic charts">
+          <h3 class="charts-section__title">Topics and language</h3>
+          <div class="charts-grid">
+            <div id="chart-topic-card" class="chart-card chart-card--wide" data-chart-id="chart-topic" role="button" tabindex="0" aria-label="Open chart: Top topics technologies">
+              <h4 class="chart-title">Top topics / technologies</h4>
+              <p class="chart-card__hint">Click to expand</p>
+              <canvas id="chart-topic"></canvas>
+            </div>
+            <div id="chart-contributors-card" class="chart-card" data-chart-id="chart-contributors" role="button" tabindex="0" aria-label="Open chart: Contributors">
+              <h4 class="chart-title">Contributors</h4>
+              <p class="chart-card__hint">Click to expand</p>
+              <canvas id="chart-contributors"></canvas>
+            </div>
+            <div id="chart-language-card" class="chart-card" data-chart-id="chart-language" role="button" tabindex="0" aria-label="Open chart: Language">
+              <h4 class="chart-title">Language</h4>
+              <p class="chart-card__hint">Click to expand</p>
+              <canvas id="chart-language"></canvas>
+            </div>
+          </div>
+        </section>
+      </div>
+
     </div>
   </div>
 
-  <a href='https://github.com/hhkaos/esridevs-social-activity' class="ribbon" target="blank">CONTRIBUTE</a>
+  <a href="https://github.com/hhkaos/esridevs-social-activity" class="ribbon" target="_blank">CONTRIBUTE</a>
 
   <div id="help">
-    <img src="./assets/images/help.png" />
+    <img src="./assets/images/help.png" alt="Help" />
   </div>
 
+  <div class="modal fade chart-modal" id="chart-modal" tabindex="-1" aria-labelledby="chart-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="chart-modal-title">Chart</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <canvas id="chart-modal-canvas"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row template — data-col attributes mirror the table headers above -->
   <template id="templateRow">
-    <calcite-table-row>
-      <calcite-table-cell alignment="center"></calcite-table-cell>
-      <calcite-table-cell></calcite-table-cell>
-      <calcite-table-cell alignment="center"></calcite-table-cell>
-      <calcite-table-cell alignment="center"></calcite-table-cell>
-      <calcite-table-cell alignment="center"></calcite-table-cell>
-      <calcite-table-cell></calcite-table-cell>
-      <calcite-table-cell alignment="center"></calcite-table-cell>
-    </calcite-table-row>
+    <tr>
+      <td class="text-center"></td>                    <!-- date -->
+      <td></td>                                        <!-- title -->
+      <td class="text-center" data-col="author"></td>  <!-- author -->
+      <td class="text-center" data-col="channel"></td> <!-- channel -->
+      <td class="text-center" data-col="language"></td><!-- language -->
+      <td class="text-center" data-col="linkedin"></td><!-- linkedin -->
+      <td class="text-center" data-col="x"></td>       <!-- x -->
+      <td></td>                                        <!-- technology -->
+      <td class="text-center" data-col="category"></td><!-- category -->
+    </tr>
   </template>
 
   <template id="templateTopicRow">
-    <calcite-combobox-item value="" text-label=""></calcite-combobox-item>
+    <option value=""></option>
   </template>
-  <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
-  
-  <script>
-
-
-    let flags
-
-    try{
-      const parts = new URL(window.location.href);
-      if (parts.hash == '') {
-        throw new Error('No hash');
-      }
-      flags = JSON.parse(LZString.decompressFromBase64(parts.hash.substr(1)));
-    }catch(error){
-      flags = {
-        "technologies": {},
-        "categories": {},
-        "authors": {},
-      }
-    }
 
     const findValueInNestedJSON = (jsonObject, targetKey) => {
         for (const outerKey in jsonObject) {
@@ -417,6 +580,6 @@
 
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/intro.js" integrity="sha512-f26fxKZJiF0AjutUaQHNJ5KnXSisqyUQ3oyfaoen2apB1wLa5ccW3lmtaRe2jdP5kh4LF2gAHP9xQbx7wYhU5w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-</body>
 
+</body>
 </html>
