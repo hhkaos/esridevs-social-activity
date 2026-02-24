@@ -447,6 +447,8 @@ const syncColumnVisibilityWithToggles = () => {
   });
 };
 
+window.syncColumnVisibilityWithToggles = syncColumnVisibilityWithToggles;
+
 syncColumnVisibilityWithToggles();
 
 const resetFiltersBtn = document.querySelector('#reset-filters-btn');

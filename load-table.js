@@ -121,44 +121,30 @@ const fetchJsonOrThrow = (url) =>
     return response.json();
   });
 
-const hasText = (value) => `${value ?? ''}`.trim() !== '';
-const hasLink = (value) => hasText(value) && `${value}`.trim().toLowerCase() !== 'n/a';
-const isMeaningfulValue = (value) => {
-  const normalized = `${value ?? ''}`.trim().toLowerCase();
-  if (!normalized) return false;
-  return !['n/a', 'na', 'none', '-', '--', 'tbd'].includes(normalized);
-};
+const {
+  hasText,
+  isMeaningfulValue,
+  pickFirst,
+  extractContentLinks,
+  extractSocialLinks,
+  sanitizeActivityRows,
+  runPostRefreshUiSync,
+} = window.activityUtils || {};
 
-const pickFirst = (row, keys) => {
-  for (const key of keys) {
-    if (hasText(row?.[key])) return `${row[key]}`.trim();
-  }
-  return '';
-};
-
-const sanitizeActivityRows = (rows = []) => rows.filter((row) => {
-  const title = pickFirst(row, ['Title', 'Content title']);
-  const date = pickFirst(row, ['Date']);
-  const author = pickFirst(row, ['Author', 'Authors']);
-  const contributors = pickFirst(row, ['Contributors', 'Contributor', 'Authors']);
-  const channel = pickFirst(row, ['Channel']);
-  const language = pickFirst(row, ['Language', 'Languages']);
-  const technology = pickFirst(row, ['Topics_Product', 'Technology', 'Technologies']);
-  const category = pickFirst(row, ['Category', 'Category / Content type', 'Content type']);
-  const contentLinks = extractContentLinks(row);
-  const socialLinks = extractSocialLinks(row);
-
-  return [
-    title,
-    date,
-    author,
-    contributors,
-    channel,
-    language,
-    technology,
-    category,
-  ].some(isMeaningfulValue) || contentLinks.length > 0 || socialLinks.length > 0;
-});
+if (
+  [
+    hasText,
+    isMeaningfulValue,
+    pickFirst,
+    extractContentLinks,
+    extractSocialLinks,
+    sanitizeActivityRows,
+    runPostRefreshUiSync,
+  ]
+    .some((fn) => typeof fn !== 'function')
+) {
+  throw new Error('activity-utils.js must be loaded before load-table.js');
+}
 
 const mergeUniqueItems = (currentItems, nextItems = []) => {
   const merged = Array.isArray(currentItems) ? [...currentItems] : [];
@@ -178,25 +164,6 @@ const normalizeForKey = (value) => `${value ?? ''}`
   .toLowerCase()
   .replace(/\s+/g, ' ')
   .trim();
-
-const detectSocialPlatform = (url, fallback = 'shared') => {
-  try {
-    const host = new URL(url).hostname.toLowerCase();
-    if (host.includes('linkedin.com')) return 'linkedin';
-    if (host.includes('x.com') || host.includes('twitter.com')) return 'x';
-    if (host.includes('bsky.app') || host.includes('bluesky')) return 'bluesky';
-  } catch {
-    return fallback;
-  }
-  return fallback;
-};
-
-const socialPlatformName = (platform) => ({
-  linkedin: 'LinkedIn',
-  x: 'X/Twitter',
-  bluesky: 'Bluesky',
-  shared: 'EsriDevs Shared',
-}[platform] || 'EsriDevs Shared');
 
 const socialIconClass = (platform) => ({
   linkedin: 'fa-brands fa-linkedin',
@@ -221,65 +188,12 @@ const initSocialTooltips = () => {
   });
 };
 
-const buildSocialLinks = ({ linkedin, xPost, bluesky, esriDevsShared }) => {
-  const links = [];
-
-  if (hasLink(linkedin)) {
-    links.push({ url: linkedin, platform: 'linkedin', title: 'Open LinkedIn post' });
-  }
-
-  if (hasLink(xPost)) {
-    links.push({ url: xPost, platform: 'x', title: 'Open X/Twitter post' });
-  }
-
-  if (hasLink(bluesky)) {
-    links.push({ url: bluesky, platform: 'bluesky', title: 'Open Bluesky post' });
-  }
-
-  if (hasLink(esriDevsShared)) {
-    const platform = detectSocialPlatform(esriDevsShared, 'shared');
-    links.push({
-      url: esriDevsShared,
-      platform,
-      title: `Open EsriDevs Shared (${socialPlatformName(platform)})`,
-    });
-  }
-
-  return links;
-};
-
-const extractContentLinks = (row) => {
-  const directUrl = pickFirst(row, ['URL', 'Url', 'Link']);
-  return hasLink(directUrl)
-    ? [{ url: directUrl, title: 'Open content link' }]
-    : [];
-};
-
 const getDomainLabel = (url) => {
   try {
     return new URL(url).hostname.replace(/^www\./i, '');
   } catch {
     return 'link';
   }
-};
-
-const extractSocialLinks = (row) => {
-  const linkedin = pickFirst(row, ['Linkedin', 'LinkedIn']);
-  const xPost = pickFirst(row, ['X/Twitter', 'X', 'Twitter']);
-  const bluesky = pickFirst(row, ['Bluesky', 'BlueSky']);
-  const esriDevsShared = pickFirst(row, ['EsriDevs Shared', 'EsriDevs shared']);
-
-  let resolvedXPost = xPost;
-  if (!hasLink(resolvedXPost) && hasLink(esriDevsShared)) {
-    resolvedXPost = esriDevsShared;
-  }
-
-  return buildSocialLinks({
-    linkedin,
-    xPost: resolvedXPost,
-    bluesky,
-    esriDevsShared: hasLink(xPost) ? esriDevsShared : '',
-  });
 };
 
 const dedupeActivityRows = (rows) => {
@@ -408,9 +322,10 @@ function refreshTableOnly(freshActivity) {
   const tableBody = document.querySelector('#main-table tbody');
   if (tableBody) tableBody.innerHTML = '';
   renderTableRows(dedupedActivityRows);
-  if (typeof window.applyFilters === 'function') {
-    window.applyFilters();
-  }
+  runPostRefreshUiSync({
+    syncColumnVisibility: window.syncColumnVisibilityWithToggles,
+    applyFilters: window.applyFilters,
+  });
   if (typeof window.renderCharts === 'function') {
     const trendsPane = document.querySelector('#tab-trends');
     if (trendsPane?.classList.contains('active')) {
