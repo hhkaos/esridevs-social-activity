@@ -123,6 +123,11 @@ const fetchJsonOrThrow = (url) =>
 
 const hasText = (value) => `${value ?? ''}`.trim() !== '';
 const hasLink = (value) => hasText(value) && `${value}`.trim().toLowerCase() !== 'n/a';
+const isMeaningfulValue = (value) => {
+  const normalized = `${value ?? ''}`.trim().toLowerCase();
+  if (!normalized) return false;
+  return !['n/a', 'na', 'none', '-', '--', 'tbd'].includes(normalized);
+};
 
 const pickFirst = (row, keys) => {
   for (const key of keys) {
@@ -133,7 +138,26 @@ const pickFirst = (row, keys) => {
 
 const sanitizeActivityRows = (rows = []) => rows.filter((row) => {
   const title = pickFirst(row, ['Title', 'Content title']);
-  return hasText(title);
+  const date = pickFirst(row, ['Date']);
+  const author = pickFirst(row, ['Author', 'Authors']);
+  const contributors = pickFirst(row, ['Contributors', 'Contributor', 'Authors']);
+  const channel = pickFirst(row, ['Channel']);
+  const language = pickFirst(row, ['Language', 'Languages']);
+  const technology = pickFirst(row, ['Topics_Product', 'Technology', 'Technologies']);
+  const category = pickFirst(row, ['Category', 'Category / Content type', 'Content type']);
+  const contentLinks = extractContentLinks(row);
+  const socialLinks = extractSocialLinks(row);
+
+  return [
+    title,
+    date,
+    author,
+    contributors,
+    channel,
+    language,
+    technology,
+    category,
+  ].some(isMeaningfulValue) || contentLinks.length > 0 || socialLinks.length > 0;
 });
 
 const mergeUniqueItems = (currentItems, nextItems = []) => {
@@ -424,6 +448,22 @@ function renderTableRows(rows) {
     const language = pickFirst(e, ['Language', 'Languages']);
     const technology = pickFirst(e, ['Topics_Product', 'Technology', 'Technologies']);
     const category = pickFirst(e, ['Category', 'Category / Content type', 'Content type']);
+    const socialLinks = Array.isArray(e.__socialLinks) ? e.__socialLinks : extractSocialLinks(e);
+
+    const hasRenderableData = [
+      title,
+      date,
+      author,
+      contributors,
+      channel,
+      language,
+      technology,
+      category,
+    ].some(isMeaningfulValue)
+      || contentLinks.length > 0
+      || socialLinks.length > 0;
+
+    if (!hasRenderableData) return;
 
     td[0].innerText = formatDate(date);
     row.setAttribute('data-date', date);
@@ -447,7 +487,6 @@ function renderTableRows(rows) {
     td[4].innerText = language;
     row.setAttribute('data-languages', language);
 
-    const socialLinks = Array.isArray(e.__socialLinks) ? e.__socialLinks : extractSocialLinks(e);
     if (socialLinks.length) {
       td[5].innerHTML = `<div class="social-links">${socialLinks.map(renderSocialLink).join('')}</div>`;
     } else {

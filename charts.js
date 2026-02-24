@@ -246,6 +246,14 @@ function countContributors(data) {
   return counts;
 }
 
+function countUniqueContributors(data) {
+  const uniqueContributors = new Set();
+  data.forEach((row) => {
+    splitMultiValueCell(getContributorsCell(row)).forEach((name) => uniqueContributors.add(name));
+  });
+  return uniqueContributors.size;
+}
+
 function makeChart(id, config) {
   const ctx = document.getElementById(id);
   if (!ctx) return;
@@ -428,6 +436,10 @@ window.renderCharts = function () {
   // ── 7. Contributors doughnut ───────────────────────────────────────────────
   const contributorEntries = Object.entries(countContributors(data))
     .sort((a, b) => b[1] - a[1]);
+  const contributorsTitleEl = document.querySelector('#chart-contributors-card .chart-title');
+  if (contributorsTitleEl) {
+    contributorsTitleEl.textContent = `Contributors (${countUniqueContributors(data)})`;
+  }
   makeChart('chart-contributors', {
     type: 'doughnut',
     data: {
