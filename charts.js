@@ -275,22 +275,35 @@ window.renderCharts = function () {
   const sortedMonths = Object.keys(monthMap).sort();
   const monthLabels  = sortedMonths.map(monthKeyToLabel);
 
-  // ── 1. Content published over time ─────────────────────────────────────────
+  // ── 1. Channel breakdown over time (stacked bar) ──────────────────────────
+  const allChannels = [...new Set(data.map((row) => row['Channel'] || 'Unknown'))];
+  const byMonthChannel = {};
+  data.forEach((row) => {
+    const m = toMonthKey(row['Date']);
+    if (!m) return;
+    if (!byMonthChannel[m]) byMonthChannel[m] = {};
+    const channel = row['Channel'] || 'Unknown';
+    byMonthChannel[m][channel] = (byMonthChannel[m][channel] || 0) + 1;
+  });
+
   makeChart('chart-overtime', {
     type: 'bar',
     data: {
       labels: monthLabels,
-      datasets: [{
-        label: 'Items published',
-        data: sortedMonths.map(m => monthMap[m]),
-        backgroundColor: '#007AC2',
-        borderRadius: 3,
-      }],
+      datasets: allChannels.map((channel, i) => ({
+        label: channel,
+        data: sortedMonths.map((m) => byMonthChannel[m]?.[channel] || 0),
+        backgroundColor: PALETTE[i % PALETTE.length],
+        borderRadius: 2,
+      })),
     },
     options: {
       ...baseOptions,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+      plugins: { legend: { position: 'bottom' } },
+      scales: {
+        x: { stacked: true },
+        y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } },
+      },
     },
   });
 
@@ -348,26 +361,56 @@ window.renderCharts = function () {
     options: { ...baseOptions, plugins: { legend: { position: 'bottom' } } },
   });
 
-  // ── 5. Top topics / technologies (horizontal bar) ─────────────────────────
+  // ── 5. Top topics / technologies (stacked by author) ─────────────────────
   const topicEntries = Object.entries(countByKey(data, 'Topics_Product'))
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 12);
+    .sort((a, b) => b[1] - a[1]);
+  const topicLabels = topicEntries.map(([topic]) => topic);
+  const authorLabels = [...new Set(data.map((row) => row['Author'] || 'Unknown'))];
+  const topicAuthorCounts = {};
+  topicLabels.forEach((topic) => {
+    topicAuthorCounts[topic] = {};
+    authorLabels.forEach((author) => {
+      topicAuthorCounts[topic][author] = 0;
+    });
+  });
+  data.forEach((row) => {
+    const topic = row['Topics_Product'] || 'Unknown';
+    if (!topicAuthorCounts[topic]) return;
+    const author = row['Author'] || 'Unknown';
+    topicAuthorCounts[topic][author] = (topicAuthorCounts[topic][author] || 0) + 1;
+  });
+
   makeChart('chart-topic', {
     type: 'bar',
     data: {
-      labels: topicEntries.map(([k]) => k),
-      datasets: [{
-        label: 'Items',
-        data: topicEntries.map(([, v]) => v),
-        backgroundColor: '#56A0D3',
-        borderRadius: 3,
-      }],
+      labels: topicLabels,
+      datasets: authorLabels.map((author, i) => ({
+        label: author,
+        data: topicLabels.map((topic) => topicAuthorCounts[topic]?.[author] || 0),
+        backgroundColor: PALETTE[i % PALETTE.length],
+      })),
     },
     options: {
       ...baseOptions,
       indexAxis: 'y',
-      plugins: { legend: { display: false } },
-      scales: { x: { beginAtZero: true, ticks: { precision: 0 } } },
+      scales: {
+        x: {
+          stacked: true,
+          beginAtZero: true,
+          ticks: { precision: 0 },
+        },
+        y: {
+          stacked: true,
+        },
+      },
+      plugins: {
+        legend: { position: 'bottom' },
+        tooltip: {
+          callbacks: {
+            label: (context) => `${context.dataset.label}: ${context.parsed.x || 0}`,
+          },
+        },
+      },
     },
   });
 
