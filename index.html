@@ -1,27 +1,188 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>EsriDevs Social Activity</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/morph/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/introjs.css" integrity="sha512-4OzqLjfh1aJa7M33b5+h0CSx0Q3i9Qaxlrr1T/Z+Vz+9zs5A7GM3T3MFKXoreghi3iDOSbkPMXiMBhFO7UBW/g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="./style.css" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+    <script type="module" src=https://js.arcgis.com/calcite-components/2.13.0/calcite.esm.js></script>
+    <link rel="stylesheet" type="text/css" href=https://js.arcgis.com/calcite-components/2.13.0/calcite.css />
+    <title>Esri Dev. content - Activity Monitor</title>
+    <script>
+      // Load the table
+      try {
+        const spreadsheetID = '1oKkHCNbOUpfERu1xC4ePU2XwDSvalEfE0YmTN39cyNg';
+        const tab = 'Activity'
+        const activityURL = `https://opensheet.elk.sh/${spreadsheetID}/${tab}`;
+        fetch(activityURL)
+        .then(response => console.log(response.status) || response)
+        .then(response => response.text())
+        .then(body => {
+          console.log(body)
+          const res = JSON.parse(body)
+          if ("content" in document.createElement("template")) {
+          
+            const tbody = document.querySelector("calcite-table");
+            const template = document.querySelector("#templateRow");
+            
+            res.forEach( e => {
+              const clone = template.content.cloneNode(true);
+              const row = clone.firstElementChild;
+              let isFeatured = '';
+              if(e["Featured"]){
+                clone.firstElementChild.setAttribute("class","selected")
+                isFeatured = '⭐';
+              }
+              let td = clone.querySelectorAll("calcite-table-cell");
+
+              td[0].innerText = formatDate(e['Date']);
+              if(e['URL'] && e['URL'].toLowerCase() != 'n/a'){
+                td[1].innerHTML = `<a href="${e['URL']}" target="_blank" class="emoji">${isFeatured} ${e['Title']}</a>`;
+              }else{
+                td[1].innerHTML = `${isFeatured} ${e['Title']}`;
+              }
+              td[2].innerText = e['Author'];
+              row.setAttribute("data-authors", e['Author'])
+              tbody.appendChild(clone);
+
+              if(e['Linkedin'] && e['Linkedin'].toLowerCase() != 'n/a') {
+                td[3].innerHTML = `<a href="${e['Linkedin']}" target="_blank" class="emoji">🔁</a>`;
+              }
+              if(e['X/Twitter'] && e['X/Twitter'].toLowerCase() != 'n/a'){
+                td[4].innerHTML = `<a href="${e['X/Twitter']}" target="_blank" class="emoji">🔁</a>`;
+              }
+              td[5].innerText = e['Topics_Product'];
+              row.setAttribute("data-technologies", e['Topics_Product'])
+              td[6].innerText = e['Category'];
+              row.setAttribute("data-categories", e['Category'])
+              tbody.appendChild(clone);
+            })
+
+          } else {
+            // Find another way to add the rows to the table because
+            // the HTML template element is not supported. ;D
+          }
+        })
+        
+      } catch (error) {
+        console.error(error.message);
+      }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/introjs.css" integrity="sha512-4OzqLjfh1aJa7M33b5+h0CSx0Q3i9Qaxlrr1T/Z+Vz+9zs5A7GM3T3MFKXoreghi3iDOSbkPMXiMBhFO7UBW/g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+      calcite-table {
+          width: 100%;
+      }
+      .container{
+        max-width: 960px;
+        margin: 0 auto;
+        width: 90%;
+      }
+      .row {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        width: 100%;
+      }
+
+      .column {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        flex: 1; 
+      }
+      .right{
+        padding-left: 2rem;
+      }
+      .ribbon {
+        /* positioning */
+        position: fixed;
+        padding: 5px 45px;
+        width: 128px;
+        /* top right of the page */
+        top: 50px;
+        right: -50px;
+        -webkit-transform: rotate(45deg);
+        -moz-transform: rotate(45deg);
+        -ms-transform: rotate(45deg);
+        transform: rotate(45deg);
+        /* effects with some shadow */
+        box-shadow: 0 0 0 3px #141412, 0 0 20px -3px rgba(0, 0, 0, 0.5);
+        text-shadow: 0 0 0 #ffffff, 0 0 5px rgba(0, 0, 0, 0.3);
+        /* looks */
+        background-color: #141412;
+        color: #ffffff;
+        font-size: 13px;
+        font-family: sans-serif;
+        text-decoration: none;
+        font-weight: bold;
+        /* ribbon effects */
+        border: 2px dotted #ffffff;
+        /* webkit antialias fix */
+        -webkit-backface-visibility: hidden;
+        letter-spacing: .5px;
+        text-align: center;
+      }
+      .emoji{
+        text-decoration: none;
+      }
+      calcite-combobox{
+        width:33%;
+        margin-right: .3%;
+      }
+      .mb1{
+        margin-bottom: 1rem;
+      }
+
+      @media only screen and (max-width: 850px) {
+        h1 {
+          font-size: 1.2rem;
+        }
+      }
+      @media only screen and (max-width: 600px) {
+        .ribbon {
+          display: none;
+        }
+      }
+      .selected{
+        --calcite-table-row-background: #ade9ff
+      }
+      calcite-table-row:nth-child(odd of :not(.hidden)){
+        --calcite-table-row-background: #f3f3f3
+      }
+      .hidden{
+        display: none;
+      }
+      .introjs-tooltiptext{
+        font-family: "Avenir Next", Avenir, "Helvetica Neue", sans-serif;
+        font-size: 14px  
+      }
+      #help{
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+      }
+      #help img{
+        width: 25px;
+      }
+      #help:hover{
+        cursor: pointer;
+      }
+  </style>
 </head>
 <body>
 
   <div class="container">
-
-    <!-- ── Header ──────────────────────────────────────────────────────────── -->
-    <div class="header-row">
-      <h1>EsriDevs Social Activity</h1>
-      <a
-        class="btn btn-outline-primary btn-sm"
-        href="https://docs.google.com/spreadsheets/d/1oKkHCNbOUpfERu1xC4ePU2XwDSvalEfE0YmTN39cyNg/edit?usp=sharing"
-        target="_blank"
-        data-intro="Do you find something missing? <br/>Add a comment or contact us at <a href='mailto:developeroutreach@esri.com'>developeroutreach@esri.com</a> 📧"
-        data-step="20">
+    
+    <div class="row">
+      <h1 class="column">Esri Dev. content - Activity Monitor</h1>
+      <span class="column right">
+        <calcite-button
+          href="https://docs.google.com/spreadsheets/d/1oKkHCNbOUpfERu1xC4ePU2XwDSvalEfE0YmTN39cyNg/edit?usp=sharing"
+          icon-end="launch"
+          round width="auto"
+          label="Open spreadsheet"
+          target="_blank"
+          data-intro="Do you find something missing? <br/>Add a comment or contact us at <a href='mailto:developeroutreach@esri.com'>developeroutreach@esri.com</a> 📧" data-step="20"
+          >
         Add new activity
       </a>
     </div>
@@ -264,13 +425,160 @@
     <option value=""></option>
   </template>
 
-  <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-  <script src="./load-table.js"></script>
-  <script src="./apply-filters.js"></script>
-  <script src="./charts.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    const findValueInNestedJSON = (jsonObject, targetKey) => {
+        for (const outerKey in jsonObject) {
+            if (jsonObject.hasOwnProperty(outerKey)) {
+                const innerObject = jsonObject[outerKey];
+                if (innerObject.hasOwnProperty(targetKey)) {
+                    return innerObject[targetKey];
+                }
+            }
+        }
+        return null; 
+    };
+
+    const loadCombobox = (options, idContainer, templateId) => {
+        const topicsSelector = document.querySelector(idContainer);
+        const template = document.querySelector(templateId);
+        
+        options.forEach((e, i , array) => {
+          const clone = template.content.cloneNode(true);
+          clone.firstElementChild.setAttribute("value", e)
+          clone.firstElementChild.setAttribute("text-label", e)
+          // If check flags
+          const val = findValueInNestedJSON(flags, e)
+          if(val === 1 || val === null){
+            clone.firstElementChild.setAttribute("selected", null)
+          }
+          topicsSelector.appendChild(clone);
+        });
+    };
+
+    const updateFlags = (e, keyword) => {
+      e.currentTarget.querySelectorAll(':not([selected])').forEach(e => {
+        flags[keyword][e.value] = 0;
+        const filter = `calcite-table-row[data-${keyword}='${e.value}']`;
+        document.querySelectorAll(filter).forEach(e => {
+          e.classList.add("hidden");
+        })
+      });
+
+      e.currentTarget.querySelectorAll('[selected]').forEach(e => {
+        flags[keyword][e.value] = 1;
+        
+        const filter = `calcite-table-row[data-${keyword}='${e.value}']`;
+        document.querySelectorAll(filter).forEach(e => {
+          if( flags.authors[e.dataset.authors] &&
+              flags.technologies[e.dataset.technologies] &&
+              flags.categories[e.dataset.categories]){
+                e.classList.remove("hidden");
+          }
+          e.dataset.authors
+        })
+      });
+
+      window.history.pushState( { title: "Services" }, "servicespage", "#"+LZString.compressToBase64(JSON.stringify(flags)));
+    }
+
+    // Load filter bar
+    const technologies = [
+		"Arcade",
+		"ArcGIS API for Python",
+		"ArcGIS Dashboards",
+		"ArcGIS Enterprise",
+		"ArcGIS Enterprise SDK",
+		"ArcGIS GeoAnalytics Engine",
+		"ArcGIS Location Platform",
+		"ArcGIS Maps SDK for .NET",
+		"ArcGIS Maps SDK for Flutter",
+		"ArcGIS Maps SDK for Javascript",
+		"ArcGIS Maps SDK for Kotlin",
+		"ArcGIS Maps SDK for Qt",
+		"ArcGIS Maps SDK for Swift",
+		"ArcGIS Online",
+		"ArcGIS Pro SDK",
+		"ArcGIS REST JS",
+		"ArcGIS services",
+		"ArcGIS StoryMaps",
+		"Arcpy",
+		"Calcite Design System",
+		"Engineering",
+		"Experience Builder",
+		"Game Engines",
+		"General",
+		"Living Atlas",
+		"Native SDKs",
+		"Other",
+		"R",
+		"Security and authentication",
+		"Survey123",
+		"Web technologies"
+    ];
+    loadCombobox(technologies, "#topics", "#templateTopicRow");
+    document.querySelector('#topics').addEventListener("calciteComboboxChange",  (e) => updateFlags(e, 'technologies') );
+
+    const categories = [
+	"Blog",
+	"Course",
+	"DevSummit video",
+	"In-person event ",
+	"Livestream",
+	"Other",
+	"Podcast",
+	"Social post",
+	"Source code",
+	"Training seminar",
+	"Video",
+	"Video Short"
+    ];
+    loadCombobox(categories, "#category", "#templateTopicRow");
+    document.querySelector('#category').addEventListener("calciteComboboxChange",  (e) => updateFlags(e, 'categories') );
+
+    const authors = [
+      "Esri",
+      "Community",
+      "Employee",
+      "Distributor"
+    ];
+    loadCombobox(authors, "#author", "#templateTopicRow");
+    document.querySelector('#author').addEventListener("calciteComboboxChange",  (e) => updateFlags(e, 'authors') );
+
+    const initApp = () => {
+      const hidrated = document.querySelector('#author').getAttribute("calcite-hydrated");
+      if(hidrated != ''){
+        setTimeout(initApp, 1000);
+      }else{
+        const event = new Event("calciteComboboxChange");
+        document.querySelector('#topics').dispatchEvent(event);
+        document.querySelector('#category').dispatchEvent(event);
+        document.querySelector('#author').dispatchEvent(event);
+        if(!localStorage.getItem("tourDisplayed")){
+          introJs().start();
+          localStorage.setItem("tourDisplayed", true);
+        }
+      }
+    }
+    initApp();
+
+    document.querySelector('#help').addEventListener("click", e => introJs().start())
+
+    // Function to format the date to "DD Month YYYY"
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+
+      // Check if the date is valid
+      if (isNaN(date)) return dateString;
+
+      // Extract day, month, and year
+      const day = date.getDate();
+      const month = date.toLocaleString('default', { month: 'long' });
+      const year = date.getFullYear();
+
+      // Return formatted string as "DD Month YYYY"
+      return `${month} ${day} ${year}`;
+    }
+
+  </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/intro.js" integrity="sha512-f26fxKZJiF0AjutUaQHNJ5KnXSisqyUQ3oyfaoen2apB1wLa5ccW3lmtaRe2jdP5kh4LF2gAHP9xQbx7wYhU5w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
 </body>
