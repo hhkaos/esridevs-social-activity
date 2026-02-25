@@ -18,6 +18,8 @@
     </div>
   </div>
 
+  <div id="schema-warning-banner" class="schema-warning-banner" hidden role="alert" aria-live="assertive"></div>
+
   <div class="container">
 
     <!-- ── Header ──────────────────────────────────────────────────────────── -->
@@ -32,12 +34,19 @@
     </div>
 
     <!-- Filters row -->
-    <div class="filters-row">
-      <div class="filters-row__header">
-        <p class="filters-title">Filter activity</p>
+    <div class="filters-row is-collapsed">
+      <div
+        class="filters-row__header"
+        id="filters-collapse-toggle"
+        role="button"
+        tabindex="0"
+        aria-controls="filters-body"
+        aria-expanded="false">
+        <p id="filters-collapse-label" class="filters-title">Show filters</p>
         <p id="filters-summary" class="filters-summary" role="status" aria-live="polite"></p>
       </div>
 
+      <div id="filters-body" class="filters-row__body" hidden>
       <div class="filters-grid">
         <div class="filters-group">
           <span class="filter-field__label">Filter options</span>
@@ -79,8 +88,10 @@
           <label class="date-preset-wrap" for="date-preset">
             <span>Preset</span>
             <select id="date-preset" class="form-select" aria-label="Date range preset">
+              <option value="showAll" selected>Show all</option>
               <option value="last30">Last 30 days</option>
               <option value="last60">Last 60 days</option>
+              <option value="last90">Last 90 days</option>
               <option value="thisMonth">This month</option>
               <option value="thisQuarter">This quarter</option>
               <option value="lastQuarter">Last quarter</option>
@@ -126,6 +137,7 @@
         </button>
         <span id="share-view-feedback" class="share-view-feedback" role="status" aria-live="polite"></span>
       </div>
+      </div>
     </div>
 
     <!-- ── Tabs ────────────────────────────────────────────────────────────── -->
@@ -159,6 +171,7 @@
                 <th class="text-center" data-col="channel">Channel</th>
                 <th class="text-center" data-col="language">Language</th>
                 <th class="text-center" data-col="social">Social</th>
+                <th class="text-center" data-col="contributor">Contributor</th>
                 <th>Technology</th>
                 <th class="text-center" data-col="category">Content type</th>
               </tr>
@@ -274,6 +287,7 @@
       <td class="text-center" data-col="channel"></td> <!-- channel -->
       <td class="text-center" data-col="language"></td><!-- language -->
       <td class="text-center" data-col="social"></td>  <!-- social -->
+      <td class="text-center" data-col="contributor"></td><!-- contributor -->
       <td></td>                                        <!-- technology -->
       <td class="text-center" data-col="category"></td><!-- category -->
     </tr>

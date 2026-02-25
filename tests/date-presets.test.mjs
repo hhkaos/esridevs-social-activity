@@ -40,6 +40,17 @@ test('getDateRangeForPreset computes last 60 days inclusively', () => {
   assert.deepEqual(range, { from: '2026-03-12', to: '2026-05-10' });
 });
 
+test('getDateRangeForPreset computes last 90 days inclusively', () => {
+  const anchor = new Date(2026, 4, 10);
+  const range = getDateRangeForPreset('last90', anchor);
+  assert.deepEqual(range, { from: '2026-02-10', to: '2026-05-10' });
+});
+
+test('getDateRangeForPreset returns unbounded range for showAll', () => {
+  assert.deepEqual(getDateRangeForPreset('showAll', null), { from: '', to: '' });
+  assert.deepEqual(getDateRangeForPreset('showAll', new Date(2026, 4, 10)), { from: '', to: '' });
+});
+
 test('getDateRangeForPreset computes month, quarter, and year boundaries', () => {
   const anchor = new Date(2026, 4, 10);
 

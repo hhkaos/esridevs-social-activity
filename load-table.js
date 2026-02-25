@@ -130,6 +130,8 @@ const {
   sanitizeActivityRows,
   runPostRefreshUiSync,
   createRenderGate,
+  validateSheetSchema,
+  buildSchemaMismatchMessage,
 } = window.activityUtils || {};
 
 if (
@@ -142,11 +144,39 @@ if (
     sanitizeActivityRows,
     runPostRefreshUiSync,
     createRenderGate,
+    validateSheetSchema,
+    buildSchemaMismatchMessage,
   ]
     .some((fn) => typeof fn !== 'function')
 ) {
   throw new Error('activity-utils.js must be loaded before load-table.js');
 }
+
+const schemaWarningBannerEl = document.querySelector('#schema-warning-banner');
+
+const showSchemaWarning = (message) => {
+  if (!schemaWarningBannerEl) return;
+  schemaWarningBannerEl.textContent = message;
+  schemaWarningBannerEl.hidden = false;
+};
+
+const hideSchemaWarning = () => {
+  if (!schemaWarningBannerEl) return;
+  schemaWarningBannerEl.hidden = true;
+  schemaWarningBannerEl.textContent = '';
+};
+
+const validateOpenSheetSchemaOrThrow = ({ activityRows, dropdownRows }) => {
+  const schemaValidation = validateSheetSchema({ activityRows, dropdownRows });
+  if (schemaValidation.isValid) {
+    hideSchemaWarning();
+    return;
+  }
+
+  const mismatchMessage = buildSchemaMismatchMessage(schemaValidation);
+  showSchemaWarning(mismatchMessage);
+  throw new Error(mismatchMessage);
+};
 
 const mergeUniqueItems = (currentItems, nextItems = []) => {
   const merged = Array.isArray(currentItems) ? [...currentItems] : [];
@@ -376,17 +406,21 @@ function buildDropdownData(dropdownRows, authorsRows) {
       .map((row) => Object.values(row).map(v => `${v ?? ''}`.trim()).find(Boolean))
       .filter(Boolean)
   )];
+  const contributorsFromDropdown = uniqueColumnValues(dropdownRows, ['Contributors', 'Contributor', 'Authors']);
+  const contributors = [...new Set([...contributorsFromDropdown, ...authorsFromSheet])];
   return {
     technologies: uniqueColumnValues(dropdownRows, ['Technologies', 'Technology', 'Topics_Product']),
     categories:   uniqueColumnValues(dropdownRows, ['Category / Content type', 'Category', 'Content type']),
     channels:     uniqueColumnValues(dropdownRows, ['Channel']),
     authors:      uniqueColumnValues(dropdownRows, ['Author', 'Authors']),
-    contributors: authorsFromSheet,
+    contributors,
     languages:    uniqueColumnValues(dropdownRows, ['Languages', 'Language']),
   };
 }
 
 async function processAndRender(activityRows, dropdownRows, authorsRows) {
+  validateOpenSheetSchemaOrThrow({ activityRows, dropdownRows });
+
   const sanitizedActivityRows = sanitizeActivityRows(activityRows);
   const dedupedActivityRows = dedupeActivityRows(sanitizedActivityRows);
   window.activityData = dedupedActivityRows;
@@ -437,7 +471,7 @@ function createTableRowClone(entry, template) {
   const title = pickFirst(entry, ['Title', 'Content title']);
   const contentLinks = Array.isArray(entry.__contentLinks) ? entry.__contentLinks : extractContentLinks(entry);
   const author = pickFirst(entry, ['Author', 'Authors']);
-  const contributors = pickFirst(entry, ['Authors', 'Contributors', 'Contributor']);
+  const contributors = pickFirst(entry, ['Contributors', 'Contributor', 'Authors']);
   const channel = pickFirst(entry, ['Channel']);
   const language = pickFirst(entry, ['Language', 'Languages']);
   const technology = pickFirst(entry, ['Topics_Product', 'Technology', 'Technologies']);
@@ -488,10 +522,12 @@ function createTableRowClone(entry, template) {
     td[5].innerHTML = `<span class="social-na" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="${socialHelpTooltipHtml}" aria-label="No social links available. Hover for details.">N/A <i class="fa-solid fa-circle-info social-na__icon" aria-hidden="true"></i></span>`;
   }
 
-  td[6].innerText = technology;
+  td[6].innerText = contributors;
+
+  td[7].innerText = technology;
   row.setAttribute('data-technologies', technology);
 
-  td[7].innerText = category;
+  td[8].innerText = category;
   row.setAttribute('data-categories', category);
 
   return clone;
@@ -581,6 +617,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
     dataFetchPromise
       .then(([freshActivity, freshDropdowns, freshAuthors]) => {
+        validateOpenSheetSchemaOrThrow({
+          activityRows: freshActivity,
+          dropdownRows: freshDropdowns,
+        });
         saveDataCache(sanitizeActivityRows(freshActivity), freshDropdowns, freshAuthors);
         if (dataHasChanged(freshActivity, cachedData.activityRows)) {
           showToast('New data available \u2014 refreshing\u2026', 'updating');

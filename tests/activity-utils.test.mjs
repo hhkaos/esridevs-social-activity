@@ -9,6 +9,9 @@ const {
   matchesSelectionMap,
   runPostRefreshUiSync,
   createRenderGate,
+  validateSheetSchema,
+  buildSchemaMismatchMessage,
+  getFilterCollapseMeta,
 } = require('../activity-utils.js');
 
 test('sanitizeActivityRows removes blank rows with invisible characters', () => {
@@ -152,4 +155,120 @@ test('createRenderGate reset requires a new completion mark', () => {
 
   gate.markComplete();
   assert.deepEqual(calls, ['after-reset']);
+});
+
+test('getFilterCollapseMeta returns correct labels and aria-expanded value', () => {
+  assert.deepEqual(getFilterCollapseMeta(true), {
+    label: 'Show filters',
+    ariaExpanded: 'false',
+  });
+
+  assert.deepEqual(getFilterCollapseMeta(false), {
+    label: 'Hide filters',
+    ariaExpanded: 'true',
+  });
+});
+
+test('validateSheetSchema passes when Activity and Dropdowns contain expected aliases', () => {
+  const validation = validateSheetSchema({
+    activityRows: [{
+      Date: '2026-02-24',
+      Title: 'Sample',
+      URL: 'https://example.com',
+      Author: 'A',
+      Contributor: 'B',
+      Channel: 'Blog',
+      Language: 'English',
+      Topics_Product: 'ArcGIS',
+      Category: 'Article',
+    }],
+    dropdownRows: [{
+      Technologies: 'ArcGIS',
+      'Category / Content type': 'Article',
+      Channel: 'Blog',
+      Author: 'A',
+      Contributor: 'B',
+      Languages: 'English',
+    }],
+  });
+
+  assert.equal(validation.isValid, true);
+  assert.deepEqual(validation.mismatches, []);
+});
+
+test('validateSheetSchema matches aliases case-insensitively', () => {
+  const validation = validateSheetSchema({
+    activityRows: [{
+      date: '2026-02-24',
+      title: 'Sample',
+      url: 'https://example.com',
+      author: 'A',
+      contributor: 'B',
+      channel: 'Blog',
+      language: 'English',
+      topics_product: 'ArcGIS',
+      category: 'Article',
+    }],
+    dropdownRows: [{
+      technologies: 'ArcGIS',
+      'category / content type': 'Article',
+      channel: 'Blog',
+      author: 'A',
+      contributor: 'B',
+      languages: 'English',
+    }],
+  });
+
+  assert.equal(validation.isValid, true);
+  assert.deepEqual(validation.mismatches, []);
+});
+
+test('validateSheetSchema does not require Contributor header in Dropdowns endpoint', () => {
+  const validation = validateSheetSchema({
+    activityRows: [{
+      Date: '2026-02-24',
+      Title: 'Sample',
+      URL: 'https://example.com',
+      Author: 'A',
+      Contributor: 'B',
+      Channel: 'Blog',
+      Language: 'English',
+      Topics_Product: 'ArcGIS',
+      Category: 'Article',
+    }],
+    dropdownRows: [{
+      Technologies: 'ArcGIS',
+      'Category / Content type': 'Article',
+      Channel: 'Blog',
+      Author: 'A',
+      Languages: 'English',
+    }],
+  });
+
+  assert.equal(validation.isValid, true);
+  assert.deepEqual(validation.mismatches, []);
+});
+
+test('validateSheetSchema returns mismatch details when required groups are missing', () => {
+  const validation = validateSheetSchema({
+    activityRows: [{ Date: '2026-02-24', Title: 'Sample', URL: 'https://example.com' }],
+    dropdownRows: [{ Channel: 'Blog' }],
+  });
+
+  assert.equal(validation.isValid, false);
+  assert.ok(validation.mismatches.some((entry) => entry.sheet === 'Activity'));
+  assert.ok(validation.mismatches.some((entry) => entry.sheet === 'Dropdowns'));
+});
+
+test('buildSchemaMismatchMessage produces a readable contract error string', () => {
+  const validation = validateSheetSchema({
+    activityRows: [{ Date: '2026-02-24', Title: 'Sample', URL: 'https://example.com' }],
+    dropdownRows: [{ Channel: 'Blog' }],
+  });
+
+  const message = buildSchemaMismatchMessage(validation);
+  assert.equal(message.startsWith('OpenSheet schema mismatch detected.'), true);
+  assert.equal(message.includes('Activity:'), true);
+  assert.equal(message.includes('Dropdowns:'), true);
+  assert.equal(message.includes('Found headers:'), true);
 });

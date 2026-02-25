@@ -75,6 +75,10 @@
   };
 
   const getDateRangeForPreset = (preset, anchorDate) => {
+    if (preset === 'showAll') {
+      return { from: '', to: '' };
+    }
+
     if (!(anchorDate instanceof Date) || Number.isNaN(anchorDate.getTime())) return null;
 
     const toDate = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), anchorDate.getDate());
@@ -87,6 +91,9 @@
         break;
       case 'last60':
         fromDate = addDaysLocal(toDate, -59);
+        break;
+      case 'last90':
+        fromDate = addDaysLocal(toDate, -89);
         break;
       case 'thisMonth':
         fromDate = new Date(toDate.getFullYear(), toDate.getMonth(), 1);
@@ -265,6 +272,105 @@
     };
   };
 
+  const OPEN_SHEET_SCHEMA = {
+    activity: {
+      Date: ['Date'],
+      Title: ['Title', 'Content title'],
+      URL: ['URL', 'Url', 'Link'],
+      Author: ['Author', 'Authors'],
+      Contributor: ['Contributors', 'Contributor', 'Authors'],
+      Channel: ['Channel'],
+      Language: ['Language', 'Languages'],
+      Technology: ['Topics_Product', 'Technology', 'Technologies'],
+      Category: ['Category', 'Category / Content type', 'Content type'],
+    },
+    dropdowns: {
+      Technology: ['Technologies', 'Technology', 'Topics_Product'],
+      Category: ['Category / Content type', 'Category', 'Content type'],
+      Channel: ['Channel'],
+      Author: ['Author', 'Authors'],
+      Language: ['Languages', 'Language'],
+    },
+  };
+
+  const getRowHeaders = (rows = []) => {
+    const headers = new Set();
+    rows.forEach((row) => {
+      if (!row || typeof row !== 'object') return;
+      Object.keys(row).forEach((key) => {
+        const normalized = normalizeCell(key);
+        if (normalized) headers.add(normalized);
+      });
+    });
+    return headers;
+  };
+
+  const toComparableKey = (value) => normalizeCell(value).toLowerCase();
+
+  const toComparableHeaderSet = (headers) => new Set(
+    [...headers].map((header) => toComparableKey(header)).filter(Boolean)
+  );
+
+  const findSchemaMissingGroups = (headers, groups = {}) => {
+    const comparableHeaders = toComparableHeaderSet(headers);
+    return Object.entries(groups)
+      .filter(([, aliases]) => !aliases.some((alias) => comparableHeaders.has(toComparableKey(alias))))
+    .map(([groupName, aliases]) => ({ groupName, aliases }));
+  };
+
+  const validateSheetSchema = ({ activityRows = [], dropdownRows = [] } = {}) => {
+    const activityHeaders = getRowHeaders(activityRows);
+    const dropdownHeaders = getRowHeaders(dropdownRows);
+
+    const activityMissing = findSchemaMissingGroups(activityHeaders, OPEN_SHEET_SCHEMA.activity);
+    const dropdownMissing = findSchemaMissingGroups(dropdownHeaders, OPEN_SHEET_SCHEMA.dropdowns);
+
+    const mismatches = [];
+    if (activityMissing.length > 0) {
+      mismatches.push({
+        sheet: 'Activity',
+        missing: activityMissing,
+        foundHeaders: [...activityHeaders],
+      });
+    }
+    if (dropdownMissing.length > 0) {
+      mismatches.push({
+        sheet: 'Dropdowns',
+        missing: dropdownMissing,
+        foundHeaders: [...dropdownHeaders],
+      });
+    }
+
+    return {
+      isValid: mismatches.length === 0,
+      mismatches,
+    };
+  };
+
+  const buildSchemaMismatchMessage = (validationResult) => {
+    if (!validationResult || validationResult.isValid) return '';
+
+    const sections = validationResult.mismatches.map(({ sheet, missing, foundHeaders = [] }) => {
+      const fields = missing
+        .map(({ groupName, aliases }) => `${groupName} (expected one of: ${aliases.join(' | ')})`)
+        .join('; ');
+      const found = foundHeaders.length > 0 ? foundHeaders.join(' | ') : '(none)';
+      return `${sheet}: ${fields}. Found headers: ${found}`;
+    });
+
+    return `OpenSheet schema mismatch detected. ${sections.join(' — ')}`;
+  };
+
+  const getFilterCollapseMeta = (collapsed) => (collapsed
+    ? {
+      label: 'Show filters',
+      ariaExpanded: 'false',
+    }
+    : {
+      label: 'Hide filters',
+      ariaExpanded: 'true',
+    });
+
   const api = {
     hasText,
     hasLink,
@@ -280,6 +386,10 @@
     sanitizeActivityRows,
     runPostRefreshUiSync,
     createRenderGate,
+    OPEN_SHEET_SCHEMA,
+    validateSheetSchema,
+    buildSchemaMismatchMessage,
+    getFilterCollapseMeta,
   };
 
   global.activityUtils = Object.assign({}, global.activityUtils || {}, api);

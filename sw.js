@@ -46,6 +46,11 @@ self.addEventListener('fetch', (event) => {
       ? self.swUpdateUtils.isNavigationRequest
       : (request) => request?.mode === 'navigate' || request?.destination === 'document'
   );
+  const queueCachePut = (
+    typeof self.swUpdateUtils?.queueCachePut === 'function'
+      ? self.swUpdateUtils.queueCachePut
+      : ({ response }) => !!response?.ok
+  );
 
   // API calls are handled by client-side caching — let them pass through
   if (url.hostname === 'opensheet.elk.sh') return;
@@ -55,9 +60,12 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          if (response.ok) {
-            caches.open(SHELL_CACHE).then((cache) => cache.put(event.request, response.clone()));
-          }
+          queueCachePut({
+            event,
+            cacheName: SHELL_CACHE,
+            request: event.request,
+            response,
+          });
           return response;
         })
         .catch(async () => {
@@ -75,9 +83,12 @@ self.addEventListener('fetch', (event) => {
       caches.match(event.request).then(cached => {
         if (cached) return cached;
         return fetch(event.request).then(response => {
-          if (response.ok) {
-            caches.open(SHELL_CACHE).then(cache => cache.put(event.request, response.clone()));
-          }
+          queueCachePut({
+            event,
+            cacheName: SHELL_CACHE,
+            request: event.request,
+            response,
+          });
           return response;
         });
       })

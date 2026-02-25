@@ -4,10 +4,14 @@
  */
 let flags;
 const DATE_PRESET_CUSTOM = 'custom';
+const DATE_PRESET_SHOW_ALL = 'showAll';
 const DATE_PRESET_LAST_60 = 'last60';
+const DATE_PRESET_DEFAULT = DATE_PRESET_SHOW_ALL;
 const DATE_PRESETS = new Set([
+  DATE_PRESET_SHOW_ALL,
   'last30',
   DATE_PRESET_LAST_60,
+  'last90',
   'thisMonth',
   'thisQuarter',
   'lastQuarter',
@@ -32,11 +36,11 @@ const createDefaultFlags = () => ({
   authors: {},
   contributors: {},
   languages: {},
-  datePreset: DATE_PRESET_LAST_60,
+  datePreset: DATE_PRESET_DEFAULT,
   dateRange: { from: '', to: '' },
 });
 
-const normalizeDatePreset = (value, fallback = DATE_PRESET_LAST_60) => (
+const normalizeDatePreset = (value, fallback = DATE_PRESET_DEFAULT) => (
   typeof value === 'string' && DATE_PRESETS.has(value) ? value : fallback
 );
 
@@ -148,6 +152,56 @@ if (stateFromUrl.source === 'query') {
 flags = appState.filters;
 window.flags = flags;
 const filtersSummaryEl = document.querySelector('#filters-summary');
+const filtersRowEl = document.querySelector('.filters-row');
+const filtersBodyEl = document.querySelector('#filters-body');
+const filtersCollapseToggle = document.querySelector('#filters-collapse-toggle');
+const filtersCollapseLabel = document.querySelector('#filters-collapse-label');
+
+const getFilterCollapseMeta = (collapsed) => {
+  if (typeof window.activityUtils?.getFilterCollapseMeta === 'function') {
+    return window.activityUtils.getFilterCollapseMeta(collapsed);
+  }
+
+  return collapsed
+    ? {
+      label: 'Show filters',
+      ariaExpanded: 'false',
+    }
+    : {
+      label: 'Hide filters',
+      ariaExpanded: 'true',
+    };
+};
+
+const setFiltersCollapsed = (collapsed) => {
+  filtersRowEl?.classList.toggle('is-collapsed', collapsed);
+  if (filtersBodyEl) filtersBodyEl.hidden = collapsed;
+
+  const meta = getFilterCollapseMeta(collapsed);
+  if (filtersCollapseLabel) {
+    filtersCollapseLabel.textContent = meta.label;
+  }
+  if (filtersCollapseToggle) {
+    filtersCollapseToggle.setAttribute('aria-expanded', meta.ariaExpanded);
+  }
+};
+
+const toggleFiltersCollapsed = () => {
+  const isCollapsed = filtersRowEl?.classList.contains('is-collapsed') ?? false;
+  setFiltersCollapsed(!isCollapsed);
+};
+
+filtersCollapseToggle?.addEventListener('click', () => {
+  toggleFiltersCollapsed();
+});
+
+filtersCollapseToggle?.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  event.preventDefault();
+  toggleFiltersCollapsed();
+});
+
+setFiltersCollapsed(true);
 
 const hasActiveRestriction = (map) => Object.values(map || {}).some((value) => value === 0);
 
@@ -531,8 +585,8 @@ resetFiltersBtn?.addEventListener('click', () => {
   resetMultiSelect('#contributors', 'contributors');
   resetMultiSelect('#language', 'languages');
 
-  flags.datePreset = DATE_PRESET_LAST_60;
-  applyDatePreset(DATE_PRESET_LAST_60, { reapplyFilters: false });
+  flags.datePreset = DATE_PRESET_DEFAULT;
+  applyDatePreset(DATE_PRESET_DEFAULT, { reapplyFilters: false });
 
   TOGGLEABLE_COLS.forEach((col) => {
     const cb = document.querySelector(`#col-toggle-${col.key}`);

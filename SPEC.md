@@ -92,11 +92,17 @@ Rows are normalized from variant sheet headers into this logical shape during re
 - Duplicate rows merge distinct content/social links.
 - Truthy `Featured` is preserved if present in any duplicate.
 
+## 6.4 Schema contract validation
+
+- The app validates `Activity` and `Dropdowns` sheet headers against expected alias groups before rendering.
+- If required groups are missing, rendering fails fast for that payload.
+- A visible warning banner is shown with mismatch details so maintainers can fix sheet headers quickly.
+
 ## 7. Functional Behavior
 
 ## 7.1 Activity table
 
-- Columns: Date, Content title, Author, Channel, Language, Social, Technology, Content type.
+- Columns: Date, Content title, Author, Channel, Language, Social, Contributor, Technology, Content type.
 - Date formatting: `MMM D, YYYY` (UTC-safe formatting).
 - Featured rows are visually marked.
 - Content links show domain labels under title.
@@ -105,7 +111,7 @@ Rows are normalized from variant sheet headers into this logical shape during re
 ## 7.2 Filters
 
 - Multi-select filters: Topic, Content type, Channel, Author, Contributors, Language.
-- Date filter supports presets (`Last 30 days`, `Last 60 days`, `This month`, `This quarter`, `Last quarter`, `This year`, `Past year`) and a custom inclusive `from`/`to` range.
+- Date filter supports presets (`Show all`, `Last 30 days`, `Last 60 days`, `Last 90 days`, `This month`, `This quarter`, `Last quarter`, `This year`, `Past year`) and a custom inclusive `from`/`to` range.
 - Non-custom presets are computed from the latest available activity date.
 - Empty multi-select means "no restriction".
 - Contributors filter supports split values from comma-separated cells.
@@ -119,7 +125,7 @@ Toggleable columns:
 - Channel
 - Language
 - Social
-- Contributor filter visibility
+- Contributor
 - Content type
 
 Defaults:
@@ -132,7 +138,7 @@ Defaults:
 Reset action:
 
 - Clears all multi-select restrictions.
-- Restores date filter to the default `Last 60 days` preset.
+- Restores date filter to the default `Show all` preset.
 - Restores default column visibility.
 - Reapplies filtering and chart synchronization.
 
@@ -182,6 +188,7 @@ Each chart card can be expanded into a modal with a larger chart.
 - Background refresh failure logs error and suppresses stale toast.
 - localStorage quota/corruption issues are handled defensively.
 - Invalid share-state payloads are ignored safely.
+- OpenSheet schema drift is surfaced through an in-app warning banner and explicit load error.
 
 ## 10. Accessibility and UX Notes
 
