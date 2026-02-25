@@ -175,36 +175,106 @@
     return fallback;
   };
 
-  const socialPlatformName = (platform) => ({
-    linkedin: 'LinkedIn',
-    x: 'X/Twitter',
-    bluesky: 'Bluesky',
-    shared: 'EsriDevs Shared',
-  }[platform] || 'EsriDevs Shared');
+  const buildShareIntentUrl = ({ platform, title, url }) => {
+    if (!hasLink(url)) return '';
+    const safeTitle = normalizeCell(title);
+    const safeUrl = normalizeCell(url);
+    const shareText = [safeTitle, safeUrl].filter(Boolean).join(' ');
 
-  const buildSocialLinks = ({ linkedin, xPost, bluesky, esriDevsShared }) => {
-    const links = [];
-
-    if (hasLink(linkedin)) {
-      links.push({ url: linkedin, platform: 'linkedin', title: 'Open LinkedIn post' });
+    if (platform === 'linkedin') {
+      return `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(safeUrl)}`;
+    }
+    if (platform === 'x') {
+      return `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
+    }
+    if (platform === 'bluesky') {
+      return `https://bsky.app/intent/compose?text=${encodeURIComponent(shareText)}`;
     }
 
-    if (hasLink(xPost)) {
-      links.push({ url: xPost, platform: 'x', title: 'Open X/Twitter post' });
-    }
+    return '';
+  };
 
-    if (hasLink(bluesky)) {
-      links.push({ url: bluesky, platform: 'bluesky', title: 'Open Bluesky post' });
-    }
+  const buildSocialTargets = ({
+    platform,
+    platformUrl,
+    sharedUrl,
+    contentTitle,
+    contentUrl,
+    openTitle,
+    shareTitle,
+  }) => {
+    const targets = [];
+    const pushTarget = (target) => {
+      const key = normalizeCell(target?.url);
+      if (!key) return;
+      targets.push(target);
+    };
 
-    if (hasLink(esriDevsShared)) {
-      const platform = detectSocialPlatform(esriDevsShared, 'shared');
-      links.push({
-        url: esriDevsShared,
-        platform,
-        title: `Open EsriDevs Shared (${socialPlatformName(platform)})`,
+    if (hasLink(platformUrl)) {
+      pushTarget({
+        url: platformUrl,
+        title: openTitle,
+        label: 'Community post',
       });
     }
+
+    if (hasLink(sharedUrl)) {
+      pushTarget({
+        url: sharedUrl,
+        title: `Open EsriDevs Shared (${openTitle.replace(/^Open /, '')})`,
+        label: 'EsriDevs shared',
+      });
+    }
+
+    if (targets.length === 0) {
+      const shareUrl = buildShareIntentUrl({
+        platform,
+        title: contentTitle,
+        url: contentUrl,
+      });
+      if (hasLink(shareUrl)) {
+        pushTarget({
+          url: shareUrl,
+          title: shareTitle,
+          label: 'Share this content',
+        });
+      }
+    }
+
+    return targets;
+  };
+
+  const buildSocialLinks = ({
+    linkedin,
+    xPost,
+    bluesky,
+    sharedByPlatform,
+    contentTitle,
+    contentUrl,
+  }) => {
+    const links = [];
+    [
+      ['linkedin', linkedin, 'Open LinkedIn post', 'Share on LinkedIn'],
+      ['x', xPost, 'Open X/Twitter post', 'Share on X/Twitter'],
+      ['bluesky', bluesky, 'Open Bluesky post', 'Share on Bluesky'],
+    ].forEach(([platform, platformUrl, openTitle, shareTitle]) => {
+      const targets = buildSocialTargets({
+        platform,
+        platformUrl,
+        sharedUrl: sharedByPlatform?.[platform] || '',
+        contentTitle,
+        contentUrl,
+        openTitle,
+        shareTitle,
+      });
+      if (targets.length === 0) return;
+      links.push({
+        platform,
+        title: targets.length > 1 ? `Open ${openTitle.replace(/^Open /, '')} links` : targets[0].title,
+        url: targets[0].url,
+        targets,
+      });
+    });
 
     return links;
   };
@@ -217,21 +287,28 @@
   };
 
   const extractSocialLinks = (row) => {
+    const contentTitle = pickFirst(row, ['Title', 'Content title']);
+    const contentUrl = pickFirst(row, ['URL', 'Url', 'Link']);
     const linkedin = pickFirst(row, ['Linkedin', 'LinkedIn']);
     const xPost = pickFirst(row, ['X/Twitter', 'X', 'Twitter']);
     const bluesky = pickFirst(row, ['Bluesky', 'BlueSky']);
-    const esriDevsShared = pickFirst(row, ['EsriDevs Shared', 'EsriDevs shared']);
+    const esriDevsShared = pickFirst(row, ['EsriDevs Shared', 'EsriDevs shared', 'EsriDevs\nShared']);
+    const sharedByPlatform = {};
 
-    let resolvedXPost = xPost;
-    if (!hasLink(resolvedXPost) && hasLink(esriDevsShared)) {
-      resolvedXPost = esriDevsShared;
+    if (hasLink(esriDevsShared)) {
+      const sharedPlatform = detectSocialPlatform(esriDevsShared, 'shared');
+      if (sharedPlatform === 'linkedin' || sharedPlatform === 'x' || sharedPlatform === 'bluesky') {
+        sharedByPlatform[sharedPlatform] = esriDevsShared;
+      }
     }
 
     return buildSocialLinks({
       linkedin,
-      xPost: resolvedXPost,
+      xPost,
       bluesky,
-      esriDevsShared: hasLink(xPost) ? esriDevsShared : '',
+      sharedByPlatform,
+      contentTitle,
+      contentUrl,
     });
   };
 

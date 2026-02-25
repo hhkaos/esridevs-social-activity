@@ -243,6 +243,76 @@ const mergeUniqueItems = (currentItems, nextItems = []) => {
   return merged;
 };
 
+const mergeSocialLinks = (currentLinks, nextLinks = []) => {
+  const byPlatform = new Map();
+  const order = ['linkedin', 'x', 'bluesky'];
+  const platformLabel = {
+    linkedin: 'LinkedIn',
+    x: 'X/Twitter',
+    bluesky: 'Bluesky',
+  };
+
+  const normalizeTargets = (link) => {
+    const rawTargets = Array.isArray(link?.targets) && link.targets.length > 0
+      ? link.targets
+      : [{ url: link?.url, title: link?.title, label: link?.title }];
+    const seen = new Set();
+    const targets = [];
+    rawTargets.forEach((target) => {
+      const key = `${target?.url || ''}|${target?.label || target?.title || ''}`;
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      targets.push({
+        url: target.url,
+        title: target.title || link?.title || '',
+        label: target.label || target.title || link?.title || '',
+      });
+    });
+    return targets;
+  };
+
+  const push = (link) => {
+    const platform = link?.platform;
+    if (!platform) return;
+    const targets = normalizeTargets(link);
+    if (targets.length === 0) return;
+
+    if (!byPlatform.has(platform)) {
+      byPlatform.set(platform, {
+        platform,
+        targets: [...targets],
+      });
+      return;
+    }
+
+    const existing = byPlatform.get(platform);
+    const seen = new Set(existing.targets.map((target) => `${target.url}|${target.label || target.title || ''}`));
+    targets.forEach((target) => {
+      const key = `${target.url}|${target.label || target.title || ''}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      existing.targets.push(target);
+    });
+  };
+
+  (Array.isArray(currentLinks) ? currentLinks : []).forEach(push);
+  nextLinks.forEach(push);
+
+  return order
+    .filter((platform) => byPlatform.has(platform))
+    .map((platform) => {
+      const link = byPlatform.get(platform);
+      return {
+        platform,
+        title: link.targets.length > 1
+          ? `Open ${platformLabel[platform] || platform} links`
+          : link.targets[0].title,
+        url: link.targets[0].url,
+        targets: link.targets,
+      };
+    });
+};
+
 const normalizeForKey = (value) => `${value ?? ''}`
   .toLowerCase()
   .replace(/\s+/g, ' ')
@@ -332,10 +402,28 @@ const socialIconClass = (platform) => ({
   shared: 'fa-solid fa-share-nodes',
 }[platform] || 'fa-solid fa-share-nodes');
 
-const renderSocialLink = ({ url, platform, title }) =>
-  `<a href="${url}" target="_blank" rel="noopener noreferrer" class="social-link social-link--${platform}" title="${title}" aria-label="${title}">
-    <i class="${socialIconClass(platform)}" aria-hidden="true"></i>
-  </a>`;
+let socialMenuIdCounter = 0;
+const renderSocialLink = ({ url, platform, title, targets = [] }) => {
+  const safeTargets = Array.isArray(targets) && targets.length > 0 ? targets : [{ url, title, label: title }];
+  if (safeTargets.length === 1) {
+    return `<a href="${safeTargets[0].url}" target="_blank" rel="noopener noreferrer" class="social-link social-link--${platform}" title="${safeTargets[0].title}" aria-label="${safeTargets[0].title}">
+      <i class="${socialIconClass(platform)}" aria-hidden="true"></i>
+    </a>`;
+  }
+
+  const menuId = `social-menu-${platform}-${socialMenuIdCounter++}`;
+  const menuItems = safeTargets.map((target) => `<li><a class="dropdown-item" href="${target.url}" target="_blank" rel="noopener noreferrer" title="${target.title}">${target.label || target.title}</a></li>`).join('');
+
+  return `<div class="dropdown social-link-group">
+    <button class="social-link social-link--${platform} social-link--menu" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true" aria-controls="${menuId}" title="${title}" aria-label="${title}">
+      <i class="${socialIconClass(platform)}" aria-hidden="true"></i>
+      <span class="social-link__count" aria-hidden="true">${safeTargets.length}</span>
+    </button>
+    <ul id="${menuId}" class="dropdown-menu dropdown-menu-end social-link-menu">
+      ${menuItems}
+    </ul>
+  </div>`;
+};
 
 const initSocialTooltips = () => {
   if (!window.bootstrap?.Tooltip) return;
@@ -346,6 +434,75 @@ const initSocialTooltips = () => {
       trigger: 'hover focus',
     });
   });
+};
+
+let shareNudgeHandlersInitialized = false;
+
+const splitPeopleList = (value) => `${value ?? ''}`
+  .split(',')
+  .map((item) => item.trim())
+  .filter(Boolean);
+
+const formatPeopleList = (names) => {
+  if (names.length <= 1) return names[0] || '';
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
+};
+
+const buildShareNudgeText = (row) => {
+  const authorNames = splitPeopleList(row?.dataset?.authors);
+  const contributorNames = splitPeopleList(row?.dataset?.contributors);
+  const uniqueNames = [...new Set([...authorNames, ...contributorNames])];
+  if (uniqueNames.length > 0) {
+    const displayNames = uniqueNames.slice(0, 3);
+    const suffix = uniqueNames.length > 3 ? ', and other contributors' : '';
+    return `Found this useful? Help ${formatPeopleList(displayNames)}${suffix} by sharing it with your network.`;
+  }
+  return 'Found this useful? Help the author by sharing it with your network.';
+};
+
+const dismissShareNudgeForRow = (row) => {
+  if (!row) return;
+  row.classList.remove('share-nudge-active');
+  const nudgeEl = row.querySelector('.share-nudge');
+  if (nudgeEl) nudgeEl.hidden = true;
+};
+
+const activateShareNudgeForRow = (row) => {
+  if (!row || row.classList.contains('hidden')) return;
+  if (!row.querySelector('.social-links .social-link')) return;
+
+  const nudgeEl = row.querySelector('.share-nudge');
+  if (nudgeEl) {
+    const textEl = nudgeEl.querySelector('.share-nudge__text');
+    if (textEl) textEl.textContent = buildShareNudgeText(row);
+    nudgeEl.hidden = false;
+  }
+
+  row.classList.add('share-nudge-active');
+};
+
+const initShareNudges = () => {
+  if (shareNudgeHandlersInitialized) return;
+  const tableEl = document.querySelector('#main-table');
+  if (!tableEl) return;
+
+  tableEl.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    const closeBtnEl = target.closest('.share-nudge__close');
+    if (closeBtnEl) {
+      dismissShareNudgeForRow(closeBtnEl.closest('tr'));
+      return;
+    }
+
+    const contentLinkEl = target.closest('.table-title-link');
+    if (!contentLinkEl) return;
+    activateShareNudgeForRow(contentLinkEl.closest('tr'));
+  });
+
+  shareNudgeHandlersInitialized = true;
 };
 
 const getDomainLabel = (url) => {
@@ -367,7 +524,7 @@ const dedupeActivityRows = (rows) => {
       pickFirst(row, ['Linkedin', 'LinkedIn']),
       pickFirst(row, ['X/Twitter', 'X', 'Twitter']),
       pickFirst(row, ['Bluesky', 'BlueSky']),
-      pickFirst(row, ['EsriDevs Shared', 'EsriDevs shared']),
+      pickFirst(row, ['EsriDevs Shared', 'EsriDevs shared', 'EsriDevs\nShared']),
       pickFirst(row, ['Author', 'Authors']),
       pickFirst(row, ['Contributors', 'Contributor']),
       pickFirst(row, ['Channel']),
@@ -391,7 +548,7 @@ const dedupeActivityRows = (rows) => {
 
     const existing = byEntry.get(rowKey);
     existing.__contentLinks = mergeUniqueItems(existing.__contentLinks, contentLinks);
-    existing.__socialLinks = mergeUniqueItems(existing.__socialLinks, socialLinks);
+    existing.__socialLinks = mergeSocialLinks(existing.__socialLinks, socialLinks);
 
     if (!isTruthyCell(existing['Featured']) && isTruthyCell(row['Featured'])) {
       existing['Featured'] = row['Featured'];
@@ -662,7 +819,13 @@ function createTableRowClone(entry, template) {
   row.setAttribute('data-languages', language);
 
   if (socialLinks.length) {
-    td[5].innerHTML = `<div class="social-links">${socialLinks.map(renderSocialLink).join('')}</div>`;
+    td[5].innerHTML = `
+      <div class="social-links">${socialLinks.map(renderSocialLink).join('')}</div>
+      <div class="share-nudge" hidden aria-live="polite">
+        <span class="share-nudge__text"></span>
+        <button class="share-nudge__close" type="button" aria-label="Dismiss share suggestion">×</button>
+      </div>
+    `;
   } else {
     const socialHelpTooltipHtml = `No social links available.<br>If you know this content was shared, <a href='https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit?usp=sharing' target='_blank' rel='noopener noreferrer'>add it via Add new activity</a> or contact <a href='mailto:developers@esri.com'>developers@esri.com</a>.`;
     td[5].innerHTML = `<span class="social-na" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="${socialHelpTooltipHtml}" aria-label="No social links available. Hover for details.">N/A <i class="fa-solid fa-circle-info social-na__icon" aria-hidden="true"></i></span>`;
@@ -747,6 +910,7 @@ const dataFetchPromise = Promise.all([
 window.addEventListener('DOMContentLoaded', () => {
   document.querySelector('#update-toast-close')?.addEventListener('click', hideToast);
   initDefinitionTriggers();
+  initShareNudges();
 
   if (cachedData) {
     // Render from cache immediately — all other scripts are now ready

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- Updated app branding in the page title and header from `EsriDevs Social Activity` to `Esri Developer Content Tracker`, including a new descriptive subtitle.
+- Renamed the table/column-picker `Social` label to `Share` to better reflect sharing actions.
+- Expanded social-link rendering to always provide LinkedIn/X/Bluesky actions, with per-platform menus when multiple targets exist.
+- Added row-level share nudge messaging that appears after opening a content title link and can be dismissed per row.
+- Improved mobile table usability by pinning the `Share` column and enlarging social action hit targets on small screens.
+- Bumped service worker shell cache version to `v23` after updating cached runtime assets (`index.html`, `style.css`, `load-table.js`, `activity-utils.js`).
 - Added definition-help triggers for `Author`, `Channel`, and `Contributor` in filters and table headers, backed by a shared modal for field meaning and value definitions.
 - Added dropdown-driven definition mapping (`Channel_value_definition`, `Author_value_definition`) to runtime app state for definition display.
 - Updated Configure Columns popover behavior to close on focus leave or Space within the panel instead of closing on every document click.
@@ -35,6 +41,8 @@ All notable changes to this project will be documented in this file.
 - Bumped service worker shell cache version to `v11` after updating cached shell assets.
 
 ### Fixed
+- Added support for newline-variant OpenSheet headers (`EsriDevs\nShared`) during social-link extraction and dedupe key generation.
+- Preserved separate social targets when both community and EsriDevs-shared links point to the same platform URL.
 - Ensured background refresh render failures now surface a visible table load error state instead of silently leaving the UI stale.
 - Enforced row sanitization to reject activity entries without both a title and a primary content URL.
 - Preserved social link fallback behavior when `EsriDevs Shared` is used as the `X/Twitter` source.
@@ -43,6 +51,8 @@ All notable changes to this project will be documented in this file.
 - **All:** Reduced stale app-shell behavior by wiring `SKIP_WAITING` messaging and reloading once the new service worker controls the page.
 
 ### Added
+- Added regression tests for share-intent fallback URLs, newline header parsing, and duplicate-target social menu behavior in `activity-utils`.
+- Added contract tests for social-link dropdown-menu rendering and persistent share-nudge activation from content-link clicks.
 - Added regression tests for definition modal contract, column-config popover close behavior, and Tom Select query reset after option selection.
 - Added shared value-definition helpers for case-insensitive definition map building and lookup in `activity-utils.js`.
 - Added regression coverage for loading/error surface markup, render state transitions, detached-`tbody` row commits, and refresh failure handling.

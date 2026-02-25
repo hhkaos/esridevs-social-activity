@@ -80,13 +80,113 @@ test('sanitizeActivityRows removes rows missing URL', () => {
 
 test('extractSocialLinks maps EsriDevs Shared fallback to X when X/Twitter is empty', () => {
   const row = {
+    Title: 'ArcGIS Maps SDK update',
+    URL: 'https://developers.arcgis.com/javascript/latest/',
     'X/Twitter': '',
     'EsriDevs Shared': 'https://x.com/esri/status/123',
   };
 
   const socialLinks = extractSocialLinks(row);
-  assert.equal(socialLinks.length, 1);
-  assert.equal(socialLinks[0].platform, 'x');
+  const xLink = socialLinks.find((link) => link.platform === 'x');
+  assert.equal(xLink?.targets?.length, 1);
+  assert.equal(xLink?.targets?.[0]?.url, 'https://x.com/esri/status/123');
+  assert.ok(socialLinks.some((link) => link.platform === 'linkedin' && link.targets?.[0]?.title === 'Share on LinkedIn'));
+  assert.ok(socialLinks.some((link) => link.platform === 'bluesky' && link.targets?.[0]?.title === 'Share on Bluesky'));
+});
+
+test('extractSocialLinks adds share-intent links for missing LinkedIn, X, and Bluesky', () => {
+  const row = {
+    Title: 'ArcGIS Online tips',
+    URL: 'https://developers.arcgis.com',
+  };
+
+  const socialLinks = extractSocialLinks(row);
+  assert.equal(socialLinks.length, 3);
+
+  const linkedInShare = socialLinks.find((link) => link.platform === 'linkedin');
+  assert.equal(linkedInShare?.targets?.length, 1);
+  assert.equal(linkedInShare?.targets?.[0]?.title, 'Share on LinkedIn');
+  assert.equal(
+    linkedInShare?.targets?.[0]?.url,
+    'https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fdevelopers.arcgis.com',
+  );
+
+  const xShare = socialLinks.find((link) => link.platform === 'x');
+  assert.equal(xShare?.targets?.[0]?.title, 'Share on X/Twitter');
+  assert.equal(
+    xShare?.targets?.[0]?.url,
+    'https://twitter.com/intent/tweet?text=ArcGIS%20Online%20tips%20https%3A%2F%2Fdevelopers.arcgis.com',
+  );
+
+  const blueskyShare = socialLinks.find((link) => link.platform === 'bluesky');
+  assert.equal(blueskyShare?.targets?.[0]?.title, 'Share on Bluesky');
+  assert.equal(
+    blueskyShare?.targets?.[0]?.url,
+    'https://bsky.app/intent/compose?text=ArcGIS%20Online%20tips%20https%3A%2F%2Fdevelopers.arcgis.com',
+  );
+});
+
+test('extractSocialLinks preserves provided links and only falls back for missing platforms', () => {
+  const row = {
+    Title: 'Scene Viewer update',
+    URL: 'https://www.esri.com',
+    LinkedIn: 'https://www.linkedin.com/feed/update/urn:li:activity:111',
+    Bluesky: 'https://bsky.app/profile/esri.com/post/3kxyz',
+  };
+
+  const socialLinks = extractSocialLinks(row);
+
+  assert.ok(socialLinks.some((link) => link.platform === 'linkedin' && link.targets?.[0]?.title === 'Open LinkedIn post'));
+  assert.ok(socialLinks.some((link) => link.platform === 'bluesky' && link.targets?.[0]?.title === 'Open Bluesky post'));
+  assert.ok(socialLinks.some((link) => link.platform === 'x' && link.targets?.[0]?.title === 'Share on X/Twitter'));
+});
+
+test('extractSocialLinks always returns exactly LinkedIn, X, and Bluesky icons', () => {
+  const row = {
+    Title: 'Arcade Tips',
+    URL: 'https://developers.arcgis.com/arcade/',
+    LinkedIn: 'https://www.linkedin.com/feed/update/urn:li:activity:222',
+    'X/Twitter': 'https://x.com/esri/status/456',
+    Bluesky: '',
+    'EsriDevs Shared': 'https://x.com/esri/status/789',
+  };
+
+  const socialLinks = extractSocialLinks(row);
+  assert.equal(socialLinks.length, 3);
+  assert.deepEqual(socialLinks.map((link) => link.platform), ['linkedin', 'x', 'bluesky']);
+  assert.equal(socialLinks[1].targets?.length, 2);
+  assert.equal(socialLinks[1].targets?.[0]?.url, 'https://x.com/esri/status/456');
+  assert.equal(socialLinks[1].targets?.[1]?.url, 'https://x.com/esri/status/789');
+  assert.equal(socialLinks[2].targets?.[0]?.title, 'Share on Bluesky');
+});
+
+test('extractSocialLinks keeps two X targets when X/Twitter and EsriDevs Shared are both set to the same URL', () => {
+  const row = {
+    Title: 'Calcite Design System: Latest Updates in Version 5.0',
+    URL: 'https://www.youtube.com/watch?v=b0ru4oRR3qE',
+    'X/Twitter': 'https://x.com/EsriDevs/status/2025911074147426341',
+    'EsriDevs\nShared': 'https://x.com/EsriDevs/status/2025911074147426341',
+  };
+
+  const socialLinks = extractSocialLinks(row);
+  const xLink = socialLinks.find((link) => link.platform === 'x');
+
+  assert.equal(xLink?.targets?.length, 2);
+  assert.equal(xLink?.targets?.[0]?.label, 'Community post');
+  assert.equal(xLink?.targets?.[1]?.label, 'EsriDevs shared');
+});
+
+test('extractSocialLinks reads EsriDevs Shared when OpenSheet key contains a newline', () => {
+  const row = {
+    Title: 'Calcite update',
+    URL: 'https://developers.arcgis.com/calcite-design-system/',
+    'X/Twitter': '',
+    'EsriDevs\nShared': 'https://x.com/EsriDevs/status/2025911074147426341',
+  };
+
+  const socialLinks = extractSocialLinks(row);
+  const xLink = socialLinks.find((link) => link.platform === 'x');
+  assert.equal(xLink?.targets?.[0]?.url, 'https://x.com/EsriDevs/status/2025911074147426341');
 });
 
 test('matchesSelectionMap allows all values when no selections are active', () => {
@@ -260,6 +360,34 @@ test('validateSheetSchema returns mismatch details when required groups are miss
   assert.equal(validation.isValid, false);
   assert.ok(validation.mismatches.some((entry) => entry.sheet === 'Activity'));
   assert.ok(validation.mismatches.some((entry) => entry.sheet === 'Dropdowns'));
+});
+
+test('validateSheetSchema flags Activity title header when neither Title nor Content title exists', () => {
+  const validation = validateSheetSchema({
+    activityRows: [{
+      Date: '2026-02-24',
+      Headline: 'Renamed title header',
+      URL: 'https://example.com',
+      Author: 'A',
+      Contributor: 'B',
+      Channel: 'Blog',
+      Language: 'English',
+      Topics_Product: 'ArcGIS',
+      Category: 'Article',
+    }],
+    dropdownRows: [{
+      Technologies: 'ArcGIS',
+      'Category / Content type': 'Article',
+      Channel: 'Blog',
+      Author: 'A',
+      Languages: 'English',
+    }],
+  });
+
+  assert.equal(validation.isValid, false);
+  const activityMismatch = validation.mismatches.find((entry) => entry.sheet === 'Activity');
+  assert.ok(activityMismatch);
+  assert.ok(activityMismatch.missing.some((group) => group.groupName === 'Title'));
 });
 
 test('buildSchemaMismatchMessage produces a readable contract error string', () => {

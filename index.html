@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>EsriDevs Social Activity</title>
+  <title>Esri Developer Content Tracker</title>
   <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/morph/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -24,7 +24,10 @@
 
     <!-- ── Header ──────────────────────────────────────────────────────────── -->
     <div class="header-row">
-      <h1>EsriDevs Social Activity</h1>
+      <div class="header-row__title-block">
+        <h1>Esri Developer Content Tracker</h1>
+        <p class="header-row__subtitle">Track curated ArcGIS developer content and share useful resources with your network to thank the authors.</p>
+      </div>
       <a
         class="btn btn-outline-primary btn-sm"
         href="https://docs.google.com/spreadsheets/d/1oKkHCNbOUpfERu1xC4ePU2XwDSvalEfE0YmTN39cyNg/edit?usp=sharing"
@@ -123,7 +126,7 @@
             <label class="col-picker-item"><input type="checkbox" id="col-toggle-author"> Author</label>
             <label class="col-picker-item"><input type="checkbox" id="col-toggle-channel"> Channel</label>
             <label class="col-picker-item"><input type="checkbox" id="col-toggle-language"> Language</label>
-            <label class="col-picker-item"><input type="checkbox" id="col-toggle-social" checked> Social</label>
+            <label class="col-picker-item"><input type="checkbox" id="col-toggle-social" checked> Share</label>
             <label class="col-picker-item"><input type="checkbox" id="col-toggle-contributor"> Contributor</label>
             <label class="col-picker-item"><input type="checkbox" id="col-toggle-category" checked> Content type</label>
           </div>
@@ -184,7 +187,7 @@
                 <th class="text-center" data-col="author">Author <button type="button" class="field-help-btn field-help-btn--inline" data-definition-trigger data-definition-field="author" aria-label="Open Author definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></th>
                 <th class="text-center" data-col="channel">Channel <button type="button" class="field-help-btn field-help-btn--inline" data-definition-trigger data-definition-field="channel" aria-label="Open Channel definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></th>
                 <th class="text-center" data-col="language">Language</th>
-                <th class="text-center" data-col="social">Social</th>
+                <th class="text-center" data-col="social">Share</th>
                 <th class="text-center" data-col="contributor">Contributor <button type="button" class="field-help-btn field-help-btn--inline" data-definition-trigger data-definition-field="contributor" aria-label="Open Contributor definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></th>
                 <th>Technology</th>
                 <th class="text-center" data-col="category">Content type</th>

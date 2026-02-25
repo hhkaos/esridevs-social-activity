@@ -15,3 +15,6 @@
 - [ ] Create a contributor leaderboard with information about the contributors, maybe pictures, etc. Consider if adding this as a table would make sense.
 - [ ] Create a progressive web app that can be installed
 - [ ] Implement a Chrome Extension: Static-JSON Badge Notifications + Filtered Feed Launcher enhancement New feature or request. More information: https://github.com/hhkaos/esridevs-social-activity/issues
+- [ ] Implement a mechanism to allow visitors to subscribe through RSS feeds. Maybe running a daily GitHub action that generates the feed
+- [ ] Highlight new items (rows) that where not seen before. Use local storage for that
+- [ ] Add Google Analytics
