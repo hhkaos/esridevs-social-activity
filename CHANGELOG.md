@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- Added a featured-only toggle in the `Content title` header that filters the table to rows marked featured and syncs with reset/data-load flows.
+- Normalized featured metadata handling so table rows always emit `data-featured="1|0"` and display an inline featured marker beside titles.
+- Expanded featured truthy parsing/mapping to support `X/x` spreadsheet markers and header variants that differ by case, spacing, or punctuation.
+- Updated background refresh change detection to compare the full sanitized activity payload instead of sampling the first few rows.
+- Bumped service worker shell cache version to `v29` after updating cached runtime assets (`index.html`, `style.css`, `load-table.js`, `apply-filters.js`).
 - Updated app branding in the page title and header from `EsriDevs Social Activity` to `Esri Developer Content Tracker`, including a new descriptive subtitle.
 - Renamed the table/column-picker `Social` label to `Share` to better reflect sharing actions.
 - Expanded social-link rendering to always provide LinkedIn/X/Bluesky actions, with per-platform menus when multiple targets exist.
@@ -41,6 +46,7 @@ All notable changes to this project will be documented in this file.
 - Bumped service worker shell cache version to `v11` after updating cached shell assets.
 
 ### Fixed
+- Fixed stale featured-state detection during background refresh by using a full-dataset signature, so featured flag edits are picked up reliably.
 - Added support for newline-variant OpenSheet headers (`EsriDevs\nShared`) during social-link extraction and dedupe key generation.
 - Preserved separate social targets when both community and EsriDevs-shared links point to the same platform URL.
 - Ensured background refresh render failures now surface a visible table load error state instead of silently leaving the UI stale.
@@ -51,6 +57,7 @@ All notable changes to this project will be documented in this file.
 - **All:** Reduced stale app-shell behavior by wiring `SKIP_WAITING` messaging and reloading once the new service worker controls the page.
 
 ### Added
+- Added regression tests for featured-only toggle contract, featured metadata normalization, and full-payload refresh change detection.
 - Added regression tests for share-intent fallback URLs, newline header parsing, and duplicate-target social menu behavior in `activity-utils`.
 - Added contract tests for social-link dropdown-menu rendering and persistent share-nudge activation from content-link clicks.
 - Added regression tests for definition modal contract, column-config popover close behavior, and Tom Select query reset after option selection.

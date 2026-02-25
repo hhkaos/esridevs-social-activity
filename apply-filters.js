@@ -36,6 +36,7 @@ const createDefaultFlags = () => ({
   authors: {},
   contributors: {},
   languages: {},
+  featuredOnly: false,
   datePreset: DATE_PRESET_DEFAULT,
   dateRange: { from: '', to: '' },
 });
@@ -51,6 +52,9 @@ const normalizeFlags = (input) => {
   ['technologies', 'categories', 'channels', 'authors', 'contributors', 'languages'].forEach((key) => {
     if (input[key] && typeof input[key] === 'object') normalized[key] = input[key];
   });
+  if (typeof input.featuredOnly === 'boolean') {
+    normalized.featuredOnly = input.featuredOnly;
+  }
 
   if (Object.prototype.hasOwnProperty.call(input, 'datePreset')) {
     normalized.datePreset = normalizeDatePreset(input.datePreset, DATE_PRESET_CUSTOM);
@@ -386,7 +390,8 @@ const isDateInRange = (dateString) => {
 };
 
 const isRowVisible = (row) => {
-  const { channels, technologies, categories, authors, contributors, languages } = flags;
+  const { channels, technologies, categories, authors, contributors, languages, featuredOnly } = flags;
+  if (featuredOnly && row.dataset.featured !== '1') return false;
   return isDateInRange(row.dataset.date) && [
     [channels, row.dataset.channels, false],
     [technologies, row.dataset.technologies, true],
@@ -546,6 +551,24 @@ const TOGGLEABLE_COLS = [
   { key: 'category', filterId: '#filter-category' },
 ];
 
+const featuredOnlyToggleBtn = document.querySelector('#featured-only-toggle');
+const featuredOnlyHeaderCell = featuredOnlyToggleBtn?.closest('th');
+
+const syncFeaturedOnlyToggleUi = () => {
+  if (!featuredOnlyToggleBtn) return;
+  const isActive = !!flags.featuredOnly;
+  featuredOnlyToggleBtn.classList.toggle('is-active', isActive);
+  featuredOnlyToggleBtn.setAttribute('aria-pressed', String(isActive));
+  featuredOnlyToggleBtn.textContent = isActive ? '★' : '☆';
+  featuredOnlyHeaderCell?.classList.toggle('is-featured-filter-active', isActive);
+};
+
+featuredOnlyToggleBtn?.addEventListener('click', () => {
+  flags.featuredOnly = !flags.featuredOnly;
+  syncFeaturedOnlyToggleUi();
+  applyFilters();
+});
+
 const colPickerBtn = document.querySelector('#col-picker-btn');
 const colPickerPanel = document.querySelector('#col-picker-panel');
 const colPickerWrap = document.querySelector('.col-picker-wrap');
@@ -622,6 +645,8 @@ resetFiltersBtn?.addEventListener('click', () => {
 
   flags.datePreset = DATE_PRESET_DEFAULT;
   applyDatePreset(DATE_PRESET_DEFAULT, { reapplyFilters: false });
+  flags.featuredOnly = false;
+  syncFeaturedOnlyToggleUi();
 
   TOGGLEABLE_COLS.forEach((col) => {
     const cb = document.querySelector(`#col-toggle-${col.key}`);
@@ -638,6 +663,7 @@ const previousOnDataLoaded = window.onDataLoaded;
 window.onDataLoaded = () => {
   if (typeof previousOnDataLoaded === 'function') previousOnDataLoaded();
   syncColumnVisibilityWithToggles();
+  syncFeaturedOnlyToggleUi();
   setActiveTab(appState.activeTab);
   if (trendsTabIsActive() && typeof window.renderCharts === 'function') {
     window.renderCharts();

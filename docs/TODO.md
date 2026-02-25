@@ -1,6 +1,7 @@
 # TODO
 
 ## Done
+- [x] Add featured-only toggle filtering with robust Featured field/header normalization and refresh detection - 2026-02-25
 - [x] Add table loading skeleton/error surface and atomic row commit behavior - 2026-02-25
 - [x] Make filters-row collapse (and collapsed by default) - 2026-02-24
 - [x] Add predefined date ranges: Last 30 days, Last 60 days, This month, This quarter, Last quarter, This year, Past year, and Custom range - 2026-02-25

@@ -30,9 +30,8 @@ function saveDataCache(activityRows, dropdownRows, authorsRows) {
 function dataHasChanged(freshActivity, cachedActivity) {
   const sanitizedFresh = sanitizeActivityRows(freshActivity);
   const sanitizedCached = sanitizeActivityRows(cachedActivity);
-  if (sanitizedFresh.length !== sanitizedCached.length) return true;
-  const freshSig = JSON.stringify(sanitizedFresh.slice(0, 3));
-  const cachedSig = JSON.stringify(sanitizedCached.slice(0, 3));
+  const freshSig = JSON.stringify(sanitizedFresh);
+  const cachedSig = JSON.stringify(sanitizedCached);
   return freshSig !== cachedSig;
 }
 
@@ -313,6 +312,24 @@ const mergeSocialLinks = (currentLinks, nextLinks = []) => {
     });
 };
 
+const FEATURED_FIELD_KEYS = ['Featured', 'featured', 'Featured?', 'Featured ?', 'FEATURED'];
+const FEATURED_FIELD_CANONICALS = new Set(
+  FEATURED_FIELD_KEYS.map((key) => `${key}`.toLowerCase().replace(/[^a-z0-9]/g, ''))
+);
+
+const getFeaturedCell = (row) => {
+  const direct = pickFirst(row, FEATURED_FIELD_KEYS);
+  if (direct) return direct;
+  const entries = Object.entries(row || {});
+  for (const [rawKey, rawValue] of entries) {
+    const canonicalKey = `${rawKey ?? ''}`.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!FEATURED_FIELD_CANONICALS.has(canonicalKey)) continue;
+    const normalizedValue = `${rawValue ?? ''}`.trim();
+    if (normalizedValue) return normalizedValue;
+  }
+  return '';
+};
+
 const normalizeForKey = (value) => `${value ?? ''}`
   .toLowerCase()
   .replace(/\s+/g, ' ')
@@ -550,8 +567,8 @@ const dedupeActivityRows = (rows) => {
     existing.__contentLinks = mergeUniqueItems(existing.__contentLinks, contentLinks);
     existing.__socialLinks = mergeSocialLinks(existing.__socialLinks, socialLinks);
 
-    if (!isTruthyCell(existing['Featured']) && isTruthyCell(row['Featured'])) {
-      existing['Featured'] = row['Featured'];
+    if (!isTruthyCell(getFeaturedCell(existing)) && isTruthyCell(getFeaturedCell(row))) {
+      existing['Featured'] = getFeaturedCell(row);
     }
 
     if (!hasText(existing['Date']) && hasText(row['Date'])) {
@@ -572,7 +589,7 @@ const uniqueColumnValues = (rows, keys) => [
 
 const isTruthyCell = (value) => {
   const normalized = `${value ?? ''}`.trim().toLowerCase();
-  return ['true', 'yes', 'y', '1'].includes(normalized);
+  return ['true', 'yes', 'y', '1', 'x'].includes(normalized);
 };
 
 const TABLE_RENDER_CHUNK_SIZE = 50;
@@ -763,12 +780,11 @@ async function refreshTableOnly(freshActivity) {
 function createTableRowClone(entry, template) {
   const clone = template.content.cloneNode(true);
   const row = clone.firstElementChild;
-  const featured = isTruthyCell(entry['Featured']);
+  const featured = isTruthyCell(getFeaturedCell(entry));
 
   if (featured) row.classList.add('selected');
 
   const td = clone.querySelectorAll('td');
-  const isFeatured = featured ? '⭐ ' : '';
 
   const date = pickFirst(entry, ['Date']);
   const title = pickFirst(entry, ['Title', 'Content title']);
@@ -798,13 +814,18 @@ function createTableRowClone(entry, template) {
 
   td[0].innerText = formatDate(date);
   row.setAttribute('data-date', date);
+  row.setAttribute('data-featured', featured ? '1' : '0');
 
   const domainLinks = contentLinks
     .map((link) => `<a href="${link.url}" target="_blank" rel="noopener noreferrer" class="table-title-link small">${getDomainLabel(link.url)}</a>`)
     .join(', ');
 
+  const featuredMarker = featured
+    ? '<span class="featured-row-star" aria-label="Featured" title="Featured">★</span> '
+    : '';
+
   td[1].innerHTML = `
-    <span>${isFeatured}${title}</span>
+    <span>${featuredMarker}${title}</span>
     ${domainLinks ? `<div class="small text-muted mt-1">Posted in: ${domainLinks}</div>` : ''}
   `;
 

@@ -101,3 +101,25 @@ test('background refresh render failures trigger load error surface', () => {
     'Expected refresh failure branch to show the table error surface',
   );
 });
+
+test('refresh change detection compares full sanitized activity payload', () => {
+  const loadTableJs = readProjectFile('load-table.js');
+
+  assert.equal(
+    loadTableJs.includes('const freshSig = JSON.stringify(sanitizedFresh);'),
+    true,
+    'Expected refresh signature to include the full sanitized fresh dataset',
+  );
+
+  assert.equal(
+    loadTableJs.includes('const cachedSig = JSON.stringify(sanitizedCached);'),
+    true,
+    'Expected refresh signature to include the full sanitized cached dataset',
+  );
+
+  assert.equal(
+    loadTableJs.includes('sanitizedFresh.slice(0, 3)'),
+    false,
+    'Expected refresh signature to avoid first-3-row sampling',
+  );
+});

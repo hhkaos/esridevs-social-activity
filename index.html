@@ -183,7 +183,15 @@
             <thead>
               <tr>
                 <th class="text-center">Date</th>
-                <th>Content title</th>
+                <th id="content-title-header">Content title
+                  <button
+                    id="featured-only-toggle"
+                    class="featured-only-toggle"
+                    type="button"
+                    aria-pressed="false"
+                    aria-label="Show featured only"
+                    title="Show featured only">☆</button>
+                </th>
                 <th class="text-center" data-col="author">Author <button type="button" class="field-help-btn field-help-btn--inline" data-definition-trigger data-definition-field="author" aria-label="Open Author definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></th>
                 <th class="text-center" data-col="channel">Channel <button type="button" class="field-help-btn field-help-btn--inline" data-definition-trigger data-definition-field="channel" aria-label="Open Channel definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></th>
                 <th class="text-center" data-col="language">Language</th>

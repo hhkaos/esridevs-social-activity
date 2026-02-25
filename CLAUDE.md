@@ -32,8 +32,19 @@
 - Date filtering uses inclusive `from` and `to` ISO dates.
 - Contributors can be multi-valued and are split for filtering/chart counting.
 - Activity rows are sanitized and deduped before render.
+- Featured detection must accept spreadsheet marker conventions beyond boolean words:
+  - Treat `X`/`x` as truthy for `Featured`.
+  - Match featured field headers robustly (`Featured`, `featured`, `Featured?`, and punctuation/spacing variants).
 - Missing social links show an informative tooltip with guidance.
 - Trends charts always reflect current active filters.
+
+## Cache and debugging lessons
+- When debugging data-mapping issues, verify the browser is actually running current JS assets (service worker can serve stale shell files).
+- If behavior in UI contradicts local code, clear:
+  - service worker registrations
+  - Cache Storage entries (`esridevs-shell-*`)
+  - localStorage key `esridevs_data_v1`
+- Background refresh change detection should compare the full sanitized dataset; partial sampling (for example first 3 rows) can miss spreadsheet updates such as `Featured` flag edits.
 
 ## Testing policy (mandatory)
 - After fixing any bug, add or update automated regression tests that would fail without the fix.
