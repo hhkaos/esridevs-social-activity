@@ -13,3 +13,4 @@
 - [ ] Add date range comparison support (e.g., 2025 vs 2026)
 - [ ] Create a contributor leaderboard
 - [ ] Add tooltip to each column to explain what they contain
+- [ ] Create a progressive web app that can be installed

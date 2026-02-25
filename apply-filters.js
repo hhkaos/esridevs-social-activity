@@ -125,11 +125,14 @@ const getStateFromUrl = () => {
 const stateFromUrl = getStateFromUrl();
 const parsedHashState = stateFromUrl.state;
 const hasNestedState = parsedHashState && typeof parsedHashState === 'object' && parsedHashState.filters;
+const activeTabFromState = hasNestedState
+  ? parsedHashState.activeTab
+  : (parsedHashState && typeof parsedHashState === 'object' ? parsedHashState.activeTab : null);
 
 const appState = {
   filters: normalizeFlags(hasNestedState ? parsedHashState.filters : parsedHashState),
   columns: normalizeColumnVisibility(hasNestedState ? parsedHashState.columns : null),
-  activeTab: normalizeActiveTab(hasNestedState ? parsedHashState.activeTab : null),
+  activeTab: normalizeActiveTab(activeTabFromState),
 };
 
 if (stateFromUrl.source === 'hash') {
@@ -409,15 +412,22 @@ const setActiveTab = (tabKey) => {
   const trendsPane = document.querySelector('#tab-trends');
 
   const tableIsActive = desired === 'table';
-  tableTrigger?.classList.toggle('active', tableIsActive);
-  trendsTrigger?.classList.toggle('active', !tableIsActive);
-  tableTrigger?.setAttribute('aria-selected', String(tableIsActive));
-  trendsTrigger?.setAttribute('aria-selected', String(!tableIsActive));
+  const desiredTrigger = tableIsActive ? tableTrigger : trendsTrigger;
+  const bootstrapTabApi = window.bootstrap?.Tab;
 
-  tablePane?.classList.toggle('show', tableIsActive);
-  tablePane?.classList.toggle('active', tableIsActive);
-  trendsPane?.classList.toggle('show', !tableIsActive);
-  trendsPane?.classList.toggle('active', !tableIsActive);
+  if (bootstrapTabApi && desiredTrigger) {
+    bootstrapTabApi.getOrCreateInstance(desiredTrigger).show();
+  } else {
+    tableTrigger?.classList.toggle('active', tableIsActive);
+    trendsTrigger?.classList.toggle('active', !tableIsActive);
+    tableTrigger?.setAttribute('aria-selected', String(tableIsActive));
+    trendsTrigger?.setAttribute('aria-selected', String(!tableIsActive));
+
+    tablePane?.classList.toggle('show', tableIsActive);
+    tablePane?.classList.toggle('active', tableIsActive);
+    trendsPane?.classList.toggle('show', !tableIsActive);
+    trendsPane?.classList.toggle('active', !tableIsActive);
+  }
 
   appState.activeTab = requested;
 };
@@ -603,6 +613,10 @@ const previousOnDataLoaded = window.onDataLoaded;
 window.onDataLoaded = () => {
   if (typeof previousOnDataLoaded === 'function') previousOnDataLoaded();
   syncColumnVisibilityWithToggles();
+  setActiveTab(appState.activeTab);
+  if (trendsTabIsActive() && typeof window.renderCharts === 'function') {
+    window.renderCharts();
+  }
 };
 
 document.querySelector('#tab-table-trigger')?.addEventListener('click', () => {
@@ -629,6 +643,7 @@ const buildShareUrl = (encodedState) => {
   const url = new URL(window.location.href);
   url.hash = '';
   url.searchParams.set('state', encodedState);
+  url.searchParams.delete('tab');
   return url.toString();
 };
 
@@ -670,6 +685,9 @@ shareViewBtn?.addEventListener('click', async () => {
 });
 
 setActiveTab(appState.activeTab);
+window.addEventListener('load', () => {
+  setActiveTab(appState.activeTab);
+});
 
 if (window.tableRenderGate && typeof window.tableRenderGate.onComplete === 'function') {
   window.tableRenderGate.onComplete(() => {
