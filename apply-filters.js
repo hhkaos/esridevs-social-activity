@@ -239,6 +239,10 @@ const enhanceWithTomSelect = (selector) => {
     create: false,
     persist: false,
     placeholder,
+    onItemAdd() {
+      this.setTextboxValue('');
+      this.refreshOptions(false);
+    },
   });
 
 };
@@ -544,13 +548,34 @@ const TOGGLEABLE_COLS = [
 
 const colPickerBtn = document.querySelector('#col-picker-btn');
 const colPickerPanel = document.querySelector('#col-picker-panel');
+const colPickerWrap = document.querySelector('.col-picker-wrap');
+
+const closeColumnPicker = () => {
+  colPickerPanel?.classList.remove('open');
+  colPickerBtn?.setAttribute('aria-expanded', 'false');
+};
+
+const toggleColumnPicker = () => {
+  if (!colPickerPanel || !colPickerBtn) return;
+  const isOpen = colPickerPanel.classList.toggle('open');
+  colPickerBtn.setAttribute('aria-expanded', String(isOpen));
+};
 
 colPickerBtn?.addEventListener('click', (e) => {
   e.stopPropagation();
-  colPickerPanel?.classList.toggle('open');
+  toggleColumnPicker();
 });
 
-document.addEventListener('click', () => colPickerPanel?.classList.remove('open'));
+colPickerPanel?.addEventListener('keydown', (event) => {
+  if (event.key !== ' ') return;
+  closeColumnPicker();
+});
+
+colPickerWrap?.addEventListener('focusout', (event) => {
+  const nextFocused = event.relatedTarget;
+  if (nextFocused && colPickerWrap.contains(nextFocused)) return;
+  closeColumnPicker();
+});
 
 const applyColumnToggleState = ({ key, filterId }, checked) => {
   document.querySelectorAll(`[data-col="${key}"]`).forEach((el) => {

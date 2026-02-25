@@ -62,17 +62,17 @@
             </label>
 
             <label class="filter-field" id="filter-channel">
-              <span class="filter-field__label">Channel</span>
+              <span class="filter-field__label">Channel <button type="button" class="field-help-btn" data-definition-trigger data-definition-field="channel" aria-label="Open Channel definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></span>
               <select id="channel" class="form-select filter-multiselect" data-placeholder="Any channel" multiple></select>
             </label>
 
             <label class="filter-field" id="filter-author">
-              <span class="filter-field__label">Author</span>
+              <span class="filter-field__label">Author <button type="button" class="field-help-btn" data-definition-trigger data-definition-field="author" aria-label="Open Author definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></span>
               <select id="author" class="form-select filter-multiselect" data-placeholder="Any author" multiple></select>
             </label>
 
             <label class="filter-field" id="filter-contributors">
-              <span class="filter-field__label">Contributors</span>
+              <span class="filter-field__label">Contributors <button type="button" class="field-help-btn" data-definition-trigger data-definition-field="contributor" aria-label="Open Contributor definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></span>
               <select id="contributors" class="form-select filter-multiselect" data-placeholder="Any contributor" multiple></select>
             </label>
 
@@ -181,11 +181,11 @@
               <tr>
                 <th class="text-center">Date</th>
                 <th>Content title</th>
-                <th class="text-center" data-col="author">Author</th>
-                <th class="text-center" data-col="channel">Channel</th>
+                <th class="text-center" data-col="author">Author <button type="button" class="field-help-btn field-help-btn--inline" data-definition-trigger data-definition-field="author" aria-label="Open Author definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></th>
+                <th class="text-center" data-col="channel">Channel <button type="button" class="field-help-btn field-help-btn--inline" data-definition-trigger data-definition-field="channel" aria-label="Open Channel definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></th>
                 <th class="text-center" data-col="language">Language</th>
                 <th class="text-center" data-col="social">Social</th>
-                <th class="text-center" data-col="contributor">Contributor</th>
+                <th class="text-center" data-col="contributor">Contributor <button type="button" class="field-help-btn field-help-btn--inline" data-definition-trigger data-definition-field="contributor" aria-label="Open Contributor definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></th>
                 <th>Technology</th>
                 <th class="text-center" data-col="category">Content type</th>
               </tr>
@@ -288,6 +288,18 @@
         <div class="modal-body">
           <canvas id="chart-modal-canvas"></canvas>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade definitions-modal" id="definitions-modal" tabindex="-1" aria-labelledby="definitions-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="definitions-modal-title">Definitions</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="definitions-modal-body"></div>
       </div>
     </div>
   </div>

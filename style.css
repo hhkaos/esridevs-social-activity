@@ -296,6 +296,41 @@ body {
   text-transform: uppercase;
 }
 
+.field-help-btn {
+  border: 0;
+  background: transparent;
+  color: #6682b8;
+  padding: 0;
+  line-height: 1;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.field-help-btn:hover,
+.field-help-btn:focus-visible {
+  color: #355a9e;
+  outline: none;
+}
+
+.field-help-btn--inline {
+  color: #5f6f96;
+}
+
+.field-help-btn__glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-style: normal;
+  text-transform: none;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
 .filter-multiselect {
   min-height: 40px;
 }
@@ -778,6 +813,61 @@ body {
 
 .chart-modal .modal-body {
   min-height: 360px;
+}
+
+.definitions-modal .modal-body {
+  display: grid;
+  gap: 1rem;
+}
+
+.definitions-section {
+  border: 1px solid #dce5f8;
+  border-radius: 0.6rem;
+  padding: 0.8rem 0.9rem;
+  background: #f8fbff;
+}
+
+.definitions-section__title {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #5f6f96;
+}
+
+.definitions-field-text,
+.definitions-empty {
+  margin: 0;
+  color: #2c3a5f;
+}
+
+.definitions-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.definitions-list__item {
+  display: grid;
+  gap: 0.15rem;
+  border-top: 1px solid #dce5f8;
+  padding-top: 0.55rem;
+}
+
+.definitions-list__item:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.definitions-list__value {
+  font-weight: 700;
+  color: #2c3a5f;
+}
+
+.definitions-list__meaning {
+  color: #40537f;
 }
 
 #chart-modal-canvas {

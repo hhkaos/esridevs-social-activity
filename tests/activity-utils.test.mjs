@@ -12,6 +12,8 @@ const {
   validateSheetSchema,
   buildSchemaMismatchMessage,
   getFilterCollapseMeta,
+  buildValueDefinitionMap,
+  resolveValueDefinition,
 } = require('../activity-utils.js');
 
 test('sanitizeActivityRows removes blank rows with invisible characters', () => {
@@ -271,4 +273,32 @@ test('buildSchemaMismatchMessage produces a readable contract error string', () 
   assert.equal(message.includes('Activity:'), true);
   assert.equal(message.includes('Dropdowns:'), true);
   assert.equal(message.includes('Found headers:'), true);
+});
+
+test('buildValueDefinitionMap builds case-insensitive first-win map from dropdown rows', () => {
+  const definitions = buildValueDefinitionMap({
+    rows: [
+      { Channel: 'Esri', Channel_value_definition: 'Official Esri channels' },
+      { Channel: 'esri', Channel_value_definition: 'Should be ignored duplicate' },
+      { Channel: 'Community', Channel_value_definition: 'Community-managed channels' },
+      { Channel: '', Channel_value_definition: 'Ignored because value is blank' },
+      { Channel: 'Distributor', Channel_value_definition: '' },
+    ],
+    valueKeys: ['Channel'],
+    definitionKeys: ['Channel_value_definition'],
+  });
+
+  assert.deepEqual(definitions, {
+    esri: 'Official Esri channels',
+    community: 'Community-managed channels',
+  });
+});
+
+test('resolveValueDefinition looks up values case-insensitively', () => {
+  const definitions = {
+    esri: 'Official Esri channels',
+  };
+
+  assert.equal(resolveValueDefinition(definitions, 'ESRI'), 'Official Esri channels');
+  assert.equal(resolveValueDefinition(definitions, 'Unknown value'), '');
 });

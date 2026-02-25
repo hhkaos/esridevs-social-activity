@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- Added definition-help triggers for `Author`, `Channel`, and `Contributor` in filters and table headers, backed by a shared modal for field meaning and value definitions.
+- Added dropdown-driven definition mapping (`Channel_value_definition`, `Author_value_definition`) to runtime app state for definition display.
+- Updated Configure Columns popover behavior to close on focus leave or Space within the panel instead of closing on every document click.
+- Updated Tom Select multi-select behavior to clear typed input immediately after option selection.
+- Bumped service worker shell cache version to `v14` after updating cached runtime assets (`index.html`, `style.css`, `load-table.js`, `apply-filters.js`, `activity-utils.js`).
 - Added dedicated table surface states (`loading`, `ready`, `error`) so the app switches cleanly between skeleton, table, and error UI states.
 - Updated table rendering to build rows in a detached `tbody` and swap once complete to avoid partial live-table updates during chunked renders.
 - Made initial load always show loading status/skeleton instead of suppressing it when cache is present to avoid stale-first visual confusion.
@@ -38,6 +43,8 @@ All notable changes to this project will be documented in this file.
 - **All:** Reduced stale app-shell behavior by wiring `SKIP_WAITING` messaging and reloading once the new service worker controls the page.
 
 ### Added
+- Added regression tests for definition modal contract, column-config popover close behavior, and Tom Select query reset after option selection.
+- Added shared value-definition helpers for case-insensitive definition map building and lookup in `activity-utils.js`.
 - Added regression coverage for loading/error surface markup, render state transitions, detached-`tbody` row commits, and refresh failure handling.
 - Added regression tests for activity sanitization, social link extraction, and post-refresh UI sync hooks.
 - Added regression tests for `createRenderGate` completion and reset behavior.

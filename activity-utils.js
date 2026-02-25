@@ -135,6 +135,34 @@
     return '';
   };
 
+  const normalizeValueKey = (value) => normalizeCell(value).toLowerCase();
+
+  const buildValueDefinitionMap = ({
+    rows = [],
+    valueKeys = [],
+    definitionKeys = [],
+  } = {}) => {
+    const definitions = {};
+
+    rows.forEach((row) => {
+      const value = pickFirst(row, valueKeys);
+      const definition = pickFirst(row, definitionKeys);
+      if (!value || !definition) return;
+
+      const normalizedKey = normalizeValueKey(value);
+      if (!normalizedKey || definitions[normalizedKey]) return;
+      definitions[normalizedKey] = definition;
+    });
+
+    return definitions;
+  };
+
+  const resolveValueDefinition = (definitions = {}, value = '') => {
+    const normalizedKey = normalizeValueKey(value);
+    if (!normalizedKey) return '';
+    return definitions[normalizedKey] || '';
+  };
+
   const detectSocialPlatform = (url, fallback = 'shared') => {
     try {
       const host = new URL(url).hostname.toLowerCase();
@@ -390,6 +418,8 @@
     validateSheetSchema,
     buildSchemaMismatchMessage,
     getFilterCollapseMeta,
+    buildValueDefinitionMap,
+    resolveValueDefinition,
   };
 
   global.activityUtils = Object.assign({}, global.activityUtils || {}, api);

@@ -3,6 +3,10 @@ const DATA_CACHE_KEY = 'esridevs_data_v1';
 
 window.activityData = [];
 window.dropdownData = {};
+window.definitionData = {
+  channelValueDefinitions: {},
+  authorValueDefinitions: {},
+};
 
 // ── Cache helpers ─────────────────────────────────────────────────────────────
 
@@ -160,6 +164,8 @@ const {
   createRenderGate,
   validateSheetSchema,
   buildSchemaMismatchMessage,
+  buildValueDefinitionMap,
+  resolveValueDefinition,
 } = window.activityUtils || {};
 
 if (
@@ -174,6 +180,8 @@ if (
     createRenderGate,
     validateSheetSchema,
     buildSchemaMismatchMessage,
+    buildValueDefinitionMap,
+    resolveValueDefinition,
   ]
     .some((fn) => typeof fn !== 'function')
 ) {
@@ -181,6 +189,21 @@ if (
 }
 
 const schemaWarningBannerEl = document.querySelector('#schema-warning-banner');
+const definitionsModalEl = document.querySelector('#definitions-modal');
+const definitionsModalTitleEl = document.querySelector('#definitions-modal-title');
+const definitionsModalBodyEl = document.querySelector('#definitions-modal-body');
+
+const FIELD_DEFINITION_TEXT = {
+  contributor: 'People who helped create or make this content available (authors, presenters, collaborators, and other contributors).',
+  channel: 'Source side of the content: where it originates from in this dataset (for example Esri, Distributor, or Community).',
+  author: 'Publishing-side label used in this dataset for where content was posted (for example Esri, Distributor, Community, Multiple, Unknown, or AI generated).',
+};
+
+const FIELD_LABELS = {
+  contributor: 'Contributor',
+  channel: 'Channel',
+  author: 'Author',
+};
 
 const showSchemaWarning = (message) => {
   if (!schemaWarningBannerEl) return;
@@ -224,6 +247,83 @@ const normalizeForKey = (value) => `${value ?? ''}`
   .toLowerCase()
   .replace(/\s+/g, ' ')
   .trim();
+
+const escapeHtml = (value) => `${value ?? ''}`
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
+const buildValueDefinitionItems = (values, definitions) => {
+  const safeValues = Array.isArray(values) ? values : [];
+  if (safeValues.length === 0) {
+    return '<p class="definitions-empty">No values available.</p>';
+  }
+
+  const items = safeValues.map((value) => {
+    const definition = resolveValueDefinition(definitions, value) || 'No definition provided yet.';
+    return `<li class="definitions-list__item"><span class="definitions-list__value">${escapeHtml(value)}</span><span class="definitions-list__meaning">${escapeHtml(definition)}</span></li>`;
+  }).join('');
+
+  return `<ul class="definitions-list">${items}</ul>`;
+};
+
+const renderDefinitionModalSection = (fieldKey) => {
+  if (!definitionsModalBodyEl || !definitionsModalTitleEl) return;
+
+  const normalizedField = `${fieldKey ?? ''}`.trim().toLowerCase();
+  const fieldLabel = FIELD_LABELS[normalizedField] || 'Definition';
+  definitionsModalTitleEl.textContent = `${fieldLabel} definitions`;
+
+  const fieldDefinition = FIELD_DEFINITION_TEXT[normalizedField] || '';
+  let valueListHtml = '';
+
+  if (normalizedField === 'channel') {
+    valueListHtml = buildValueDefinitionItems(
+      window.dropdownData?.channels || [],
+      window.definitionData?.channelValueDefinitions || {},
+    );
+  } else if (normalizedField === 'author') {
+    valueListHtml = buildValueDefinitionItems(
+      window.dropdownData?.authors || [],
+      window.definitionData?.authorValueDefinitions || {},
+    );
+  }
+
+  const fieldDescriptionHtml = fieldDefinition
+    ? `<p class="definitions-field-text">${escapeHtml(fieldDefinition)}</p>`
+    : '';
+
+  const valuesSectionHtml = valueListHtml
+    ? `<section class="definitions-section"><h6 class="definitions-section__title">Values</h6>${valueListHtml}</section>`
+    : '';
+
+  definitionsModalBodyEl.innerHTML = `
+    <section class="definitions-section">
+      <h6 class="definitions-section__title">Meaning</h6>
+      ${fieldDescriptionHtml || '<p class="definitions-empty">No definition provided yet.</p>'}
+    </section>
+    ${valuesSectionHtml}
+  `;
+};
+
+const openDefinitionModal = (fieldKey) => {
+  renderDefinitionModalSection(fieldKey);
+  if (!definitionsModalEl || !window.bootstrap?.Modal) return;
+  const modal = window.bootstrap.Modal.getOrCreateInstance(definitionsModalEl);
+  modal.show();
+};
+
+const initDefinitionTriggers = () => {
+  document.querySelectorAll('[data-definition-trigger]').forEach((buttonEl) => {
+    buttonEl.addEventListener('click', (event) => {
+      event.preventDefault();
+      const field = buttonEl.getAttribute('data-definition-field');
+      openDefinitionModal(field);
+    });
+  });
+};
 
 const socialIconClass = (platform) => ({
   linkedin: 'fa-brands fa-linkedin',
@@ -448,6 +548,21 @@ function buildDropdownData(dropdownRows, authorsRows) {
   };
 }
 
+function buildDefinitionData(dropdownRows) {
+  return {
+    channelValueDefinitions: buildValueDefinitionMap({
+      rows: dropdownRows,
+      valueKeys: ['Channel'],
+      definitionKeys: ['Channel_value_definition'],
+    }),
+    authorValueDefinitions: buildValueDefinitionMap({
+      rows: dropdownRows,
+      valueKeys: ['Author', 'Authors'],
+      definitionKeys: ['Author_value_definition'],
+    }),
+  };
+}
+
 async function processAndRender(activityRows, dropdownRows, authorsRows) {
   validateOpenSheetSchemaOrThrow({ activityRows, dropdownRows });
 
@@ -455,6 +570,7 @@ async function processAndRender(activityRows, dropdownRows, authorsRows) {
   const dedupedActivityRows = dedupeActivityRows(sanitizedActivityRows);
   window.activityData = dedupedActivityRows;
   window.dropdownData = buildDropdownData(dropdownRows, authorsRows);
+  window.definitionData = buildDefinitionData(dropdownRows);
   beginTableRender(dedupedActivityRows.length);
   await renderTableRows(dedupedActivityRows);
   completeTableRender();
@@ -630,6 +746,7 @@ const dataFetchPromise = Promise.all([
 
 window.addEventListener('DOMContentLoaded', () => {
   document.querySelector('#update-toast-close')?.addEventListener('click', hideToast);
+  initDefinitionTriggers();
 
   if (cachedData) {
     // Render from cache immediately — all other scripts are now ready
