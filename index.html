@@ -160,8 +160,22 @@
           <span id="loading-status-text">Loading activity feed...</span>
         </div>
 
+        <div id="table-loading-skeleton" class="table-skeleton" aria-hidden="true">
+          <div class="table-skeleton__header"></div>
+          <div class="table-skeleton__row"></div>
+          <div class="table-skeleton__row"></div>
+          <div class="table-skeleton__row"></div>
+          <div class="table-skeleton__row"></div>
+          <div class="table-skeleton__row"></div>
+        </div>
+
+        <div id="table-error-panel" class="table-error-panel" role="alert" hidden>
+          <p class="table-error-panel__title">Unable to load activity feed</p>
+          <p id="table-error-text" class="table-error-panel__text">Please refresh the page and try again.</p>
+        </div>
+
         <!-- Activity table -->
-        <div class="table-container">
+        <div class="table-container" hidden>
           <table id="main-table" class="table table-bordered table-sm align-middle" aria-label="Activity table">
             <thead>
               <tr>

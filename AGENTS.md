@@ -23,6 +23,7 @@
 - Preserve existing UX semantics for filters, date range, and chart synchronization unless explicitly asked to change them.
 - When changing row shape/field mapping, verify table rendering, filtering, and chart aggregation all still work.
 - Treat URL share-state compatibility as a stability requirement.
+- When changing shell assets or client runtime files that are cached by the service worker (for example `index.html`, `style.css`, `load-table.js`, `apply-filters.js`, `charts.js`, `sw-update-utils.js`), update the service worker cache version in `sw.js`.
 
 ## Required testing workflow
 - Bug fix rule: every bug fix must include regression tests covering the bug path.

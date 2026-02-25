@@ -45,3 +45,4 @@
 - Keep edits focused and preserve existing behavior unless the task requires change.
 - Prefer small, reviewable commits and include clear rationale for behavior changes.
 - Validate filter, table, and chart interactions when touching shared data/state logic.
+- If a change touches service-worker-cached shell assets (`index.html`, `style.css`, `load-table.js`, `apply-filters.js`, `charts.js`, `sw-update-utils.js`), bump `CACHE_VERSION` in `sw.js`.

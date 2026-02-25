@@ -1,6 +1,7 @@
 # TODO
 
 ## Done
+- [x] Add table loading skeleton/error surface and atomic row commit behavior - 2026-02-25
 - [x] All current in-progress tasks completed - 2026-02-24
 - [x] Make filters-row collapse (and collapsed by default) - 2026-02-24
 

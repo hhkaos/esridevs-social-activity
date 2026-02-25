@@ -74,16 +74,42 @@ const LOADING_MESSAGES = [
 
 const loadingStatusEl = document.querySelector('#loading-status');
 const loadingStatusTextEl = document.querySelector('#loading-status-text');
+const tableContainerEl = document.querySelector('.table-container');
+const tableLoadingSkeletonEl = document.querySelector('#table-loading-skeleton');
+const tableErrorPanelEl = document.querySelector('#table-error-panel');
+const tableErrorTextEl = document.querySelector('#table-error-text');
 let loadingTimerId = null;
 let loadingMessageIndex = 0;
+const TABLE_SURFACE_STATES = {
+  LOADING: 'loading',
+  READY: 'ready',
+  ERROR: 'error',
+};
 
 const setLoadingMessage = (msg) => {
   if (!loadingStatusTextEl) return;
   loadingStatusTextEl.textContent = `${msg}...`;
 };
 
+const setTableSurfaceState = (state, { message = '' } = {}) => {
+  const isLoading = state === TABLE_SURFACE_STATES.LOADING;
+  const isReady = state === TABLE_SURFACE_STATES.READY;
+  const isError = state === TABLE_SURFACE_STATES.ERROR;
+
+  if (tableContainerEl) tableContainerEl.hidden = !isReady;
+  if (tableLoadingSkeletonEl) tableLoadingSkeletonEl.hidden = !isLoading;
+
+  if (tableErrorPanelEl) {
+    tableErrorPanelEl.hidden = !isError;
+  }
+  if (isError && tableErrorTextEl && message) {
+    tableErrorTextEl.textContent = message;
+  }
+};
+
 const startLoadingStatus = () => {
   if (!loadingStatusEl) return;
+  setTableSurfaceState(TABLE_SURFACE_STATES.LOADING);
   loadingStatusEl.hidden = false;
   loadingStatusEl.classList.remove('is-error');
   loadingMessageIndex = 0;
@@ -107,10 +133,12 @@ const showLoadingError = () => {
     window.clearInterval(loadingTimerId);
     loadingTimerId = null;
   }
+  const message = 'Could not load activity feed. Please refresh';
+  setTableSurfaceState(TABLE_SURFACE_STATES.ERROR, { message });
   if (!loadingStatusEl) return;
   loadingStatusEl.hidden = false;
   loadingStatusEl.classList.add('is-error');
-  setLoadingMessage('Could not load activity feed. Please refresh');
+  setLoadingMessage(message);
 };
 
 // ── Data helpers ──────────────────────────────────────────────────────────────
@@ -360,11 +388,13 @@ const showRenderingStatus = (processed, total) => {
 
 const beginTableRender = (totalRows) => {
   renderGate.reset();
+  setTableSurfaceState(TABLE_SURFACE_STATES.LOADING);
   setInteractiveUiEnabled(false);
   showRenderingStatus(0, totalRows);
 };
 
 const completeTableRender = () => {
+  setTableSurfaceState(TABLE_SURFACE_STATES.READY);
   setInteractiveUiEnabled(true);
   renderGate.markComplete();
   stopLoadingStatus();
@@ -536,11 +566,11 @@ function createTableRowClone(entry, template) {
 function renderTableRows(rows) {
   if (!('content' in document.createElement('template'))) return Promise.resolve();
 
-  const tableBody = document.querySelector('#main-table tbody');
+  const liveTableBody = document.querySelector('#main-table tbody');
   const template = document.querySelector('#templateRow');
-  if (!tableBody || !template) return Promise.resolve();
+  if (!liveTableBody || !template) return Promise.resolve();
 
-  tableBody.innerHTML = '';
+  const workingTableBody = document.createElement('tbody');
   const safeRows = Array.isArray(rows) ? rows : [];
   const totalRows = safeRows.length;
 
@@ -558,7 +588,7 @@ function renderTableRows(rows) {
       }
 
       if (fragment.childNodes.length > 0) {
-        tableBody.appendChild(fragment);
+        workingTableBody.appendChild(fragment);
       }
 
       showRenderingStatus(index, totalRows);
@@ -568,6 +598,7 @@ function renderTableRows(rows) {
         return;
       }
 
+      liveTableBody.replaceWith(workingTableBody);
       initSocialTooltips();
       resolve();
     };
@@ -589,13 +620,7 @@ function formatDate(dateString) {
 
 const cachedData = loadDataCache();
 setInteractiveUiEnabled(false);
-
-// If we have cached data, hide the loading spinner right away so users see no flash.
-if (cachedData && loadingStatusEl) {
-  loadingStatusEl.hidden = true;
-} else {
-  startLoadingStatus();
-}
+startLoadingStatus();
 
 const dataFetchPromise = Promise.all([
   fetchJsonOrThrow(`https://opensheet.elk.sh/${SPREADSHEET_ID}/Activity`),
@@ -631,6 +656,7 @@ window.addEventListener('DOMContentLoaded', () => {
               })
               .catch((err) => {
                 console.error('Failed to refresh table:', err);
+                showLoadingError();
                 hideToast();
               });
           }, 2000);
