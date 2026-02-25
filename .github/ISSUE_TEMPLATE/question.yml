@@ -1,0 +1,39 @@
+name: Question
+description: Ask for help using or understanding this project
+labels:
+  - question
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for usage or implementation questions.
+
+  - type: input
+    id: summary
+    attributes:
+      label: Question summary
+      placeholder: How do I add a new filter without breaking URL share state?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What are you trying to do?
+      placeholder: I need to add a platform filter and keep existing shared links working.
+    validations:
+      required: true
+
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What you already tried
+      placeholder: I updated apply-filters.js but the reset/share actions no longer include the new filter.
+
+  - type: input
+    id: references
+    attributes:
+      label: Relevant files or links
+      description: Optional paths, PRs, commits, or docs links
+      placeholder: apply-filters.js, load-table.js, CONTRIBUTING.md

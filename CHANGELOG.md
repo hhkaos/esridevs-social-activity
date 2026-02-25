@@ -25,6 +25,9 @@ All notable changes to this project will be documented in this file.
 - Bumped service worker shell cache version to invalidate stale cached runtime assets after tab-state updates.
 
 - **Tooling:** Added root `package.json` test configuration so `npm test` runs the Node test suite.
+- Updated footer support text to include a direct GitHub issues link.
+- Raised filter row/dropdown stacking order above the sticky insights index to prevent clipping in trends view.
+- Bumped service worker shell cache version to `v11` after updating cached shell assets.
 
 ### Fixed
 - Ensured background refresh render failures now surface a visible table load error state instead of silently leaving the UI stale.
@@ -47,3 +50,5 @@ All notable changes to this project will be documented in this file.
 - Added an in-app schema warning banner to surface header mismatches.
 - Added regression tests for schema validation messaging, contributor header mapping, table column toggle parity, `showAll/last90` presets, and service-worker cache put handling.
 - Added regression tests for share-state tab serialization, tab restoration, and Bootstrap tab activation behavior.
+- Added GitHub issue templates for bug reports, feature requests, and questions.
+- Added regression coverage for filter/dropdown layering above the sticky insights index.

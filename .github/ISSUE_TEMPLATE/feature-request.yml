@@ -1,0 +1,72 @@
+name: Feature request
+description: Suggest an enhancement to improve the app
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing an idea.
+        Focus on the user problem first, then propose a solution.
+
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: One-line title for the enhancement
+      placeholder: Add a "Top contributors" chart by selectable time window
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What user pain point does this solve?
+      placeholder: It is hard to identify consistently active contributors over a custom range.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior and UX you want
+      placeholder: Add a bar chart grouped by contributor, synced with current filters/date range.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      placeholder: Could be a sortable table column, but a chart would be faster to scan.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Data model / mapping
+        - Filters / URL state
+        - Charts / insights dashboard
+        - Table rendering
+        - Performance / caching
+        - Accessibility / UX
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Who benefits and how often?
+      placeholder: Helps maintainers review weekly activity trends quickly.
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: Mockups or references
+      description: Optional screenshots, wireframes, or links

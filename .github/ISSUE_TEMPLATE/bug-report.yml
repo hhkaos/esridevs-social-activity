@@ -1,0 +1,99 @@
+name: Bug report
+description: Report a reproducible problem in the app
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug.
+        Please include clear reproduction steps and expected vs actual behavior.
+
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: One-line description of the issue
+      placeholder: Filters reset unexpectedly after sharing URL
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Exact steps so we can reproduce reliably
+      placeholder: |
+        1. Open the app
+        2. Select Date range = Last 30 days
+        3. Click Share and open the shared link
+        4. Observe filters are reset
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: Shared URL should preserve the selected filters and active tab
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      placeholder: Shared URL opens with default filters
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Where does the issue appear?
+      options:
+        - Data loading / row mapping (load-table.js)
+        - Filters / URL state (apply-filters.js)
+        - Charts / aggregation (charts.js)
+        - UI / layout (index.html, style.css)
+        - Service worker / caching (sw.js)
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: shared_url
+    attributes:
+      label: Shared URL (if relevant)
+      description: Paste the URL that reproduces the issue
+      placeholder: https://...
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser and OS details
+      placeholder: |
+        - Browser: Chrome 122
+        - OS: macOS 14.4
+        - Device: Desktop
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Screenshots, screen recordings, console errors, or stack traces
+      placeholder: Paste console errors or drag/drop screenshots here
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and did not find a duplicate
+          required: true
+        - label: I can reproduce this issue on the latest main branch/app deployment
+          required: false
