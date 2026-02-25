@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **All:** Added an `Image` column to the activity table that displays a clickable thumbnail when an image URL (from `Image`, `Image URL`, `Picture`, or `Picture URL` spreadsheet fields) is available. The column is hidden by default and can be enabled via the Configure columns panel.
+
 ### Changed
 - Refactored activity data helpers into a shared `activity-utils.js` module and loaded it before table logic.
 - Updated `load-table.js` to consume shared helpers and centralized post-refresh UI synchronization.
