@@ -27,6 +27,7 @@ const DEFAULT_COLUMN_VISIBILITY = {
   social: true,
   contributor: false,
   category: true,
+  image: false,
 };
 
 const createDefaultFlags = () => ({
@@ -540,6 +541,7 @@ const TOGGLEABLE_COLS = [
   { key: 'social' },
   { key: 'contributor', filterId: '#filter-contributors' },
   { key: 'category', filterId: '#filter-category' },
+  { key: 'image' },
 ];
 
 const colPickerBtn = document.querySelector('#col-picker-btn');

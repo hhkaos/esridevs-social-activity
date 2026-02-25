@@ -560,6 +560,11 @@ function createTableRowClone(entry, template) {
   td[8].innerText = category;
   row.setAttribute('data-categories', category);
 
+  const imageUrl = pickFirst(entry, ['Image', 'Image URL', 'Picture', 'Picture URL']);
+  if (imageUrl) {
+    td[9].innerHTML = `<a href="${imageUrl}" target="_blank" rel="noopener noreferrer" title="View image" aria-label="View image"><img src="${imageUrl}" alt="Activity image" class="activity-image-thumb" loading="lazy"></a>`;
+  }
+
   return clone;
 }
 
