@@ -71,32 +71,34 @@
   // ── Init ──────────────────────────────────────────────────────────────────
 
   function init() {
-    const consent = getConsent();
-
-    if (consent === 'accepted') {
-      loadGA();
-      return; // banner not needed
-    }
-
-    if (consent === 'declined') {
-      return; // banner not needed, respect choice
-    }
-
-    // No decision yet — show banner after DOM is ready
-    const run = () => {
-      showBanner();
-
+    // Always wire up the buttons so revoke() works at any point.
+    const wireButtons = () => {
       document.getElementById('cookie-accept-btn')
         ?.addEventListener('click', accept);
-
       document.getElementById('cookie-decline-btn')
         ?.addEventListener('click', decline);
     };
 
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', run);
+      document.addEventListener('DOMContentLoaded', wireButtons);
     } else {
-      run();
+      wireButtons();
+    }
+
+    const consent = getConsent();
+    if (consent === 'accepted') {
+      loadGA();
+      return;
+    }
+    if (consent === 'declined') {
+      return;
+    }
+
+    // No decision yet — show banner.
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', showBanner);
+    } else {
+      showBanner();
     }
   }
 
