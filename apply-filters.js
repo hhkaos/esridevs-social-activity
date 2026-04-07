@@ -210,7 +210,7 @@ filtersCollapseToggle?.addEventListener('keydown', (event) => {
 
 setFiltersCollapsed(true);
 
-const hasActiveRestriction = (map) => Object.values(map || {}).some((value) => value === 0);
+const hasActiveRestriction = (map) => Object.values(map || {}).some((value) => value === 0 || value === 1);
 
 const updateFilterSummary = (visibleRows, totalRows) => {
   if (!filtersSummaryEl) return;
@@ -265,7 +265,7 @@ const loadMultiSelect = (options, id, keyword) => {
     item.value = value;
     item.textContent = value;
     const val = keywordFlags[value];
-    if (hasRestrictions && val !== 0) setItemSelected(item, true);
+    if (hasRestrictions && val === 1) setItemSelected(item, true);
     select.appendChild(clone);
   });
 };
