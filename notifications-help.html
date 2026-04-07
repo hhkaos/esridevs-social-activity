@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Enable Notifications | Esri Developer Content Tracker</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/icon16.png">
+  <link rel="apple-touch-icon" sizes="128x128" href="assets/icons/icon128.png">
+  <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/morph/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(160deg, #f4f7ff 0%, #f7f9fc 55%, #eef4ff 100%);
+      color: #1f2a44;
+    }
+
+    .page-shell {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 3rem;
+    }
+
+    .page-card {
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid #d9e1f2;
+      border-radius: 16px;
+      box-shadow: 0 10px 28px rgba(31, 42, 68, 0.08);
+      padding: 1.5rem;
+    }
+
+    .page-card h1 {
+      color: #123a72;
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .page-card .lead {
+      color: #4a5f88;
+      margin-bottom: 1.75rem;
+    }
+
+    .os-section {
+      border: 1px solid #d9e1f2;
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .os-section h2 {
+      color: #123a72;
+      font-size: 1.15rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .os-section ol {
+      padding-left: 1.2rem;
+      margin: 0;
+    }
+
+    .os-section li {
+      line-height: 1.7;
+      margin-bottom: 0.2rem;
+    }
+
+    .os-section li:last-child { margin-bottom: 0; }
+
+    .tip {
+      background: #eff6ff;
+      border-left: 3px solid #007AC2;
+      border-radius: 0 6px 6px 0;
+      padding: 0.65rem 1rem;
+      font-size: 0.875rem;
+      color: #1e3a5f;
+      margin-top: 1rem;
+    }
+
+    kbd {
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 0.82em;
+    }
+  </style>
+</head>
+<body>
+  <main class="page-shell">
+    <div class="page-card">
+      <p><a href="./">Back to Esri Developer Content Tracker</a></p>
+      <h1>Enable browser notifications</h1>
+      <p class="lead">
+        If the test notification in the extension settings didn't appear on screen, your operating system
+        is likely blocking Chrome's notification permission. Follow the steps for your OS below.
+      </p>
+
+      <!-- macOS -->
+      <div class="os-section">
+        <h2>🍎 macOS</h2>
+        <ol>
+          <li>Open <strong>System Settings</strong> (Apple menu → System Settings).</li>
+          <li>Click <strong>Notifications</strong> in the sidebar.</li>
+          <li>Scroll down and click <strong>Google Chrome</strong>.</li>
+          <li>Set the alert style to <strong>Banners</strong> or <strong>Alerts</strong> (not Off).</li>
+          <li>Make sure <strong>Allow Notifications</strong> is toggled on.</li>
+          <li>Go back to the extension settings and click <strong>Send test notification</strong> again.</li>
+        </ol>
+        <div class="tip">
+          If you see two "Google Chrome" entries, enable notifications for both — one is the main browser
+          and the other handles background processes like extensions.
+        </div>
+        <div class="tip">
+          Also check that <strong>Focus</strong> (Do Not Disturb) is not active — the moon icon in the
+          menu bar indicates Focus is on. While active, notifications are silenced.
+        </div>
+      </div>
+
+      <!-- Windows -->
+      <div class="os-section">
+        <h2>🪟 Windows 10 / 11</h2>
+        <ol>
+          <li>Open <strong>Settings</strong> (<kbd>Win</kbd> + <kbd>I</kbd>).</li>
+          <li>Go to <strong>System → Notifications</strong> (Windows 11) or
+              <strong>System → Notifications &amp; actions</strong> (Windows 10).</li>
+          <li>Make sure <strong>Notifications</strong> is toggled <strong>On</strong> at the top.</li>
+          <li>Scroll down to <strong>Google Chrome</strong> in the app list and enable it.</li>
+          <li>Go back to the extension settings and click <strong>Send test notification</strong> again.</li>
+        </ol>
+        <div class="tip">
+          Windows also has a Focus Assist / Do Not Disturb mode. Open the notification panel
+          (bottom-right clock) and check it's not active.
+        </div>
+      </div>
+
+      <!-- Linux -->
+      <div class="os-section">
+        <h2>🐧 Linux (GNOME / Ubuntu)</h2>
+        <ol>
+          <li>Open <strong>Settings → Notifications</strong>.</li>
+          <li>Make sure <strong>Do Not Disturb</strong> is off.</li>
+          <li>Scroll to <strong>Google Chrome</strong> and enable notifications.</li>
+          <li>Go back to the extension settings and click <strong>Send test notification</strong> again.</li>
+        </ol>
+        <div class="tip">
+          On KDE Plasma, go to <strong>System Settings → Notifications → Applications</strong>
+          and enable Chrome there.
+        </div>
+      </div>
+
+      <!-- Still not working -->
+      <div class="os-section">
+        <h2>Still not working?</h2>
+        <ol>
+          <li>In Chrome, go to <code>chrome://settings/content/notifications</code> and make sure
+              notifications are not blocked globally.</li>
+          <li>Try restarting Chrome after changing OS notification settings.</li>
+          <li>If the issue persists, feel free to
+              <a href="https://github.com/hhkaos/esridevs-social-activity/issues" target="_blank">open an issue</a>
+              with your OS version and Chrome version.</li>
+        </ol>
+      </div>
+
+    </div>
+  </main>
+</body>
+</html>

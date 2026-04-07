@@ -243,6 +243,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const intervalInput   = document.querySelector('#refresh-interval');
   const urlInput        = document.querySelector('#target-url');
   const notifCheckbox   = document.querySelector('#notifications');
+  const notifTestArea   = document.querySelector('#notif-test-area');
+  const testNotifBtn    = document.querySelector('#test-notif-btn');
+  const notifTestMsg    = document.querySelector('#notif-test-msg');
   const saveBtn         = document.querySelector('#save-btn');
   const resetBtn        = document.querySelector('#reset-btn');
 
@@ -255,6 +258,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   intervalInput.value     = settings.refreshIntervalMinutes;
   urlInput.value          = settings.targetBaseUrl;
   notifCheckbox.checked   = settings.notificationsEnabled;
+  notifTestArea.hidden    = !settings.notificationsEnabled;
 
   // Pre-select chips from storage (visible before options finish loading)
   for (const [key, ms] of Object.entries(fields)) {
@@ -277,8 +281,30 @@ document.addEventListener('DOMContentLoaded', async () => {
   notifCheckbox.addEventListener('change', async () => {
     if (notifCheckbox.checked) {
       const granted = await chrome.permissions.request({ permissions: ['notifications'] });
-      if (!granted) notifCheckbox.checked = false;
+      if (!granted) {
+        notifCheckbox.checked = false;
+        notifTestArea.hidden = true;
+        return;
+      }
     }
+    notifTestArea.hidden = !notifCheckbox.checked;
+    notifTestMsg.hidden = true;
+  });
+
+  // ── Test notification ──────────────────────────────────────────────────────
+  const HELP_URL = 'https://hhkaos.github.io/esridevs-social-activity/notifications-help.html';
+
+  testNotifBtn.addEventListener('click', async () => {
+    await chrome.notifications.create('test-notif', {
+      type: 'basic',
+      iconUrl: 'icons/icon48.png',
+      title: 'Esri Developer Content Tracker',
+      message: 'Notifications are working correctly.',
+    });
+    notifTestMsg.innerHTML =
+      'Test notification sent. If you didn\'t see it, your OS may be blocking it. ' +
+      `<a href="${HELP_URL}" target="_blank">How to fix it →</a>`;
+    notifTestMsg.hidden = false;
   });
 
   // ── Save ──────────────────────────────────────────────────────────────────

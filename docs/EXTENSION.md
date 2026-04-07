@@ -173,7 +173,7 @@ Target URL:        [https://hhkaos.github.io/esridevs-social-activity/]
 
 ---
 
-### Fase 4 — "Open feed" con URL codificada [ ]
+### Fase 4 — "Open feed" con URL codificada [x]
 
 **Objetivo:** al clicar "Open feed", se abre la web app con los filtros del usuario pre-aplicados.
 
@@ -208,7 +208,7 @@ function buildWebAppUrl(settings) {
 
 ---
 
-### Fase 5 — OS Notifications (opcional) [ ]
+### Fase 5 — OS Notifications (opcional) [x]
 
 **Objetivo:** el usuario puede activar notificaciones del SO para enterarse de nuevos items sin mirar el badge.
 
@@ -228,33 +228,41 @@ chrome.notifications.create('new-items', {
 
 ---
 
-### Fase 6 — Icons + Testing + Publicación [ ]
+### Fase 6 — Icons + Testing + Publicación [~]
 
-**Iconos** — diseñar o adaptar el logo de la web app en: 16×16, 32×32, 48×48, 128×128 px
+**Iconos** ✅ — `icons/icon16.png`, `icon32.png`, `icon48.png`, `icon128.png`
 
 **Testing completo:**
-- [ ] Lógica de filtrado del badge (tests unitarios)
-- [ ] Codificación LZString de la URL
-- [ ] Persistencia en storage (guardar/leer)
-- [ ] Carga de opciones desde Dropdowns sheet
 
-**Publicación Chrome Web Store:**
-1. Cuenta de desarrollador ($5 único pago en payments.google.com)
-2. ZIP de `/extension/` (excluir tests y node_modules)
+- [x] Lógica de filtrado del badge — 82 tests en `tests/extension-filter-utils.test.mjs`
+- [x] Codificación LZString de la URL — `tests/extension-open-feed-filter-restore.test.mjs`
+- [ ] Persistencia en storage (guardar/leer) — sin tests automatizados (requiere chrome API mock)
+- [ ] Carga de opciones desde Dropdowns sheet — sin tests automatizados
+
+**Publicación Chrome Web Store:** ✅ Enviado a revisión
+
+1. ~~Cuenta de desarrollador ($5 único pago en payments.google.com)~~
+2. ZIP de `/extension/`: `zip -r esri-dev-tracker.zip manifest.json background.js popup.html popup.js popup.css options.html options.js options.css filter-utils.js lzstring.min.js icons/`
 3. Assets de store: descripción, screenshots (1280×800 o 640×400), icono promo (440×280)
-4. Enviar a revisión → ~3-7 días hábiles
+4. ~~Enviar a revisión → ~3-7 días hábiles~~
 
-**Publicación Firefox AMO** (gratuito):
-1. Cuenta en addons.mozilla.org
-2. Mismo ZIP (auto-review si no hay código ofuscado)
-3. El `browser_specific_settings.gecko.id` en el manifest ya lo habilita
+**Publicación Firefox AMO** (gratuito) — ⬜ Pendiente:
 
-**Publicación Edge Add-ons** (gratuito):
-1. Cuenta en Microsoft Partner Center
-2. Mismo ZIP que Chrome (Chromium-based)
+1. Crear cuenta en addons.mozilla.org
+2. Mismo ZIP (el manifest ya tiene `browser_specific_settings.gecko.id`)
+3. En "Submit Your Add-on": subir ZIP → esperar firma automática (~24 h)
+4. Assets de listing: icono ya incluido en manifest; screenshots 1280×800; descripción
+5. ⚠️ Firefox soporta `chrome.*` nativamente — no se necesita polyfill ni cambios de código
 
-> Firefox soporta `chrome.*` namespace nativamente en MV3 — no se necesita polyfill.  
-> El mismo código funciona en los tres navegadores sin cambios.
+**Publicación Edge Add-ons** (gratuito) — ⬜ Pendiente:
+
+1. Cuenta en partner.microsoft.com → registrarse en el programa Edge
+2. Mismo ZIP que Chrome (Edge es Chromium-based, compatibilidad total con MV3)
+3. Partner Center → "New extension" → subir ZIP → validación automática
+4. Assets: icono 300×300 px; screenshots 640×480 o 1280×800 (hasta 10)
+5. Certificación: hasta 7 días hábiles
+
+> Firefox y Edge soportan `chrome.*` namespace nativamente — el mismo código funciona en los tres navegadores sin cambios.
 
 ---
 
@@ -266,5 +274,5 @@ chrome.notifications.create('new-items', {
 | 2 — Popup | ✅ Completo | `extension/popup.html`, `popup.css`, `popup.js`; badge se resetea al abrir. Tests manuales en Chrome. |
 | 3 — Options page (filtros) | ✅ Completo | `extension/options.html/css/js`; MultiSelect con chips+búsqueda; 6 campos; guarda en storage. |
 | 4 — "Open feed" URL codificada | ✅ Completo | `?state=<lzstring>` pre-aplica los filtros del usuario; `?newItems=<btoa>` lista las URLs nuevas para mostrar pills "New" en la tabla. `lzstring.min.js` incluido en `/extension/`. |
-| 5 — OS Notifications (opcional) | ⬜ Pendiente | |
-| 6 — Icons + Testing + Publicación | ⬜ Pendiente | |
+| 5 — OS Notifications (opcional) | ✅ Completo | `background.js` líneas 197-204; permiso opcional en `options.js` con `chrome.permissions.request`. |
+| 6 — Icons + Testing + Publicación | 🔄 En progreso | Iconos ✅; tests unitarios ✅ (82 tests); Chrome enviado a revisión ✅; Firefox AMO ⬜; Edge Add-ons ⬜. |

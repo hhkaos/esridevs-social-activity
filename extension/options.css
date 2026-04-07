@@ -265,3 +265,25 @@ body {
   color: #9ca3af;
   font-style: italic;
 }
+
+/* ── Notification test area ──────────────────────────────────────────────── */
+
+.notif-test-area {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 12px;
+  align-self: flex-start;
+}
+
+.notif-test-msg {
+  font-size: 12px;
+  color: #374151;
+  line-height: 1.5;
+}
+.notif-test-msg a { color: #007AC2; }
