@@ -37,6 +37,46 @@ body {
   display: none;
 }
 
+/* ── Cookie consent banner ──────────────────────────────────────────────── */
+.cookie-consent-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  padding: 0.7rem 1.25rem;
+  background: #1f2a44;
+  color: #e8edf8;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.85rem;
+}
+
+.cookie-consent-banner[hidden] {
+  display: none;
+}
+
+.cookie-consent-banner__text {
+  margin: 0;
+  flex: 1 1 auto;
+}
+
+.cookie-consent-banner__link {
+  color: #93b8f5;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.cookie-consent-banner__actions {
+  display: flex;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
 .schema-warning-banner {
   position: sticky;
   top: 0;

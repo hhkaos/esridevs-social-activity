@@ -61,9 +61,9 @@
 <body>
   <main class="policy-shell">
     <div class="policy-card">
-      <p><a href="./">Back to Esri Developer Content Tracker</a></p>
+      <p><a href="./">&larr; Back to Esri Developer Content Tracker</a></p>
       <h1>Privacy Policy</h1>
-      <p class="policy-meta">Last updated: April 7, 2026</p>
+      <p class="policy-meta">Last updated: April 8, 2026</p>
 
       <p>This Privacy Policy describes how the Esri Developer Content Tracker website and browser extension handle information.</p>
 
@@ -88,11 +88,26 @@
       <h2>Remote services used</h2>
       <p>The extension fetches activity and filter data from <code>https://opensheet.elk.sh/</code>, which exposes content from the project's Google Sheet data source. The extension also opens the public web app at <code>https://hhkaos.github.io/esridevs-social-activity/</code> or another URL configured by the user.</p>
 
-      <h2>Personal data and analytics</h2>
-      <p>The extension is not designed to collect personal data, does not sell user data, and does not use advertising trackers. At the time of this policy, the extension does not include third-party analytics inside the extension itself.</p>
+      <h2 id="analytics">Analytics — web app (Google Analytics 4)</h2>
+      <p>The <strong>web app</strong> uses Google Analytics 4 (GA4) to help us understand whether this tool is being used and how, so we can decide whether it is worth continuing to develop and maintain. Analytics is <strong>opt-in</strong>: it is only loaded after you explicitly click "Sure, happy to help" in the cookie banner. If you decline or have not responded, no analytics data is collected at all.</p>
+      <p>When analytics is active, the following anonymous interactions are recorded:</p>
+      <ul>
+        <li><strong>Page views</strong> — which pages of the site are visited.</li>
+        <li><strong>Tab navigation</strong> — whether the Insights tab is opened.</li>
+        <li><strong>Filter usage</strong> — which filters are applied and what values are selected (e.g. "channel: Community"). This helps us understand which dimensions are most useful.</li>
+        <li><strong>Social share clicks</strong> — which platform button (LinkedIn, X/Twitter, Bluesky) is clicked, and the content type of the item shared. No URLs or item titles are sent.</li>
+        <li><strong>Share view copies</strong> — when a shareable link to the current filter state is copied.</li>
+      </ul>
+      <p>No personal data (name, email address, etc.) is sent. IP anonymization is enabled, so full IP addresses are never stored by Google. No advertising or remarketing features are used.</p>
+      <p>Data is processed by Google LLC. See <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a> for details on how Google handles this data.</p>
+      <p>You can change your analytics preference at any time by clicking the <strong>Cookie settings</strong> link in the app footer, which reopens the consent banner. You can also clear your choice by deleting this site's localStorage data from your browser's developer tools.</p>
+
+      <h2>Personal data and analytics — browser extension</h2>
+      <p>The extension is not designed to collect personal data, does not sell user data, and does not use advertising trackers. The extension does not include third-party analytics.</p>
 
       <h2>Data sharing</h2>
-      <p>The extension does not share your stored settings with third parties except as technically necessary to fetch the public activity feed or to open the configured web app URL that you choose to visit.</p>
+      <p>The <strong>extension</strong> does not share your stored settings with third parties except as technically necessary to fetch the public activity feed or to open the configured web app URL that you choose to visit.</p>
+      <p>The <strong>web app</strong> shares anonymous usage data with Google Analytics only if you have given consent. No other third parties receive data from the web app.</p>
 
       <h2>Permissions</h2>
       <ul>
@@ -104,7 +119,8 @@
       </ul>
 
       <h2>Data retention and control</h2>
-      <p>You can reset extension settings at any time from the options page. Removing the extension will also remove locally stored extension data according to your browser's behavior. If you use browser sync features, some settings may also be synced through your browser account.</p>
+      <p><strong>Extension:</strong> you can reset settings at any time from the options page. Removing the extension will also remove locally stored extension data according to your browser's behavior. If you use browser sync features, some settings may also be synced through your browser account.</p>
+      <p><strong>Web app analytics:</strong> your consent choice is stored in your browser's localStorage under the key <code>esridevs_cookie_consent</code>. You can withdraw consent at any time using the <strong>Cookie settings</strong> link in the app footer. Analytics data already sent to Google is subject to Google's own retention policy (default 14 months in GA4).</p>
 
       <h2>Children's privacy</h2>
       <p>This project is not directed to children and is intended for general developer and technical audiences.</p>

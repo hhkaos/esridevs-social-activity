@@ -1,6 +1,6 @@
 importScripts('./sw-update-utils.js');
 
-const CACHE_VERSION = 'v32';
+const CACHE_VERSION = 'v34';
 const SHELL_CACHE = `esridevs-shell-${CACHE_VERSION}`;
 
 const SHELL_ASSETS = [
@@ -11,6 +11,8 @@ const SHELL_ASSETS = [
   './apply-filters.js',
   './charts.js',
   './sw-update-utils.js',
+  './cookie-consent.js',
+  './analytics.js',
 ];
 
 self.addEventListener('install', (event) => {
