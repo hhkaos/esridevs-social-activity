@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Esri Developer Content Tracker",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Badge notifications for new EsriDevs content matching your filters.",
   "icons": {
     "16": "icons/icon16.png",
@@ -9,9 +9,17 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-  "permissions": ["storage", "alarms", "tabs"],
-  "optional_permissions": ["notifications"],
-  "host_permissions": ["https://opensheet.elk.sh/*"],
+  "permissions": [
+    "storage",
+    "alarms",
+    "tabs"
+  ],
+  "optional_permissions": [
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://opensheet.elk.sh/*"
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"
