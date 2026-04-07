@@ -22,3 +22,4 @@
 - [ ] Add an "About" button that open a modal explaining this not an Esri official content tracker but a community project with content curated by the community and currently maintained by me: Raul Jimenez 
 - [ ] Add some gamification aspects to recognize the work of contributors
 - [ ] Consider adding an image URL (if possible) when sharing in social. Issue: https://github.com/hhkaos/esridevs-social-activity/issues/6
+- [ ] Improve the table layout to be more mobile friendly
