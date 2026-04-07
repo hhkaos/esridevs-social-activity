@@ -6,11 +6,31 @@
  * modify any app logic. All calls are gated: nothing fires unless window.gtag
  * is present (which cookie-consent.js only injects after explicit consent).
  *
- * Events tracked:
- *  - tab_viewed          { tab_name }
- *  - filter_applied      { filter_type, filter_values }
- *  - social_share        { platform, content_type }
- *  - share_view_copied   {}
+ * ── Events ───────────────────────────────────────────────────────────────────
+ *
+ * tab_viewed
+ *   Fired when the user opens the Insights tab.
+ *   tab_name: "insights"
+ *
+ * filter_applied
+ *   Fired when the user actively restricts results with a filter.
+ *   Not fired when a filter is cleared (empty = "no restriction").
+ *   filter_type:   "topics" | "content_type" | "channel" | "author" |
+ *                  "contributors" | "language" | "date_preset" | "featured_only"
+ *   filter_values: comma-separated selected values (e.g. "JavaScript,Python")
+ *                  for date_preset: the preset key (e.g. "last30", "thisYear")
+ *                  for featured_only: "on" | "off"
+ *
+ * social_share
+ *   Fired when the user clicks a social share button on a content row.
+ *   platform:     "linkedin" | "x" | "bluesky"
+ *   content_type: value of the row's Category column (e.g. "Blog post")
+ *
+ * share_view_copied
+ *   Fired when the user copies a shareable URL of the current filter state.
+ *   (no extra parameters)
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 (function () {
   'use strict';
