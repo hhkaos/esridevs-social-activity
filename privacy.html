@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy Policy | Esri Developer Content Tracker</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/morph/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(160deg, #f4f7ff 0%, #f7f9fc 55%, #eef4ff 100%);
+      color: #1f2a44;
+    }
+
+    .policy-shell {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 3rem;
+    }
+
+    .policy-card {
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid #d9e1f2;
+      border-radius: 16px;
+      box-shadow: 0 10px 28px rgba(31, 42, 68, 0.08);
+      padding: 1.5rem;
+    }
+
+    .policy-card h1,
+    .policy-card h2 {
+      color: #123a72;
+    }
+
+    .policy-card h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .policy-card h2 {
+      font-size: 1.2rem;
+      margin-top: 1.75rem;
+    }
+
+    .policy-card p,
+    .policy-card li {
+      line-height: 1.6;
+    }
+
+    .policy-card ul {
+      padding-left: 1.2rem;
+    }
+
+    .policy-meta {
+      color: #4a5f88;
+      margin-bottom: 1.25rem;
+    }
+  </style>
+</head>
+<body>
+  <main class="policy-shell">
+    <div class="policy-card">
+      <p><a href="./">Back to Esri Developer Content Tracker</a></p>
+      <h1>Privacy Policy</h1>
+      <p class="policy-meta">Last updated: April 7, 2026</p>
+
+      <p>This Privacy Policy describes how the Esri Developer Content Tracker website and browser extension handle information.</p>
+
+      <h2>Who is responsible for this project</h2>
+      <p>Esri Developer Content Tracker is maintained by Raúl Jiménez Ortega. If you have questions about this Privacy Policy, you can contact: <a href="mailto:hhkaos@gmail.com">hhkaos@gmail.com</a>.</p>
+
+      <h2>What the extension does</h2>
+      <p>The extension checks a public data feed of Esri developer activity, shows a badge count for new items that match your selected filters, and lets you open the web app with those filters applied.</p>
+
+      <h2>What information is processed</h2>
+      <p>The extension stores configuration and state needed to work properly, including:</p>
+      <ul>
+        <li>Your selected filters and refresh interval.</li>
+        <li>Your preferred web app URL.</li>
+        <li>Whether you enabled optional browser notifications.</li>
+        <li>Local state used to determine which items are new or already seen, such as item URLs, unread counts, and last refresh time.</li>
+      </ul>
+
+      <h2>Where data is stored</h2>
+      <p>This information is stored using the browser extension storage APIs (`chrome.storage.sync` and `chrome.storage.local`). It is used only to provide the extension's core functionality.</p>
+
+      <h2>Remote services used</h2>
+      <p>The extension fetches activity and filter data from <code>https://opensheet.elk.sh/</code>, which exposes content from the project's Google Sheet data source. The extension also opens the public web app at <code>https://hhkaos.github.io/esridevs-social-activity/</code> or another URL configured by the user.</p>
+
+      <h2>Personal data and analytics</h2>
+      <p>The extension is not designed to collect personal data, does not sell user data, and does not use advertising trackers. At the time of this policy, the extension does not include third-party analytics inside the extension itself.</p>
+
+      <h2>Data sharing</h2>
+      <p>The extension does not share your stored settings with third parties except as technically necessary to fetch the public activity feed or to open the configured web app URL that you choose to visit.</p>
+
+      <h2>Permissions</h2>
+      <ul>
+        <li><strong>Storage:</strong> saves your settings and local state.</li>
+        <li><strong>Alarms:</strong> checks for new items periodically.</li>
+        <li><strong>Tabs:</strong> opens the feed in a new tab when you choose.</li>
+        <li><strong>Notifications:</strong> optional and only used if you enable browser notifications.</li>
+        <li><strong>Host permission for opensheet.elk.sh:</strong> required to retrieve the public activity feed and filter options.</li>
+      </ul>
+
+      <h2>Data retention and control</h2>
+      <p>You can reset extension settings at any time from the options page. Removing the extension will also remove locally stored extension data according to your browser's behavior. If you use browser sync features, some settings may also be synced through your browser account.</p>
+
+      <h2>Children's privacy</h2>
+      <p>This project is not directed to children and is intended for general developer and technical audiences.</p>
+
+      <h2>Changes to this policy</h2>
+      <p>This Privacy Policy may be updated from time to time. Any changes will be posted on this page with an updated "Last updated" date.</p>
+    </div>
+  </main>
+</body>
+</html>
