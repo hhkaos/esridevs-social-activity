@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Esri Developer Content Tracker</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="popup-header">
+    <span class="popup-title">Esri Developer Content Tracker</span>
+    <button id="settings-btn" class="icon-btn" title="Settings">⚙</button>
+  </header>
+
+  <main class="popup-body">
+    <div class="count-display">
+      <span id="count-number" class="count-number">—</span>
+      <span id="count-label" class="count-label">loading…</span>
+    </div>
+    <div id="refresh-time" class="refresh-time"></div>
+  </main>
+
+  <footer class="popup-footer">
+    <button id="open-feed-btn" class="btn btn-primary">Open feed →</button>
+    <button id="refresh-btn" class="btn btn-secondary">↻ Refresh now</button>
+  </footer>
+
+  <script src="lzstring.min.js"></script>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

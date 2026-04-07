@@ -676,6 +676,21 @@ body {
   margin-right: 0.15rem;
 }
 
+.badge-new {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.2em 0.45em;
+  border-radius: 0.75em;
+  background: #007AC2;
+  color: #fff;
+  vertical-align: middle;
+  margin-left: 0.35rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
 #main-table th:nth-child(3),
 #main-table td:nth-child(3),
 #main-table th:nth-child(4),

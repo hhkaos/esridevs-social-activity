@@ -3,6 +3,28 @@ const DATA_CACHE_KEY = 'esridevs_data_v1';
 
 window.activityData = [];
 window.dropdownData = {};
+
+// ── Extension "New" item highlighting ─────────────────────────────────────────
+// When the extension opens the web app via "Open feed", it appends
+// ?newItems=<base64-JSON-array> with the URLs of unseen items so the table
+// can render "New" badges on those rows without filtering anything out.
+
+window.highlightedItemUrls = (() => {
+  try {
+    const params = new URL(window.location.href).searchParams;
+    const encoded = params.get('newItems');
+    if (!encoded) return null;
+    const urls = JSON.parse(atob(encoded));
+    if (!Array.isArray(urls) || urls.length === 0) return null;
+    // Clean the param from the URL so it does not persist across navigations.
+    const cleaned = new URL(window.location.href);
+    cleaned.searchParams.delete('newItems');
+    window.history.replaceState({}, '', cleaned.toString());
+    return new Set(urls.map((u) => `${u}`.toLowerCase()));
+  } catch {
+    return null;
+  }
+})();
 window.definitionData = {
   channelValueDefinitions: {},
   authorValueDefinitions: {},
@@ -824,8 +846,13 @@ function createTableRowClone(entry, template) {
     ? '<span class="featured-row-star" aria-label="Featured" title="Featured">★</span> '
     : '';
 
+  const rowUrl = pickFirst(entry, ['URL', 'Url', 'Link']).toLowerCase();
+  const newBadge = window.highlightedItemUrls?.has(rowUrl)
+    ? ' <span class="badge-new" aria-label="New item">New</span>'
+    : '';
+
   td[1].innerHTML = `
-    <span>${featuredMarker}${title}</span>
+    <span>${featuredMarker}${title}${newBadge}</span>
     ${domainLinks ? `<div class="small text-muted mt-1">Posted in: ${domainLinks}</div>` : ''}
   `;
 

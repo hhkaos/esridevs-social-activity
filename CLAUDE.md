@@ -52,6 +52,28 @@
 - If no automated tests exist for the touched area, create them as part of the task.
 - If tests cannot be run, explicitly report why and what remains unverified.
 
+## Chrome Extension (`/extension/`)
+- Self-contained subfolder, no build step. Plan + progress: `docs/EXTENSION.md`.
+- Key files:
+  - `manifest.json`: MV3, targets Chrome/Firefox/Edge.
+  - `filter-utils.js`: Pure filtering logic (ES module). Mirrors the relevant subset of `activity-utils.js`. **Do not import from `../activity-utils.js`** — the packaged extension must be self-contained.
+  - `background.js`: Service worker — alarm, fetch, badge count, optional OS notifications.
+  - `popup.html/js/css`: Popup UI, resets badge on open, builds "Open feed" URL.
+  - `options.html/js/css`: Settings page with searchable multi-select + chips for each filter dimension.
+  - `lzstring.min.js`: Local copy of LZString 1.5.0 (same version as the web app CDN). Required because MV3 CSP blocks CDN scripts.
+- Storage schema (`chrome.storage.sync`): `filters` (arrays per dimension), `lastSeenPublishedAt` (ISO date YYYY-MM-DD), `lastKnownUnreadCount`, `lastRefreshedAt` (ISO datetime), `refreshIntervalMinutes`, `targetBaseUrl`, `notificationsEnabled`.
+- Storage schema (`chrome.storage.local`): `seenItemKeys` (string[] — URLs of seen items), `currentItemKeys` (string[] — all countable URLs from last fetch), `newItemUrls` (string[] — unseen URLs matching active filters, for "New" badges).
+- New-item detection uses **key-set tracking** (URL-based), not date comparison. This correctly detects items added retroactively with old dates. Migration from date-based detection is automatic.
+- "Open feed" URL combines `?state=<LZString>` (user's filters, same format as web app share) + `?newItems=<btoa(JSON)>` (unseen item URLs for "New" badges). Omitted when not applicable.
+- Filter options are fetched from Dropdowns + Authors sheets (same opensheet API as the web app). Contributors = Dropdowns contributors union Authors sheet first column.
+- Tests: `tests/extension-filter-utils.test.mjs` (82 tests, covering all pure filtering logic including key-set tracking and URL building).
+
+## Extension "New" badges in the web app
+
+- `load-table.js` reads `?newItems=<btoa(JSON array of URLs)>` at startup, stores as `window.highlightedItemUrls` (Set), and removes the param from the URL.
+- `createTableRowClone` adds `<span class="badge-new">New</span>` next to the title when the row's URL is in `window.highlightedItemUrls`.
+- `style.css`: `.badge-new` — Esri blue pill, white uppercase text, inline-block.
+
 ## Change guidance
 - Keep edits focused and preserve existing behavior unless the task requires change.
 - Prefer small, reviewable commits and include clear rationale for behavior changes.
