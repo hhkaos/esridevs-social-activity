@@ -133,10 +133,10 @@
 
       <div class="filters-actions">
         <div class="col-picker-wrap">
-          <button id="col-picker-btn" class="btn btn-outline-secondary btn-sm" type="button">
+          <button id="col-picker-btn" class="btn btn-outline-secondary btn-sm" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="col-picker-panel">
             <span class="btn-icon" aria-hidden="true">⚙</span>Configure columns
           </button>
-          <div id="col-picker-panel" class="col-picker-panel">
+          <div id="col-picker-panel" class="col-picker-panel" tabindex="-1">
             <p class="col-picker-heading">Show / hide columns</p>
             <label class="col-picker-item"><input type="checkbox" id="col-toggle-author"> Author</label>
             <label class="col-picker-item"><input type="checkbox" id="col-toggle-channel"> Channel</label>

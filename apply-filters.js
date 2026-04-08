@@ -578,10 +578,22 @@ const closeColumnPicker = () => {
   colPickerBtn?.setAttribute('aria-expanded', 'false');
 };
 
+const openColumnPicker = () => {
+  if (!colPickerPanel || !colPickerBtn) return;
+  colPickerPanel.classList.add('open');
+  colPickerBtn.setAttribute('aria-expanded', 'true');
+  colPickerPanel.focus();
+};
+
 const toggleColumnPicker = () => {
   if (!colPickerPanel || !colPickerBtn) return;
-  const isOpen = colPickerPanel.classList.toggle('open');
-  colPickerBtn.setAttribute('aria-expanded', String(isOpen));
+  if (colPickerPanel.classList.contains('open')) {
+    closeColumnPicker();
+    colPickerBtn.focus();
+    return;
+  }
+
+  openColumnPicker();
 };
 
 colPickerBtn?.addEventListener('click', (e) => {
@@ -590,14 +602,16 @@ colPickerBtn?.addEventListener('click', (e) => {
 });
 
 colPickerPanel?.addEventListener('keydown', (event) => {
-  if (event.key !== ' ') return;
+  if (event.key !== 'Escape') return;
   closeColumnPicker();
+  colPickerBtn?.focus();
 });
 
 colPickerWrap?.addEventListener('focusout', (event) => {
-  const nextFocused = event.relatedTarget;
-  if (nextFocused && colPickerWrap.contains(nextFocused)) return;
-  closeColumnPicker();
+  window.setTimeout(() => {
+    if (colPickerWrap?.contains(document.activeElement)) return;
+    closeColumnPicker();
+  }, 0);
 });
 
 const applyColumnToggleState = ({ key, filterId }, checked) => {

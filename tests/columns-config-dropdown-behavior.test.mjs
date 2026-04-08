@@ -8,19 +8,32 @@ const projectRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname)
 const readProjectFile = (relativePath) =>
   fs.readFileSync(path.join(projectRoot, relativePath), 'utf8');
 
-test('Configure columns panel closes on Space and focus leave instead of any document click', () => {
+test('Configure columns panel stays open during internal interaction and closes on focus leave', () => {
+  const indexHtml = readProjectFile('index.html');
   const applyFiltersJs = readProjectFile('apply-filters.js');
 
   assert.equal(
-    /colPickerPanel\?\.addEventListener\('keydown',\s*\(event\)\s*=>\s*\{[\s\S]*event\.key !== ' '[\s\S]*closeColumnPicker\(\);/.test(applyFiltersJs),
+    indexHtml.includes('id="col-picker-panel" class="col-picker-panel" tabindex="-1"'),
     true,
-    'Expected Configure columns panel to close on Space key within the panel',
+    'Expected Configure columns panel to be focusable so clicks within the panel do not drop focus',
   );
 
   assert.equal(
-    /colPickerWrap\?\.addEventListener\('focusout',\s*\(event\)\s*=>\s*\{[\s\S]*closeColumnPicker\(\);/.test(applyFiltersJs),
+    /const openColumnPicker = \(\) => \{[\s\S]*colPickerPanel\.focus\(\);[\s\S]*\};/.test(applyFiltersJs),
     true,
-    'Expected Configure columns panel to close when focus leaves its wrapper',
+    'Expected Configure columns panel to take focus when opened',
+  );
+
+  assert.equal(
+    /colPickerPanel\?\.addEventListener\('keydown',\s*\(event\)\s*=>\s*\{[\s\S]*event\.key !== 'Escape'[\s\S]*closeColumnPicker\(\);/.test(applyFiltersJs),
+    true,
+    'Expected Configure columns panel to close on Escape instead of Space',
+  );
+
+  assert.equal(
+    /colPickerWrap\?\.addEventListener\('focusout',\s*\(event\)\s*=>\s*\{[\s\S]*window\.setTimeout\(\(\) => \{[\s\S]*document\.activeElement[\s\S]*closeColumnPicker\(\);[\s\S]*\}, 0\);[\s\S]*\}\);/.test(applyFiltersJs),
+    true,
+    'Expected Configure columns panel to close only after focus actually leaves its wrapper',
   );
 
   assert.equal(
