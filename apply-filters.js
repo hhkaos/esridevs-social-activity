@@ -357,15 +357,17 @@ const getActiveFilterControl = () => {
 };
 
 const isActiveTomSelectTarget = (target) => {
+  if (!(target instanceof Element)) return false;
+  // Check by CSS class first so clicks inside any TomSelect dropdown (which may be
+  // rendered outside the popover in the DOM) are always recognized as internal.
+  if (target.closest('.ts-dropdown') || target.closest('.ts-wrapper')) return true;
   const activeControl = getActiveFilterControl();
   const tomselect = activeControl?.tomselect;
-  if (!tomselect || !(target instanceof Element)) return false;
+  if (!tomselect) return false;
   return !!(
     tomselect.wrapper?.contains(target)
     || tomselect.control?.contains(target)
     || tomselect.dropdown?.contains(target)
-    || target.closest('.ts-dropdown')
-    || target.closest('.ts-wrapper')
   );
 };
 
@@ -511,18 +513,6 @@ document.addEventListener('keydown', (event) => {
   closeFilterPopover({ restoreFocus: true });
 });
 
-filterPopoverEl?.addEventListener('focusout', () => {
-  if (!activeFilterTargetKey || filterPopoverEl.hidden) return;
-  window.setTimeout(() => {
-    if (shouldSuppressFilterPopoverClose()) return;
-    const activeElement = document.activeElement;
-    if (isActiveTomSelectOpen()) return;
-    if (filterPopoverEl.contains(activeElement)) return;
-    if (activeFilterTriggerEl?.contains(activeElement)) return;
-    if (isActiveTomSelectTarget(activeElement)) return;
-    closeFilterPopover();
-  }, 120);
-});
 
 window.addEventListener('resize', () => {
   closeFilterPopover();
@@ -986,7 +976,7 @@ const updateFlags = (e, keyword) => {
   applyFilters();
 
   const targetKey = FILTER_TARGET_KEY_BY_KEYWORD[keyword];
-  if (targetKey && e.currentTarget?.tomselect) {
+  if (targetKey && e.isTrusted && e.currentTarget?.tomselect) {
     const triggerEl = (
       activeFilterTargetKey === targetKey
         ? activeFilterTriggerEl
@@ -1429,11 +1419,10 @@ colPickerPanel?.addEventListener('keydown', (event) => {
   colPickerBtn?.focus();
 });
 
-colPickerWrap?.addEventListener('focusout', (event) => {
-  window.setTimeout(() => {
-    if (colPickerWrap?.contains(document.activeElement)) return;
-    closeColumnPicker();
-  }, 0);
+document.addEventListener('mousedown', (event) => {
+  if (!colPickerPanel?.classList.contains('open')) return;
+  if (colPickerWrap?.contains(event.target)) return;
+  closeColumnPicker();
 });
 
 const applyColumnToggleState = ({ key, filterId }, checked) => {

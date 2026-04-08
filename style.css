@@ -979,7 +979,6 @@ body.is-column-resizing {
   text-align: center;
   width: 1%;
   min-width: 0;
-  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 

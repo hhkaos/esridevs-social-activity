@@ -100,7 +100,7 @@ test('apply-filters wires contextual launchers to the floating filter popover', 
   );
 });
 
-test('floating filter popover stays open during multi-select interaction and closes on real focus leave', () => {
+test('floating filter popover closes only on Escape or click outside, not on focus loss', () => {
   const indexHtml = readProjectFile('index.html');
   const applyFiltersJs = readProjectFile('apply-filters.js');
 
@@ -152,12 +152,11 @@ test('floating filter popover stays open during multi-select interaction and clo
     'Expected close handlers to tolerate the immediate post-selection transition',
   );
 
+  // focusout must NOT close the popover — only mousedown outside and Escape should
   assert.equal(
-    applyFiltersJs.includes('if (isActiveTomSelectOpen()) return;')
-      && applyFiltersJs.includes('window.setTimeout(() => {')
-      && applyFiltersJs.includes('}, 120);'),
-    true,
-    'Expected floating filter popover to close only after focus actually leaves the panel',
+    /filterPopoverEl\?\.addEventListener\('focusout'/.test(applyFiltersJs),
+    false,
+    'Expected floating filter popover NOT to close on focusout — only Escape or outside click should dismiss it',
   );
 
   assert.equal(
@@ -173,15 +172,23 @@ test('floating filter popover stays open during multi-select interaction and clo
   );
 
   assert.equal(
-    /if \(targetKey && e\.currentTarget\?\.tomselect\) \{[\s\S]*suppressFilterPopoverCloseUntil = Date\.now\(\) \+ 600;[\s\S]*e\.currentTarget\.tomselect\.focus\(\);[\s\S]*e\.currentTarget\.tomselect\.open\(\);/.test(applyFiltersJs),
+    /if \(targetKey && e\.isTrusted && e\.currentTarget\?\.tomselect\) \{[\s\S]*suppressFilterPopoverCloseUntil = Date\.now\(\) \+ 600;[\s\S]*e\.currentTarget\.tomselect\.focus\(\);[\s\S]*e\.currentTarget\.tomselect\.open\(\);/.test(applyFiltersJs),
     true,
     'Expected the select change handler to restore focus and reopen the active Tom Select inside the visible popover',
   );
 
   assert.equal(
-    /if \(targetKey && e\.currentTarget\?\.tomselect\) \{[\s\S]*const triggerEl = \([\s\S]*activeFilterTargetKey === targetKey[\s\S]*getFilterTriggerButtons\(targetKey\)\[0\] \|\| activeFilterTriggerEl[\s\S]*\);[\s\S]*window\.setTimeout\(\(\) => \{[\s\S]*if \(filterPopoverEl\?\.hidden && triggerEl\) \{[\s\S]*openFilterPopover\(targetKey, triggerEl\);[\s\S]*return;[\s\S]*\}[\s\S]*e\.currentTarget\.tomselect\.focus\(\);[\s\S]*e\.currentTarget\.tomselect\.open\(\);[\s\S]*\}, FILTER_REOPEN_DELAY_MS\);/.test(applyFiltersJs),
+    /if \(targetKey && e\.isTrusted && e\.currentTarget\?\.tomselect\) \{[\s\S]*const triggerEl = \([\s\S]*activeFilterTargetKey === targetKey[\s\S]*getFilterTriggerButtons\(targetKey\)\[0\] \|\| activeFilterTriggerEl[\s\S]*\);[\s\S]*window\.setTimeout\(\(\) => \{[\s\S]*if \(filterPopoverEl\?\.hidden && triggerEl\) \{[\s\S]*openFilterPopover\(targetKey, triggerEl\);[\s\S]*return;[\s\S]*\}[\s\S]*e\.currentTarget\.tomselect\.focus\(\);[\s\S]*e\.currentTarget\.tomselect\.open\(\);[\s\S]*\}, FILTER_REOPEN_DELAY_MS\);/.test(applyFiltersJs),
     true,
     'Expected the select change handler to reopen the parent filter popover even if the active target state was already cleared',
+  );
+
+  // Synthetic events (e.g. from initApp) must NOT trigger the popover reopen path,
+  // otherwise the topic popover opens automatically on every page load.
+  assert.equal(
+    applyFiltersJs.includes('e.isTrusted && e.currentTarget?.tomselect'),
+    true,
+    'Expected popover reopen to be gated on e.isTrusted so synthetic change events from initApp do not open the popover on load',
   );
 });
 
