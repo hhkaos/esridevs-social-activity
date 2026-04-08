@@ -1,5 +1,6 @@
 const SPREADSHEET_ID = '1oKkHCNbOUpfERu1xC4ePU2XwDSvalEfE0YmTN39cyNg';
 const DATA_CACHE_KEY = 'esridevs_data_v1';
+const SEEN_URLS_KEY = 'esridevs_seen_urls';
 
 window.activityData = [];
 window.dropdownData = {};
@@ -854,6 +855,53 @@ function buildDefinitionData(dropdownRows) {
   };
 }
 
+// ── Native "New" item detection (localStorage) ────────────────────────────────
+// Mirrors the extension's key-set tracking but uses localStorage instead of
+// chrome.storage. Only runs when ?newItems= is absent (direct page visit).
+//
+// • First visit  → all items treated as seen; no badges shown.
+// • Later visits → items whose URL was absent from the saved set get a badge,
+//                  but only on rows that pass the active filters (rowsForTable).
+// • After render  → all current item URLs are saved as seen (full dataset).
+
+function computeNativeNewItems(rowsForTable) {
+  // Extension already set highlightedItemUrls via ?newItems= — don't override.
+  if (window.highlightedItemUrls !== null) return;
+
+  let seenSet;
+  try {
+    const raw = localStorage.getItem(SEEN_URLS_KEY);
+    if (raw === null) {
+      // First visit: nothing to compare against — badges would be meaningless.
+      return;
+    }
+    seenSet = new Set(JSON.parse(raw));
+  } catch {
+    return;
+  }
+
+  const newUrls = rowsForTable
+    .map((r) => pickFirst(r, ['URL', 'Url', 'Link']).toLowerCase())
+    .filter((url) => url && !seenSet.has(url));
+
+  if (newUrls.length > 0) {
+    window.highlightedItemUrls = new Set(newUrls);
+  }
+}
+
+function saveAllUrlsAsSeen(allRows) {
+  try {
+    const urls = [...new Set(
+      allRows
+        .map((r) => pickFirst(r, ['URL', 'Url', 'Link']).toLowerCase())
+        .filter(Boolean),
+    )];
+    localStorage.setItem(SEEN_URLS_KEY, JSON.stringify(urls));
+  } catch (err) {
+    console.warn('Could not save seen URLs to localStorage:', err);
+  }
+}
+
 async function processAndRender(activityRows, dropdownRows, authorsRows) {
   validateOpenSheetSchemaOrThrow({ activityRows, dropdownRows });
 
@@ -865,9 +913,11 @@ async function processAndRender(activityRows, dropdownRows, authorsRows) {
   window.activityData = dedupedActivityRows;
   window.dropdownData = buildDropdownData(dropdownRows, authorsRows);
   window.definitionData = buildDefinitionData(dropdownRows);
+  computeNativeNewItems(rowsForTable);
   beginTableRender(rowsForTable.length);
   await renderTableRows(rowsForTable);
   completeTableRender();
+  saveAllUrlsAsSeen(dedupedActivityRows);
   if (typeof window.onDataLoaded === 'function') {
     window.onDataLoaded();
   }

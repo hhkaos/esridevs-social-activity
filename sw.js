@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v57';
+const CACHE_VERSION = 'v58';
 const SHELL_ASSET_VERSION = CACHE_VERSION;
 importScripts(`./sw-update-utils.js?v=${SHELL_ASSET_VERSION}`);
 
