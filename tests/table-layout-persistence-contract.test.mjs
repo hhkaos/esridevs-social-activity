@@ -31,9 +31,16 @@ test('apply-filters persists local table layout, reorders columns, and wires res
   assert.match(applyFiltersJs, /columnWidths: normalizeColumnWidths\(localTableLayout\?\.widths\),/);
   assert.match(applyFiltersJs, /localStorage\.setItem\(TABLE_LAYOUT_STORAGE_KEY, JSON\.stringify\(\{/);
   assert.match(applyFiltersJs, /const applyColumnOrderState = \(\) => \{/);
+  assert.match(applyFiltersJs, /const computeAutoColumnWidths = \(\) => \{/);
+  assert.match(applyFiltersJs, /const getVisibleTableColumnKeys = \(\) => \(/);
+  assert.match(applyFiltersJs, /const resetTableHorizontalScroll = \(\) => \{/);
+  assert.match(applyFiltersJs, /const desiredWidths = Object\.fromEntries\(/);
+  assert.match(applyFiltersJs, /if \(desiredTotal >= availableWidth\) \{/);
   assert.match(applyFiltersJs, /const initColumnResizeHandles = \(\) => \{/);
+  assert.match(applyFiltersJs, /const syncColumnResizeHandleVisibility = \(\) => \{/);
   assert.match(applyFiltersJs, /className = 'table-col-resize-handle'/);
   assert.match(applyFiltersJs, /closest\('\.col-order-item__toggle'\)/);
+  assert.match(applyFiltersJs, /window\.addEventListener\('resize', \(\) => \{/);
   assert.match(applyFiltersJs, /window\.syncTableColumnLayout = syncTableColumnLayout;/);
   assert.match(loadTableJs, /syncTableLayout: window\.syncTableColumnLayout,/);
 });
@@ -46,5 +53,10 @@ test('styles target columns by data-col so reordering does not break layout sema
   assert.match(styleSource, /#main-table th\[data-col="social"\],/);
   assert.match(styleSource, /\.table-col-resize-handle/);
   assert.match(styleSource, /\.col-order-list/);
+  assert.match(styleSource, /\.table-container \{[\s\S]*overflow-x: hidden;/);
+  assert.match(styleSource, /#main-table \{[\s\S]*table-layout: fixed;/);
+  assert.match(styleSource, /border-right: 1px solid #dde7f8;/);
+  assert.match(styleSource, /#main-table thead th\[data-col\]:hover,/);
+  assert.match(styleSource, /#main-table thead th\[data-col\]:focus-within \{[\s\S]*z-index: 4;/);
   assert.match(styleSource, /content: '↔';/);
 });

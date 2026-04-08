@@ -29,6 +29,7 @@ test('table dates can switch to a compact mobile formatter and visible columns s
   assert.match(loadTableSource, /window\.matchMedia\?\.\('\(max-width: 700px\)'\) \|\| null/);
   assert.match(loadTableSource, /const syncRenderedTableDates = \(\) => \{/);
 
+  assert.match(styleSource, /#main-table \{[\s\S]*table-layout: fixed;/);
   assert.match(styleSource, /#main-table th\[data-col="date"\],[\s\S]*width: 1%;/);
   assert.match(styleSource, /#main-table th\[data-col="social"\],[\s\S]*white-space: nowrap;/);
   assert.match(styleSource, /\.table-title-main \{/);

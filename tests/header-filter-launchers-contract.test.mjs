@@ -99,3 +99,135 @@ test('apply-filters wires contextual launchers to the floating filter popover', 
     'Expected closing the popover to restore the moved filter control to its hidden dock slot',
   );
 });
+
+test('floating filter popover stays open during multi-select interaction and closes on real focus leave', () => {
+  const indexHtml = readProjectFile('index.html');
+  const applyFiltersJs = readProjectFile('apply-filters.js');
+
+  assert.equal(
+    indexHtml.includes('id="filter-popover" class="filter-popover" hidden aria-hidden="true" tabindex="-1"'),
+    true,
+    'Expected floating filter popover to be focusable for managed focus handling',
+  );
+
+  assert.equal(
+    applyFiltersJs.includes('const isActiveTomSelectTarget = (target) => {'),
+    true,
+    'Expected floating filter popover logic to recognize Tom Select dropdown interactions as internal',
+  );
+
+  assert.equal(
+    applyFiltersJs.includes('const isActiveTomSelectOpen = () => !!getActiveFilterControl()?.tomselect?.isOpen;'),
+    true,
+    'Expected floating filter popover logic to tolerate Tom Select staying open during multi-select interaction',
+  );
+
+  assert.equal(
+    applyFiltersJs.includes('const shouldSuppressFilterPopoverClose = () => Date.now() < suppressFilterPopoverCloseUntil;'),
+    true,
+    'Expected floating filter popover logic to suppress close briefly after a Tom Select selection',
+  );
+
+  assert.equal(
+    applyFiltersJs.includes('const FILTER_TARGET_KEY_BY_KEYWORD = {'),
+    true,
+    'Expected filter keywords to map back to the active popover target when a select change fires',
+  );
+
+  assert.equal(
+    applyFiltersJs.includes('const FILTER_REOPEN_DELAY_MS = 180;'),
+    true,
+    'Expected the multi-select recovery path to wait briefly before restoring the floating popover',
+  );
+
+  assert.equal(
+    applyFiltersJs.includes("if (isActiveTomSelectTarget(target)) return;"),
+    true,
+    'Expected outside-click handling to ignore clicks on the active Tom Select dropdown',
+  );
+
+  assert.equal(
+    applyFiltersJs.includes('if (shouldSuppressFilterPopoverClose()) return;'),
+    true,
+    'Expected close handlers to tolerate the immediate post-selection transition',
+  );
+
+  assert.equal(
+    applyFiltersJs.includes('if (isActiveTomSelectOpen()) return;')
+      && applyFiltersJs.includes('window.setTimeout(() => {')
+      && applyFiltersJs.includes('}, 120);'),
+    true,
+    'Expected floating filter popover to close only after focus actually leaves the panel',
+  );
+
+  assert.equal(
+    /document\.addEventListener\('keydown',\s*\(event\)\s*=>\s*\{[\s\S]*event\.key !== 'Escape'[\s\S]*closeFilterPopover\(\{ restoreFocus: true \}\);/.test(applyFiltersJs),
+    true,
+    'Expected Escape to remain the keyboard shortcut for closing the floating filter popover',
+  );
+
+  assert.equal(
+    /onItemAdd\(\)\s*\{[\s\S]*suppressFilterPopoverCloseUntil = Date\.now\(\) \+ 600;[\s\S]*window\.setTimeout\(\(\) => \{[\s\S]*this\.focus\(\);[\s\S]*this\.open\(\);[\s\S]*\}, 0\);/.test(applyFiltersJs),
+    true,
+    'Expected Tom Select item selection to keep the dropdown interaction alive for multi-select picking',
+  );
+
+  assert.equal(
+    /if \(targetKey && e\.currentTarget\?\.tomselect\) \{[\s\S]*suppressFilterPopoverCloseUntil = Date\.now\(\) \+ 600;[\s\S]*e\.currentTarget\.tomselect\.focus\(\);[\s\S]*e\.currentTarget\.tomselect\.open\(\);/.test(applyFiltersJs),
+    true,
+    'Expected the select change handler to restore focus and reopen the active Tom Select inside the visible popover',
+  );
+
+  assert.equal(
+    /if \(targetKey && e\.currentTarget\?\.tomselect\) \{[\s\S]*const triggerEl = \([\s\S]*activeFilterTargetKey === targetKey[\s\S]*getFilterTriggerButtons\(targetKey\)\[0\] \|\| activeFilterTriggerEl[\s\S]*\);[\s\S]*window\.setTimeout\(\(\) => \{[\s\S]*if \(filterPopoverEl\?\.hidden && triggerEl\) \{[\s\S]*openFilterPopover\(targetKey, triggerEl\);[\s\S]*return;[\s\S]*\}[\s\S]*e\.currentTarget\.tomselect\.focus\(\);[\s\S]*e\.currentTarget\.tomselect\.open\(\);[\s\S]*\}, FILTER_REOPEN_DELAY_MS\);/.test(applyFiltersJs),
+    true,
+    'Expected the select change handler to reopen the parent filter popover even if the active target state was already cleared',
+  );
+});
+
+test('results summary renders removable chips for each active filter', () => {
+  const applyFiltersJs = readProjectFile('apply-filters.js');
+  const styleCss = readProjectFile('style.css');
+
+  assert.equal(
+    applyFiltersJs.includes('const FILTER_CHIP_GROUPS = ['),
+    true,
+    'Expected filter chip metadata to be defined for the summary area',
+  );
+
+  assert.equal(
+    applyFiltersJs.includes("chipList.className = 'table-results-summary__chips';"),
+    true,
+    'Expected results summary to render a dedicated chip list beside the count',
+  );
+
+  assert.equal(
+    applyFiltersJs.includes("button.className = 'table-filter-chip';"),
+    true,
+    'Expected each active filter to render as a removable chip button',
+  );
+
+  assert.equal(
+    applyFiltersJs.includes("const clearSingleFilterChip = (filterKey, filterValue) => {"),
+    true,
+    'Expected a dedicated removal path for clearing one filter chip at a time',
+  );
+
+  assert.equal(
+    applyFiltersJs.includes("filtersSummaryEl?.addEventListener('click', (event) => {"),
+    true,
+    'Expected the summary area to handle chip dismissal clicks',
+  );
+
+  assert.equal(
+    styleCss.includes('.table-results-summary__chips'),
+    true,
+    'Expected chip layout styles for the summary area',
+  );
+
+  assert.equal(
+    styleCss.includes('.table-filter-chip'),
+    true,
+    'Expected chip button styles for applied filters',
+  );
+});

@@ -45,15 +45,26 @@ const ALL_TABLE_COLS = [
 const DEFAULT_COLUMN_ORDER = ALL_TABLE_COLS.map((col) => col.key);
 const TABLE_COL_KEY_SET = new Set(DEFAULT_COLUMN_ORDER);
 const COLUMN_RESIZE_LIMITS = {
-  date: { min: 84, max: 220 },
-  title: { min: 280, max: 960 },
-  author: { min: 140, max: 420 },
-  channel: { min: 150, max: 420 },
-  language: { min: 96, max: 260 },
-  social: { min: 96, max: 240 },
-  contributor: { min: 150, max: 420 },
-  topic: { min: 140, max: 460 },
-  category: { min: 120, max: 320 },
+  date: { min: 72, max: 180 },
+  title: { min: 160, max: 720 },
+  author: { min: 92, max: 320 },
+  channel: { min: 96, max: 340 },
+  language: { min: 80, max: 220 },
+  social: { min: 92, max: 180 },
+  contributor: { min: 96, max: 340 },
+  topic: { min: 96, max: 360 },
+  category: { min: 88, max: 240 },
+};
+const AUTO_COLUMN_PREFERRED_WIDTHS = {
+  date: 92,
+  title: 250,
+  author: 120,
+  channel: 126,
+  language: 92,
+  social: 108,
+  contributor: 126,
+  topic: 132,
+  category: 108,
 };
 
 const createDefaultFlags = () => ({
@@ -241,6 +252,7 @@ const filterPopoverDescriptionEl = document.querySelector('#filter-popover-descr
 const filterPopoverCloseBtn = document.querySelector('#filter-popover-close');
 let activeFilterTargetKey = '';
 let activeFilterTriggerEl = null;
+let suppressFilterPopoverCloseUntil = 0;
 
 const FILTER_TARGETS = {
   topics: {
@@ -294,9 +306,71 @@ const FILTER_TARGETS = {
   },
 };
 
+const FILTER_CONTROL_SELECTORS = {
+  technologies: '#topics',
+  categories: '#category',
+  channels: '#channel',
+  authors: '#author',
+  contributors: '#contributors',
+  languages: '#language',
+};
+
+const FILTER_TARGET_KEY_BY_KEYWORD = {
+  technologies: 'topics',
+  categories: 'category',
+  channels: 'channel',
+  authors: 'author',
+  contributors: 'contributors',
+  languages: 'language',
+};
+const FILTER_REOPEN_DELAY_MS = 180;
+
+const FILTER_CHIP_GROUPS = [
+  { key: 'technologies', label: 'Topic' },
+  { key: 'categories', label: 'Content type' },
+  { key: 'channels', label: 'Channel owner' },
+  { key: 'authors', label: 'Publisher' },
+  { key: 'contributors', label: 'People involved' },
+  { key: 'languages', label: 'Language' },
+];
+
+const DATE_PRESET_LABELS = {
+  showAll: 'Show all',
+  last30: 'Last 30 days',
+  last60: 'Last 60 days',
+  last90: 'Last 90 days',
+  thisMonth: 'This month',
+  thisQuarter: 'This quarter',
+  lastQuarter: 'Last quarter',
+  thisYear: 'This year',
+  pastYear: 'Past year',
+  custom: 'Custom range',
+};
+
 const getFilterTriggerButtons = (targetKey) => (
   [...document.querySelectorAll(`[data-filter-target="${targetKey}"]`)]
 );
+
+const getActiveFilterControl = () => {
+  const activeConfig = FILTER_TARGETS[activeFilterTargetKey];
+  return activeConfig ? document.querySelector(activeConfig.controlSelector) : null;
+};
+
+const isActiveTomSelectTarget = (target) => {
+  const activeControl = getActiveFilterControl();
+  const tomselect = activeControl?.tomselect;
+  if (!tomselect || !(target instanceof Element)) return false;
+  return !!(
+    tomselect.wrapper?.contains(target)
+    || tomselect.control?.contains(target)
+    || tomselect.dropdown?.contains(target)
+    || target.closest('.ts-dropdown')
+    || target.closest('.ts-wrapper')
+  );
+};
+
+const isActiveTomSelectOpen = () => !!getActiveFilterControl()?.tomselect?.isOpen;
+const shouldSuppressFilterPopoverClose = () => Date.now() < suppressFilterPopoverCloseUntil;
 
 const restoreFilterTarget = (targetKey) => {
   const config = FILTER_TARGETS[targetKey];
@@ -333,8 +407,7 @@ const positionFilterPopover = (triggerEl = activeFilterTriggerEl) => {
 
 const closeFilterPopover = ({ restoreFocus = false } = {}) => {
   if (activeFilterTargetKey) {
-    const activeConfig = FILTER_TARGETS[activeFilterTargetKey];
-    const activeControl = activeConfig ? document.querySelector(activeConfig.controlSelector) : null;
+    const activeControl = getActiveFilterControl();
     activeControl?.tomselect?.close();
   }
 
@@ -425,15 +498,30 @@ filterPopoverCloseBtn?.addEventListener('click', () => {
 
 document.addEventListener('mousedown', (event) => {
   if (!activeFilterTargetKey || filterPopoverEl?.hidden) return;
+  if (shouldSuppressFilterPopoverClose()) return;
   const target = event.target;
   if (filterPopoverEl?.contains(target)) return;
   if (activeFilterTriggerEl?.contains(target)) return;
+  if (isActiveTomSelectTarget(target)) return;
   closeFilterPopover();
 });
 
 document.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape' || filterPopoverEl?.hidden) return;
   closeFilterPopover({ restoreFocus: true });
+});
+
+filterPopoverEl?.addEventListener('focusout', () => {
+  if (!activeFilterTargetKey || filterPopoverEl.hidden) return;
+  window.setTimeout(() => {
+    if (shouldSuppressFilterPopoverClose()) return;
+    const activeElement = document.activeElement;
+    if (isActiveTomSelectOpen()) return;
+    if (filterPopoverEl.contains(activeElement)) return;
+    if (activeFilterTriggerEl?.contains(activeElement)) return;
+    if (isActiveTomSelectTarget(activeElement)) return;
+    closeFilterPopover();
+  }, 120);
 });
 
 window.addEventListener('resize', () => {
@@ -445,6 +533,77 @@ window.addEventListener('scroll', () => {
 }, true);
 
 const hasActiveRestriction = (map) => Object.values(map || {}).some((value) => value === 0 || value === 1);
+
+const getSelectedFilterValues = (map) => (
+  Object.entries(map || {})
+    .filter(([, value]) => value === 1)
+    .map(([label]) => label)
+);
+
+const getDateChipValueLabel = () => {
+  if (flags.datePreset === DATE_PRESET_SHOW_ALL && !flags.dateRange.from && !flags.dateRange.to) {
+    return '';
+  }
+
+  if (flags.datePreset !== DATE_PRESET_CUSTOM) {
+    return DATE_PRESET_LABELS[flags.datePreset] || DATE_PRESET_LABELS.custom;
+  }
+
+  const from = flags.dateRange.from || 'Any start';
+  const to = flags.dateRange.to || 'Any end';
+  return `${from} to ${to}`;
+};
+
+const getActiveFilterChips = () => {
+  const chips = FILTER_CHIP_GROUPS.flatMap(({ key, label }) => (
+    getSelectedFilterValues(flags[key]).map((value) => ({
+      key,
+      label,
+      value,
+    }))
+  ));
+
+  const dateValue = getDateChipValueLabel();
+  if (dateValue) {
+    chips.push({
+      key: 'date',
+      label: 'Date',
+      value: dateValue,
+    });
+  }
+
+  if (flags.featuredOnly) {
+    chips.push({
+      key: 'featuredOnly',
+      label: 'Featured',
+      value: 'Only featured',
+    });
+  }
+
+  return chips;
+};
+
+const createFilterChipButton = ({ key, label, value }) => {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'table-filter-chip';
+  button.dataset.filterChip = key;
+  button.dataset.filterValue = value;
+  button.setAttribute('aria-label', `Remove filter ${label}: ${value}`);
+
+  const text = document.createElement('span');
+  text.className = 'table-filter-chip__text';
+  text.textContent = `${label}: ${value}`;
+  button.appendChild(text);
+
+  const icon = document.createElement('span');
+  icon.className = 'table-filter-chip__remove';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.textContent = '×';
+  button.appendChild(icon);
+
+  return button;
+};
 
 const syncFilterTriggerStates = () => {
   const activeStateByTarget = {
@@ -469,7 +628,25 @@ const syncFilterTriggerStates = () => {
 const updateFilterSummary = (visibleRows, totalRows) => {
   if (!filtersSummaryEl) return;
   const resultWord = visibleRows === 1 ? 'result' : 'results';
-  filtersSummaryEl.textContent = `${visibleRows}/${totalRows} ${resultWord}`;
+  const chips = getActiveFilterChips();
+  filtersSummaryEl.replaceChildren();
+
+  const count = document.createElement('span');
+  count.className = 'table-results-summary__count';
+  count.textContent = `${visibleRows}/${totalRows} ${resultWord}`;
+  filtersSummaryEl.appendChild(count);
+
+  if (chips.length === 0) return;
+
+  const chipList = document.createElement('div');
+  chipList.className = 'table-results-summary__chips';
+  chipList.setAttribute('aria-label', 'Applied filters');
+
+  chips.forEach((chip) => {
+    chipList.appendChild(createFilterChipButton(chip));
+  });
+
+  filtersSummaryEl.appendChild(chipList);
 };
 
 const setItemSelected = (item, selected) => {
@@ -482,6 +659,27 @@ const syncTomSelectValue = (select) => {
     .filter((option) => option.selected)
     .map((option) => option.value);
   select.tomselect.setValue(selectedValues, true);
+};
+
+const syncFlagsFromSelect = (selector, keyword) => {
+  const select = document.querySelector(selector);
+  if (!select) {
+    flags[keyword] = {};
+    return;
+  }
+
+  const items = [...select.options];
+  const selectedCount = items.filter((item) => item.selected).length;
+
+  if (selectedCount === 0) {
+    flags[keyword] = {};
+    return;
+  }
+
+  flags[keyword] = {};
+  items.forEach((item) => {
+    flags[keyword][item.value] = item.selected ? 1 : 0;
+  });
 };
 
 const enhanceWithTomSelect = (selector) => {
@@ -498,8 +696,14 @@ const enhanceWithTomSelect = (selector) => {
     persist: false,
     placeholder,
     onItemAdd() {
+      suppressFilterPopoverCloseUntil = Date.now() + 600;
       this.setTextboxValue('');
       this.refreshOptions(false);
+      window.setTimeout(() => {
+        if (filterPopoverEl?.hidden) return;
+        this.focus();
+        this.open();
+      }, 0);
     },
   });
 
@@ -733,6 +937,38 @@ const resetMultiSelect = (selector, keyword) => {
   flags[keyword] = {};
 };
 
+const clearSingleFilterChip = (filterKey, filterValue) => {
+  if (filterKey === 'featuredOnly') {
+    flags.featuredOnly = false;
+    syncFeaturedOnlyToggleUi();
+    applyFilters();
+    return;
+  }
+
+  if (filterKey === 'date') {
+    applyDatePreset(DATE_PRESET_DEFAULT, { reapplyFilters: false });
+    applyFilters();
+    return;
+  }
+
+  const selector = FILTER_CONTROL_SELECTORS[filterKey];
+  const select = selector ? document.querySelector(selector) : null;
+  if (!select) return;
+
+  [...select.options].forEach((option) => {
+    if (option.value === filterValue) setItemSelected(option, false);
+  });
+  syncTomSelectValue(select);
+  syncFlagsFromSelect(selector, filterKey);
+  applyFilters();
+};
+
+filtersSummaryEl?.addEventListener('click', (event) => {
+  const chipButton = event.target.closest('[data-filter-chip]');
+  if (!chipButton) return;
+  clearSingleFilterChip(chipButton.dataset.filterChip || '', chipButton.dataset.filterValue || '');
+});
+
 const updateFlags = (e, keyword) => {
   const items = [...e.currentTarget.options];
   const selectedCount = items.filter((item) => item.selected).length;
@@ -748,6 +984,24 @@ const updateFlags = (e, keyword) => {
   }
 
   applyFilters();
+
+  const targetKey = FILTER_TARGET_KEY_BY_KEYWORD[keyword];
+  if (targetKey && e.currentTarget?.tomselect) {
+    const triggerEl = (
+      activeFilterTargetKey === targetKey
+        ? activeFilterTriggerEl
+        : getFilterTriggerButtons(targetKey)[0] || activeFilterTriggerEl
+    );
+    suppressFilterPopoverCloseUntil = Date.now() + 600;
+    window.setTimeout(() => {
+      if (filterPopoverEl?.hidden && triggerEl) {
+        openFilterPopover(targetKey, triggerEl);
+        return;
+      }
+      e.currentTarget.tomselect.focus();
+      e.currentTarget.tomselect.open();
+    }, FILTER_REOPEN_DELAY_MS);
+  }
 };
 
 window.onDataLoaded = () => {
@@ -874,6 +1128,85 @@ const syncColumnOrderListUi = () => {
   });
 };
 
+const isColumnVisible = (key) => {
+  const col = ALL_TABLE_COLS.find((entry) => entry.key === key);
+  if (col?.fixedVisibility) return true;
+  return !!appState.columns[key];
+};
+
+const getVisibleTableColumnKeys = () => (
+  appState.columnOrder.filter((key) => isColumnVisible(key))
+);
+
+const getAvailableTableWidth = () => {
+  const containerWidth = tableContainerEl?.clientWidth || 0;
+  const viewportWidth = window.innerWidth || 0;
+  return Math.max(containerWidth, viewportWidth ? Math.min(viewportWidth - 32, containerWidth) : 0);
+};
+
+const resetTableHorizontalScroll = () => {
+  if (!tableContainerEl) return;
+  tableContainerEl.scrollLeft = 0;
+};
+
+const computeAutoColumnWidths = () => {
+  const visibleKeys = getVisibleTableColumnKeys();
+  if (visibleKeys.length === 0) return {};
+
+  const desiredWidths = Object.fromEntries(
+    visibleKeys.map((key) => {
+      const limits = getColumnWidthLimits(key);
+      const storedWidth = appState.columnWidths[key];
+      const preferredWidth = AUTO_COLUMN_PREFERRED_WIDTHS[key] || limits.min;
+      const desiredWidth = storedWidth
+        ? clampColumnWidth(key, storedWidth)
+        : Math.min(limits.max, Math.max(limits.min, preferredWidth));
+      return [key, desiredWidth];
+    }),
+  );
+  const widths = { ...desiredWidths };
+  const desiredTotal = visibleKeys.reduce((sum, key) => sum + desiredWidths[key], 0);
+  const availableWidth = getAvailableTableWidth();
+
+  if (!availableWidth) return widths;
+
+  if (desiredTotal >= availableWidth) {
+    const ratio = availableWidth / desiredTotal;
+    let assigned = 0;
+    visibleKeys.forEach((key, index) => {
+      const remainingWidth = availableWidth - assigned;
+      if (index === visibleKeys.length - 1) {
+        widths[key] = Math.max(56, remainingWidth);
+        return;
+      }
+      const nextWidth = Math.max(56, Math.floor(desiredWidths[key] * ratio));
+      widths[key] = nextWidth;
+      assigned += nextWidth;
+    });
+    return widths;
+  }
+
+  let extraWidth = availableWidth - desiredTotal;
+  const growableKeys = visibleKeys.filter((key) => (
+    !appState.columnWidths[key] && getColumnWidthLimits(key).max > widths[key]
+  ));
+
+  while (extraWidth > 0 && growableKeys.length > 0) {
+    let distributed = false;
+    growableKeys.forEach((key) => {
+      if (extraWidth <= 0) return;
+      const maxWidth = getColumnWidthLimits(key).max;
+      if (widths[key] >= maxWidth) return;
+      widths[key] += 1;
+      extraWidth -= 1;
+      distributed = true;
+    });
+    if (!distributed) break;
+  }
+
+  return widths;
+};
+
 const applyColumnOrderState = () => {
   getTableRowsForLayout().forEach((rowEl) => {
     const cellsByKey = new Map(
@@ -891,23 +1224,26 @@ const applyColumnOrderState = () => {
   syncColumnOrderListUi();
 };
 
-const applyColumnWidthState = (key) => {
-  const width = appState.columnWidths[key];
+const applyColumnWidthState = (key, autoWidths = {}) => {
+  const width = autoWidths[key];
   document.querySelectorAll(`#main-table [data-col="${key}"], #templateRow [data-col="${key}"]`).forEach((cellEl) => {
     if (!(cellEl instanceof HTMLElement)) return;
     if (width) {
       cellEl.style.width = `${width}px`;
-      cellEl.style.minWidth = `${width}px`;
+      cellEl.style.minWidth = '0';
+      cellEl.style.maxWidth = `${width}px`;
       return;
     }
 
     cellEl.style.removeProperty('width');
     cellEl.style.removeProperty('min-width');
+    cellEl.style.removeProperty('max-width');
   });
 };
 
 const applyAllColumnWidths = () => {
-  DEFAULT_COLUMN_ORDER.forEach((key) => applyColumnWidthState(key));
+  const autoWidths = computeAutoColumnWidths();
+  DEFAULT_COLUMN_ORDER.forEach((key) => applyColumnWidthState(key, autoWidths));
 };
 
 const stopColumnResize = () => {
@@ -926,7 +1262,7 @@ function handleColumnResizeMove(event) {
     activeResizeState.startWidth + (event.clientX - activeResizeState.startX),
   );
   appState.columnWidths[activeResizeState.key] = nextWidth;
-  applyColumnWidthState(activeResizeState.key);
+  applyAllColumnWidths();
 }
 
 const beginColumnResize = (event, key) => {
@@ -953,13 +1289,13 @@ const adjustColumnWidthByStep = (key, step) => {
     || Math.round(headerEl?.getBoundingClientRect().width || getColumnWidthLimits(key).min);
   const nextWidth = clampColumnWidth(key, currentWidth + step);
   appState.columnWidths[key] = nextWidth;
-  applyColumnWidthState(key);
+  applyAllColumnWidths();
   persistLocalTableLayout();
 };
 
 const resetColumnWidth = (key) => {
   delete appState.columnWidths[key];
-  applyColumnWidthState(key);
+  applyAllColumnWidths();
   persistLocalTableLayout();
 };
 
@@ -990,6 +1326,17 @@ const initColumnResizeHandles = () => {
       }
     });
     headerEl.appendChild(handleEl);
+  });
+};
+
+const syncColumnResizeHandleVisibility = () => {
+  const visibleHeaderEls = [...document.querySelectorAll('#main-table thead th[data-col]')]
+    .filter((headerEl) => !headerEl.classList.contains('hidden'));
+
+  visibleHeaderEls.forEach((headerEl, index) => {
+    const handleEl = headerEl.querySelector('.table-col-resize-handle');
+    if (!(handleEl instanceof HTMLElement)) return;
+    handleEl.hidden = index === visibleHeaderEls.length - 1;
   });
 };
 
@@ -1111,6 +1458,8 @@ TOGGLEABLE_COLS.forEach((col) => {
   cb.addEventListener('change', () => {
     appState.columns[col.key] = cb.checked;
     applyColumnToggleState(col, cb.checked);
+    applyAllColumnWidths();
+    resetTableHorizontalScroll();
     syncColumnOrderListUi();
     persistLocalTableLayout();
   });
@@ -1130,6 +1479,7 @@ const syncTableColumnLayout = () => {
   applyAllColumnWidths();
   syncColumnVisibilityWithToggles();
   initColumnResizeHandles();
+  syncColumnResizeHandleVisibility();
 };
 
 window.syncColumnVisibilityWithToggles = syncColumnVisibilityWithToggles;
@@ -1138,11 +1488,16 @@ window.syncTableColumnLayout = syncTableColumnLayout;
 syncTableColumnLayout();
 syncFilterTriggerStates();
 
+window.addEventListener('resize', () => {
+  applyAllColumnWidths();
+});
+
 const resetFiltersBtn = document.querySelector('#reset-filters-btn');
 resetTableLayoutBtn?.addEventListener('click', () => {
   appState.columnOrder = [...DEFAULT_COLUMN_ORDER];
   appState.columnWidths = {};
   syncTableColumnLayout();
+  resetTableHorizontalScroll();
   persistLocalTableLayout();
 });
 
