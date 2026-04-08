@@ -1111,6 +1111,21 @@ body.is-column-resizing {
   text-transform: uppercase;
 }
 
+/* ── Subscribe dropdown ──────────────────────────────────────────────────── */
+
+.subscribe-dropdown {
+  min-width: 290px;
+  max-width: 340px;
+}
+
+.subscribe-option__icon {
+  font-size: 1.4rem;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+
 #main-table th[data-col="author"],
 #main-table td[data-col="author"],
 #main-table th[data-col="channel"],

@@ -10,7 +10,8 @@
   <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/morph/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="./style.css?v=v55" />
+  <link rel="stylesheet" href="./style.css?v=v56" />
+  <link rel="alternate" type="application/rss+xml" title="Esri Developers Activity" href="https://rss.rauljimenez.info/feed.xml" id="rss-feed-link">
 </head>
 <body>
   <!-- Cookie consent banner (hidden by default; shown by cookie-consent.js when no decision exists) -->
@@ -43,12 +44,44 @@
         <h1>Esri Developer Content Tracker</h1>
         <p class="header-row__subtitle">Track curated ArcGIS developer content and share useful resources with your network to thank the people involved.</p>
       </div>
-      <a
-        class="btn btn-outline-primary btn-sm"
-        href="https://docs.google.com/spreadsheets/d/1oKkHCNbOUpfERu1xC4ePU2XwDSvalEfE0YmTN39cyNg/edit?usp=sharing"
-        target="_blank">
-        Add new activity
-      </a>
+      <div class="dropdown">
+        <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" id="subscribe-btn" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
+          <i class="fa-regular fa-bell" aria-hidden="true"></i> Subscribe
+        </button>
+        <div class="dropdown-menu subscribe-dropdown p-3" aria-labelledby="subscribe-btn">
+          <div class="subscribe-option">
+            <div class="d-flex align-items-start gap-2">
+              <span class="subscribe-option__icon" aria-hidden="true">🧩</span>
+              <div>
+                <div class="fw-semibold">Browser Extension</div>
+                <div class="text-muted small mt-1">Get badge alerts when new items match your saved filters.</div>
+                <div class="text-muted small fst-italic mt-1">Manual install required — not yet on extension stores.</div>
+                <a href="https://github.com/hhkaos/esridevs-social-activity/releases" class="btn btn-sm btn-outline-secondary mt-2" target="_blank" rel="noopener noreferrer">
+                  <i class="fa-brands fa-github" aria-hidden="true"></i> Install from GitHub
+                </a>
+              </div>
+            </div>
+          </div>
+          <hr class="my-2">
+          <div class="subscribe-option">
+            <div class="d-flex align-items-start gap-2">
+              <span class="subscribe-option__icon" aria-hidden="true">📡</span>
+              <div class="flex-grow-1">
+                <div class="fw-semibold">RSS Feed</div>
+                <div class="text-muted small mt-1">Follow activity in any RSS reader. Supports active filters.</div>
+                <div class="form-check mt-2">
+                  <input class="form-check-input" type="checkbox" id="rss-include-filters" checked>
+                  <label class="form-check-label small" for="rss-include-filters">Include current filters</label>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary mt-2" id="copy-rss-url-btn" type="button">
+                  <i class="fa-regular fa-copy" aria-hidden="true"></i> Copy RSS URL
+                </button>
+                <div id="rss-copy-feedback" class="small mt-1" aria-live="polite" hidden></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Filters row -->

@@ -1601,6 +1601,62 @@ window.addEventListener('load', () => {
   setActiveTab(appState.activeTab);
 });
 
+// ── RSS subscription ─────────────────────────────────────────────────────────
+
+const RSS_BASE_URL = 'https://rss.rauljimenez.info/feed.xml';
+
+const buildRssUrl = () => {
+  const encoded = LZString.compressToBase64(JSON.stringify(flags));
+  const hasActiveFilters = Object.values(flags).some((v) => {
+    if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+      // dateRange object
+      if ('from' in v || 'to' in v) return v.from || v.to;
+      // filter map: check if any key is selected
+      return Object.values(v).some((val) => val === 1);
+    }
+    if (typeof v === 'boolean') return v;
+    if (typeof v === 'string') return v !== 'showAll' && v !== '';
+    return false;
+  });
+  return hasActiveFilters ? `${RSS_BASE_URL}?state=${encodeURIComponent(encoded)}` : RSS_BASE_URL;
+};
+
+const updateRssFeedLink = () => {
+  const linkEl = document.getElementById('rss-feed-link');
+  if (linkEl) linkEl.href = buildRssUrl();
+};
+
+// Keep <link> tag in sync with active filters
+const _origApplyFilters = window.applyFilters;
+window.applyFilters = (...args) => {
+  const result = _origApplyFilters?.(...args);
+  updateRssFeedLink();
+  return result;
+};
+
+const copyRssBtn = document.getElementById('copy-rss-url-btn');
+const rssFeedback = document.getElementById('rss-copy-feedback');
+const rssIncludeFilters = document.getElementById('rss-include-filters');
+
+copyRssBtn?.addEventListener('click', async () => {
+  const url = rssIncludeFilters?.checked ? buildRssUrl() : RSS_BASE_URL;
+  try {
+    await copyTextToClipboard(url);
+    rssFeedback.textContent = 'RSS URL copied to clipboard.';
+    rssFeedback.classList.remove('text-danger');
+  } catch {
+    rssFeedback.textContent = 'Unable to copy. Please try again.';
+    rssFeedback.classList.add('text-danger');
+  }
+  rssFeedback.hidden = false;
+  setTimeout(() => { rssFeedback.hidden = true; }, 3000);
+});
+
+// Prevent dropdown from closing when clicking inside it (e.g. checkbox)
+document.getElementById('subscribe-btn')?.closest('.dropdown')
+  ?.querySelector('.subscribe-dropdown')
+  ?.addEventListener('click', (e) => e.stopPropagation());
+
 if (window.tableRenderGate && typeof window.tableRenderGate.onComplete === 'function') {
   window.tableRenderGate.onComplete(() => {
     setActiveTab(appState.activeTab);
