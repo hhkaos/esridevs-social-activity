@@ -23,3 +23,15 @@ test('every configurable column toggle has a matching table column and row templ
     );
   });
 });
+
+test('default visible columns keep the table minimal: date, content title, and share', () => {
+  const indexHtml = readProjectFile('index.html');
+  const applyFiltersJs = readProjectFile('apply-filters.js');
+
+  assert.match(indexHtml, /id="col-toggle-social" checked> Share<\/label>/);
+  assert.doesNotMatch(indexHtml, /id="col-toggle-topic" checked/);
+  assert.doesNotMatch(indexHtml, /id="col-toggle-category" checked/);
+
+  assert.match(applyFiltersJs, /topic: false,/);
+  assert.match(applyFiltersJs, /category: false,/);
+});

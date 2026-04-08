@@ -15,32 +15,32 @@ const readSelectorZIndex = (css, selector) => {
   return match ? Number(match[1]) : null;
 };
 
-test('filter controls stack above the charts index in insights view', () => {
+test('floating filter popover stacks above the charts index in insights view', () => {
   const styleCss = readProjectFile('style.css');
 
-  const filtersRowZIndex = readSelectorZIndex(styleCss, '.filters-row');
+  const filterPopoverZIndex = readSelectorZIndex(styleCss, '.filter-popover');
   const chartsIndexZIndex = readSelectorZIndex(styleCss, '.charts-index');
 
-  assert.notEqual(filtersRowZIndex, null, 'Expected .filters-row to define a z-index');
+  assert.notEqual(filterPopoverZIndex, null, 'Expected .filter-popover to define a z-index');
   assert.notEqual(chartsIndexZIndex, null, 'Expected .charts-index to define a z-index');
   assert.equal(
-    filtersRowZIndex > chartsIndexZIndex,
+    filterPopoverZIndex > chartsIndexZIndex,
     true,
-    'Expected .filters-row z-index to be higher than .charts-index',
+    'Expected .filter-popover z-index to be higher than .charts-index',
   );
 });
 
-test('Tom Select dropdown z-index stays above sticky insights index', () => {
+test('Tom Select dropdown z-index stays above floating filter popover', () => {
   const styleCss = readProjectFile('style.css');
 
   const dropdownZIndex = readSelectorZIndex(styleCss, '.ts-wrapper .ts-dropdown');
-  const chartsIndexZIndex = readSelectorZIndex(styleCss, '.charts-index');
+  const filterPopoverZIndex = readSelectorZIndex(styleCss, '.filter-popover');
 
   assert.notEqual(dropdownZIndex, null, 'Expected .ts-wrapper .ts-dropdown to define a z-index');
-  assert.notEqual(chartsIndexZIndex, null, 'Expected .charts-index to define a z-index');
+  assert.notEqual(filterPopoverZIndex, null, 'Expected .filter-popover to define a z-index');
   assert.equal(
-    dropdownZIndex > chartsIndexZIndex,
+    dropdownZIndex > filterPopoverZIndex,
     true,
-    'Expected filter dropdown z-index to be higher than .charts-index',
+    'Expected filter dropdown z-index to be higher than the floating filter popover',
   );
 });

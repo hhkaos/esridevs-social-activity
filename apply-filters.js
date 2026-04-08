@@ -21,12 +21,13 @@ const DATE_PRESETS = new Set([
 ]);
 
 const DEFAULT_COLUMN_VISIBILITY = {
+  topic: false,
   author: false,
   channel: false,
   language: false,
   social: true,
   contributor: false,
-  category: true,
+  category: false,
 };
 
 const createDefaultFlags = () => ({
@@ -159,58 +160,237 @@ if (stateFromUrl.source === 'query') {
 flags = appState.filters;
 window.flags = flags;
 const filtersSummaryEl = document.querySelector('#filters-summary');
-const filtersRowEl = document.querySelector('.filters-row');
-const filtersBodyEl = document.querySelector('#filters-body');
-const filtersCollapseToggle = document.querySelector('#filters-collapse-toggle');
-const filtersCollapseLabel = document.querySelector('#filters-collapse-label');
+const filterPopoverEl = document.querySelector('#filter-popover');
+const filterPopoverContentEl = document.querySelector('#filter-popover-content');
+const filterPopoverTitleEl = document.querySelector('#filter-popover-title');
+const filterPopoverDescriptionEl = document.querySelector('#filter-popover-description');
+const filterPopoverCloseBtn = document.querySelector('#filter-popover-close');
+let activeFilterTargetKey = '';
+let activeFilterTriggerEl = null;
 
-const getFilterCollapseMeta = (collapsed) => {
-  if (typeof window.activityUtils?.getFilterCollapseMeta === 'function') {
-    return window.activityUtils.getFilterCollapseMeta(collapsed);
+const FILTER_TARGETS = {
+  topics: {
+    slotSelector: '#filter-slot-topics',
+    wrapperSelector: '#filter-topics',
+    controlSelector: '#topics',
+    title: 'Topic',
+    description: 'Restrict results to one or more technologies or topics.',
+  },
+  category: {
+    slotSelector: '#filter-slot-category',
+    wrapperSelector: '#filter-category',
+    controlSelector: '#category',
+    title: 'Content type',
+    description: 'Focus the table on one or more content formats.',
+  },
+  channel: {
+    slotSelector: '#filter-slot-channel',
+    wrapperSelector: '#filter-channel',
+    controlSelector: '#channel',
+    title: 'Channel owner',
+    description: 'Who owns or administers the channel, site, or account where the piece appears.',
+  },
+  author: {
+    slotSelector: '#filter-slot-author',
+    wrapperSelector: '#filter-author',
+    controlSelector: '#author',
+    title: 'Publisher',
+    description: 'Who publishes, issues, or officially stands behind the piece in this resource.',
+  },
+  contributors: {
+    slotSelector: '#filter-slot-contributors',
+    wrapperSelector: '#filter-contributors',
+    controlSelector: '#contributors',
+    title: 'People involved',
+    description: 'People who had relevant involvement in creating, publishing, or distributing this piece.',
+  },
+  language: {
+    slotSelector: '#filter-slot-language',
+    wrapperSelector: '#filter-language',
+    controlSelector: '#language',
+    title: 'Language',
+    description: 'Limit results to one or more content languages.',
+  },
+  'date-range': {
+    slotSelector: '#filter-slot-date-range',
+    wrapperSelector: '#date-range-filter',
+    controlSelector: '#date-preset',
+    title: 'Date range',
+    description: 'Pick a preset or a custom inclusive date range.',
+  },
+};
+
+const getFilterTriggerButtons = (targetKey) => (
+  [...document.querySelectorAll(`[data-filter-target="${targetKey}"]`)]
+);
+
+const restoreFilterTarget = (targetKey) => {
+  const config = FILTER_TARGETS[targetKey];
+  if (!config) return;
+  const wrapper = document.querySelector(config.wrapperSelector);
+  const slot = document.querySelector(config.slotSelector);
+  if (!wrapper || !slot || wrapper.parentElement === slot) return;
+  slot.appendChild(wrapper);
+};
+
+const positionFilterPopover = (triggerEl = activeFilterTriggerEl) => {
+  if (!filterPopoverEl || !triggerEl || filterPopoverEl.hidden) return;
+
+  const viewportPadding = 12;
+  const desiredWidth = Math.min(420, window.innerWidth - (viewportPadding * 2));
+  filterPopoverEl.style.width = `${Math.max(280, desiredWidth)}px`;
+
+  const triggerRect = triggerEl.getBoundingClientRect();
+  const popoverRect = filterPopoverEl.getBoundingClientRect();
+
+  let left = Math.min(
+    Math.max(viewportPadding, triggerRect.right - popoverRect.width),
+    window.innerWidth - popoverRect.width - viewportPadding,
+  );
+  let top = triggerRect.bottom + 10;
+
+  if (top + popoverRect.height > window.innerHeight - viewportPadding) {
+    top = Math.max(viewportPadding, triggerRect.top - popoverRect.height - 10);
   }
 
-  return collapsed
-    ? {
-      label: 'Show filters',
-      ariaExpanded: 'false',
+  filterPopoverEl.style.left = `${left}px`;
+  filterPopoverEl.style.top = `${top}px`;
+};
+
+const closeFilterPopover = ({ restoreFocus = false } = {}) => {
+  if (activeFilterTargetKey) {
+    const activeConfig = FILTER_TARGETS[activeFilterTargetKey];
+    const activeControl = activeConfig ? document.querySelector(activeConfig.controlSelector) : null;
+    activeControl?.tomselect?.close();
+  }
+
+  if (activeFilterTargetKey) {
+    restoreFilterTarget(activeFilterTargetKey);
+  }
+
+  const focusTarget = restoreFocus ? activeFilterTriggerEl : null;
+
+  if (filterPopoverEl) {
+    filterPopoverEl.hidden = true;
+    filterPopoverEl.setAttribute('aria-hidden', 'true');
+  }
+  if (filterPopoverContentEl) {
+    filterPopoverContentEl.textContent = '';
+  }
+
+  if (activeFilterTargetKey) {
+    getFilterTriggerButtons(activeFilterTargetKey).forEach((buttonEl) => {
+      buttonEl.setAttribute('aria-expanded', 'false');
+      buttonEl.classList.remove('is-filter-open');
+    });
+  }
+
+  activeFilterTargetKey = '';
+  activeFilterTriggerEl = null;
+  if (focusTarget) focusTarget.focus();
+};
+
+const openFilterPopover = (targetKey, triggerEl) => {
+  const config = FILTER_TARGETS[targetKey];
+  if (!config || !filterPopoverEl || !filterPopoverContentEl || !triggerEl) return;
+
+  if (activeFilterTargetKey === targetKey && !filterPopoverEl.hidden) {
+    closeFilterPopover({ restoreFocus: false });
+    return;
+  }
+
+  closeFilterPopover();
+
+  const wrapper = document.querySelector(config.wrapperSelector);
+  const control = document.querySelector(config.controlSelector);
+  if (!wrapper || !control) return;
+
+  activeFilterTargetKey = targetKey;
+  activeFilterTriggerEl = triggerEl;
+
+  filterPopoverTitleEl.textContent = config.title;
+  if (config.description) {
+    filterPopoverDescriptionEl.textContent = config.description;
+    filterPopoverDescriptionEl.hidden = false;
+  } else {
+    filterPopoverDescriptionEl.textContent = '';
+    filterPopoverDescriptionEl.hidden = true;
+  }
+
+  filterPopoverContentEl.appendChild(wrapper);
+  filterPopoverEl.hidden = false;
+  filterPopoverEl.setAttribute('aria-hidden', 'false');
+  getFilterTriggerButtons(targetKey).forEach((buttonEl) => {
+    buttonEl.setAttribute('aria-expanded', 'true');
+    buttonEl.classList.add('is-filter-open');
+  });
+  positionFilterPopover(triggerEl);
+
+  window.requestAnimationFrame(() => {
+    positionFilterPopover(triggerEl);
+    if (control.tomselect) {
+      control.tomselect.focus();
+      control.tomselect.open();
+      return;
     }
-    : {
-      label: 'Hide filters',
-      ariaExpanded: 'true',
-    };
+    control.focus();
+  });
 };
 
-const setFiltersCollapsed = (collapsed) => {
-  filtersRowEl?.classList.toggle('is-collapsed', collapsed);
-  if (filtersBodyEl) filtersBodyEl.hidden = collapsed;
-
-  const meta = getFilterCollapseMeta(collapsed);
-  if (filtersCollapseLabel) {
-    filtersCollapseLabel.textContent = meta.label;
-  }
-  if (filtersCollapseToggle) {
-    filtersCollapseToggle.setAttribute('aria-expanded', meta.ariaExpanded);
-  }
-};
-
-const toggleFiltersCollapsed = () => {
-  const isCollapsed = filtersRowEl?.classList.contains('is-collapsed') ?? false;
-  setFiltersCollapsed(!isCollapsed);
-};
-
-filtersCollapseToggle?.addEventListener('click', () => {
-  toggleFiltersCollapsed();
+document.querySelectorAll('[data-filter-target]').forEach((buttonEl) => {
+  buttonEl.setAttribute('aria-expanded', 'false');
+  buttonEl.addEventListener('click', (event) => {
+    event.preventDefault();
+    openFilterPopover(buttonEl.getAttribute('data-filter-target'), buttonEl);
+  });
 });
 
-filtersCollapseToggle?.addEventListener('keydown', (event) => {
-  if (event.key !== 'Enter' && event.key !== ' ') return;
-  event.preventDefault();
-  toggleFiltersCollapsed();
+filterPopoverCloseBtn?.addEventListener('click', () => {
+  closeFilterPopover({ restoreFocus: true });
 });
 
-setFiltersCollapsed(true);
+document.addEventListener('mousedown', (event) => {
+  if (!activeFilterTargetKey || filterPopoverEl?.hidden) return;
+  const target = event.target;
+  if (filterPopoverEl?.contains(target)) return;
+  if (activeFilterTriggerEl?.contains(target)) return;
+  closeFilterPopover();
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape' || filterPopoverEl?.hidden) return;
+  closeFilterPopover({ restoreFocus: true });
+});
+
+window.addEventListener('resize', () => {
+  closeFilterPopover();
+});
+
+window.addEventListener('scroll', () => {
+  closeFilterPopover();
+}, true);
 
 const hasActiveRestriction = (map) => Object.values(map || {}).some((value) => value === 0 || value === 1);
+
+const syncFilterTriggerStates = () => {
+  const activeStateByTarget = {
+    topics: hasActiveRestriction(flags.technologies),
+    category: hasActiveRestriction(flags.categories),
+    channel: hasActiveRestriction(flags.channels),
+    author: hasActiveRestriction(flags.authors),
+    contributors: hasActiveRestriction(flags.contributors),
+    language: hasActiveRestriction(flags.languages),
+    'date-range': flags.datePreset !== DATE_PRESET_SHOW_ALL
+      || !!flags.dateRange.from
+      || !!flags.dateRange.to,
+  };
+
+  Object.entries(activeStateByTarget).forEach(([targetKey, isActive]) => {
+    getFilterTriggerButtons(targetKey).forEach((buttonEl) => {
+      buttonEl.classList.toggle('is-filter-applied', isActive);
+    });
+  });
+};
 
 const updateFilterSummary = (visibleRows, totalRows) => {
   if (!filtersSummaryEl) return;
@@ -350,6 +530,7 @@ const applyDatePreset = (preset, { reapplyFilters = true } = {}) => {
   if (normalizedPreset === DATE_PRESET_CUSTOM) {
     syncDatePresetUi();
     syncDateInputValues();
+    syncFilterTriggerStates();
     if (reapplyFilters) applyFilters();
     return;
   }
@@ -362,6 +543,7 @@ const applyDatePreset = (preset, { reapplyFilters = true } = {}) => {
     flags.dateRange = { from: '', to: '' };
     syncDatePresetUi();
     syncDateInputValues();
+    syncFilterTriggerStates();
     if (reapplyFilters) applyFilters();
     return;
   }
@@ -369,6 +551,7 @@ const applyDatePreset = (preset, { reapplyFilters = true } = {}) => {
   flags.dateRange = nextDateRange;
   syncDatePresetUi();
   syncDateInputValues();
+  syncFilterTriggerStates();
   if (reapplyFilters) applyFilters();
 };
 
@@ -453,6 +636,7 @@ const applyFilters = () => {
   });
 
   updateFilterSummary(visibleRows, rows.length);
+  syncFilterTriggerStates();
 
   if (trendsTabIsActive() && typeof window.renderCharts === 'function') {
     window.renderCharts();
@@ -543,6 +727,7 @@ const initApp = () => {
 };
 
 const TOGGLEABLE_COLS = [
+  { key: 'topic', filterId: '#filter-topics' },
   { key: 'author', filterId: '#filter-author' },
   { key: 'channel', filterId: '#filter-channel' },
   { key: 'language', filterId: '#filter-language' },
@@ -622,6 +807,9 @@ const applyColumnToggleState = ({ key, filterId }, checked) => {
   if (filterId) {
     const filterEl = document.querySelector(filterId);
     if (filterEl) filterEl.style.display = checked ? '' : 'none';
+    if (!checked && filterPopoverContentEl?.contains(filterEl)) {
+      closeFilterPopover();
+    }
   }
 };
 
@@ -647,9 +835,11 @@ const syncColumnVisibilityWithToggles = () => {
 window.syncColumnVisibilityWithToggles = syncColumnVisibilityWithToggles;
 
 syncColumnVisibilityWithToggles();
+syncFilterTriggerStates();
 
 const resetFiltersBtn = document.querySelector('#reset-filters-btn');
 resetFiltersBtn?.addEventListener('click', () => {
+  closeFilterPopover();
   resetMultiSelect('#topics', 'technologies');
   resetMultiSelect('#category', 'categories');
   resetMultiSelect('#channel', 'channels');
@@ -677,6 +867,7 @@ const previousOnDataLoaded = window.onDataLoaded;
 window.onDataLoaded = () => {
   if (typeof previousOnDataLoaded === 'function') previousOnDataLoaded();
   syncColumnVisibilityWithToggles();
+  syncFilterTriggerStates();
   syncFeaturedOnlyToggleUi();
   setActiveTab(appState.activeTab);
   if (trendsTabIsActive() && typeof window.renderCharts === 'function') {
@@ -685,10 +876,12 @@ window.onDataLoaded = () => {
 };
 
 document.querySelector('#tab-table-trigger')?.addEventListener('click', () => {
+  closeFilterPopover();
   setActiveTab('table');
 });
 
 document.querySelector('#tab-trends-trigger')?.addEventListener('click', () => {
+  closeFilterPopover();
   setActiveTab('trends');
   if (!isTableRenderReady()) return;
   if (typeof window.renderCharts === 'function') window.renderCharts();
@@ -738,6 +931,7 @@ const setShareFeedback = (message, isError = false) => {
 
 const shareViewBtn = document.querySelector('#share-view-btn');
 shareViewBtn?.addEventListener('click', async () => {
+  closeFilterPopover();
   const encoded = LZString.compressToBase64(JSON.stringify(getSerializableShareState()));
   const shareUrl = buildShareUrl(encoded);
 

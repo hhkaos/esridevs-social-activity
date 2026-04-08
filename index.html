@@ -10,7 +10,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/morph/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="./style.css?v=v39" />
 </head>
 <body>
   <!-- Cookie consent banner (hidden by default; shown by cookie-consent.js when no decision exists) -->
@@ -52,56 +52,51 @@
     </div>
 
     <!-- Filters row -->
-    <div class="filters-row is-collapsed">
-      <div
-        class="filters-row__header"
-        id="filters-collapse-toggle"
-        role="button"
-        tabindex="0"
-        aria-controls="filters-body"
-        aria-expanded="false">
-        <p id="filters-collapse-label" class="filters-title">Show filters</p>
-        <p id="filters-summary" class="filters-summary" role="status" aria-live="polite"></p>
+    <div id="filter-dock" class="filter-dock" aria-hidden="true">
+      <div id="filter-slot-topics">
+        <label class="filter-field" id="filter-topics">
+          <span class="filter-field__label">Topic</span>
+          <select id="topics" class="form-select filter-multiselect" data-placeholder="Any topic" multiple></select>
+        </label>
       </div>
 
-      <div id="filters-body" class="filters-row__body" hidden>
-      <div class="filters-grid">
-        <div class="filters-group">
-          <span class="filter-field__label">Filter options</span>
-          <div class="columns-config-filter">
-            <label class="filter-field" id="filter-topics">
-              <span class="filter-field__label">Topic</span>
-              <select id="topics" class="form-select filter-multiselect" data-placeholder="Any topic" multiple></select>
-            </label>
+      <div id="filter-slot-category">
+        <label class="filter-field" id="filter-category">
+          <span class="filter-field__label">Content type</span>
+          <select id="category" class="form-select filter-multiselect" data-placeholder="Any content type" multiple></select>
+        </label>
+      </div>
 
-            <label class="filter-field" id="filter-category">
-              <span class="filter-field__label">Content type</span>
-              <select id="category" class="form-select filter-multiselect" data-placeholder="Any content type" multiple></select>
-            </label>
+      <div id="filter-slot-channel">
+        <label class="filter-field" id="filter-channel">
+          <span class="filter-field__label">Channel owner <button type="button" class="field-help-btn" data-definition-trigger data-definition-field="channel" aria-label="Open Channel owner definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></span>
+          <select id="channel" class="form-select filter-multiselect" data-placeholder="Any channel owner" multiple></select>
+        </label>
+      </div>
 
-            <label class="filter-field" id="filter-channel">
-              <span class="filter-field__label">Channel owner <button type="button" class="field-help-btn" data-definition-trigger data-definition-field="channel" aria-label="Open Channel owner definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></span>
-              <select id="channel" class="form-select filter-multiselect" data-placeholder="Any channel owner" multiple></select>
-            </label>
+      <div id="filter-slot-author">
+        <label class="filter-field" id="filter-author">
+          <span class="filter-field__label">Publisher <button type="button" class="field-help-btn" data-definition-trigger data-definition-field="author" aria-label="Open Publisher definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></span>
+          <select id="author" class="form-select filter-multiselect" data-placeholder="Any publisher" multiple></select>
+        </label>
+      </div>
 
-            <label class="filter-field" id="filter-author">
-              <span class="filter-field__label">Publisher <button type="button" class="field-help-btn" data-definition-trigger data-definition-field="author" aria-label="Open Publisher definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></span>
-              <select id="author" class="form-select filter-multiselect" data-placeholder="Any publisher" multiple></select>
-            </label>
+      <div id="filter-slot-contributors">
+        <label class="filter-field" id="filter-contributors">
+          <span class="filter-field__label">People involved <button type="button" class="field-help-btn" data-definition-trigger data-definition-field="contributor" aria-label="Open People involved definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></span>
+          <select id="contributors" class="form-select filter-multiselect" data-placeholder="Any person involved" multiple></select>
+        </label>
+      </div>
 
-            <label class="filter-field" id="filter-contributors">
-              <span class="filter-field__label">People involved <button type="button" class="field-help-btn" data-definition-trigger data-definition-field="contributor" aria-label="Open People involved definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></span>
-              <select id="contributors" class="form-select filter-multiselect" data-placeholder="Any person involved" multiple></select>
-            </label>
+      <div id="filter-slot-language">
+        <label class="filter-field" id="filter-language">
+          <span class="filter-field__label">Language</span>
+          <select id="language" class="form-select filter-multiselect" data-placeholder="Any language" multiple></select>
+        </label>
+      </div>
 
-            <label class="filter-field" id="filter-language">
-              <span class="filter-field__label">Language</span>
-              <select id="language" class="form-select filter-multiselect" data-placeholder="Any language" multiple></select>
-            </label>
-          </div>
-        </div>
-
-        <div class="date-range-filter">
+      <div id="filter-slot-date-range">
+        <div class="date-range-filter" id="date-range-filter">
           <span class="filter-field__label">Date range</span>
           <label class="date-preset-wrap" for="date-preset">
             <span>Preset</span>
@@ -130,32 +125,17 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <div class="filters-actions">
-        <div class="col-picker-wrap">
-          <button id="col-picker-btn" class="btn btn-outline-secondary btn-sm" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="col-picker-panel">
-            <span class="btn-icon" aria-hidden="true">⚙</span>Configure columns
-          </button>
-          <div id="col-picker-panel" class="col-picker-panel" tabindex="-1">
-            <p class="col-picker-heading">Show / hide columns</p>
-            <label class="col-picker-item"><input type="checkbox" id="col-toggle-author"> Publisher</label>
-            <label class="col-picker-item"><input type="checkbox" id="col-toggle-channel"> Channel owner</label>
-            <label class="col-picker-item"><input type="checkbox" id="col-toggle-language"> Language</label>
-            <label class="col-picker-item"><input type="checkbox" id="col-toggle-social" checked> Share</label>
-            <label class="col-picker-item"><input type="checkbox" id="col-toggle-contributor"> People involved</label>
-            <label class="col-picker-item"><input type="checkbox" id="col-toggle-category" checked> Content type</label>
-          </div>
+    <div id="filter-popover" class="filter-popover" hidden aria-hidden="true">
+      <div class="filter-popover__header">
+        <div class="filter-popover__heading">
+          <p id="filter-popover-title" class="filter-popover__title">Filter</p>
+          <p id="filter-popover-description" class="filter-popover__description" hidden></p>
         </div>
-
-        <button id="reset-filters-btn" class="btn btn-outline-secondary btn-sm" type="button">
-          <span class="btn-icon" aria-hidden="true">↺</span>Reset filters
-        </button>
-        <button id="share-view-btn" class="btn btn-primary btn-sm" type="button">
-          <span class="btn-icon" aria-hidden="true">🔗</span>Share view
-        </button>
-        <span id="share-view-feedback" class="share-view-feedback" role="status" aria-live="polite"></span>
+        <button id="filter-popover-close" class="filter-popover__close" type="button" aria-label="Close filter panel">×</button>
       </div>
-      </div>
+      <div id="filter-popover-content" class="filter-popover__content"></div>
     </div>
 
     <!-- ── Tabs ────────────────────────────────────────────────────────────── -->
@@ -193,31 +173,66 @@
         </div>
 
         <!-- Activity table -->
-        <div class="table-container" hidden>
-          <table id="main-table" class="table table-bordered table-sm align-middle" aria-label="Activity table">
-            <thead>
-              <tr>
-                <th class="text-center">Date</th>
-                <th id="content-title-header">Content title
-                  <button
-                    id="featured-only-toggle"
-                    class="featured-only-toggle"
-                    type="button"
-                    aria-pressed="false"
-                    aria-label="Show featured only"
-                    title="Show featured only">☆</button>
-                </th>
-                <th class="text-center" data-col="author">Publisher <button type="button" class="field-help-btn field-help-btn--inline" data-definition-trigger data-definition-field="author" aria-label="Open Publisher definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></th>
-                <th class="text-center" data-col="channel">Channel owner <button type="button" class="field-help-btn field-help-btn--inline" data-definition-trigger data-definition-field="channel" aria-label="Open Channel owner definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></th>
-                <th class="text-center" data-col="language">Language</th>
-                <th class="text-center" data-col="social">Share</th>
-                <th class="text-center" data-col="contributor">People involved <button type="button" class="field-help-btn field-help-btn--inline" data-definition-trigger data-definition-field="contributor" aria-label="Open People involved definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></th>
-                <th>Technology</th>
-                <th class="text-center" data-col="category">Content type</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
+        <div class="table-shell" hidden>
+          <div class="table-shell__header">
+            <p id="filters-summary" class="table-results-summary" role="status" aria-live="polite"></p>
+            <div class="table-shell__tools">
+              <button id="reset-filters-btn" class="table-tool-btn table-tool-btn--secondary" type="button" title="Reset filters and column visibility">
+                <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+                <span>Reset</span>
+              </button>
+              <div class="col-picker-wrap">
+                <button
+                  id="col-picker-btn"
+                  class="table-tool-btn"
+                  type="button"
+                  aria-haspopup="true"
+                  aria-expanded="false"
+                  aria-controls="col-picker-panel"
+                  aria-label="Configure visible columns"
+                  title="Configure visible columns">
+                  <i class="fa-solid fa-table-columns" aria-hidden="true"></i>
+                </button>
+                <div id="col-picker-panel" class="col-picker-panel" tabindex="-1">
+                  <p class="col-picker-heading">Show / hide columns</p>
+                  <label class="col-picker-item"><input type="checkbox" id="col-toggle-topic"> Topic</label>
+                  <label class="col-picker-item"><input type="checkbox" id="col-toggle-author"> Publisher</label>
+                  <label class="col-picker-item"><input type="checkbox" id="col-toggle-channel"> Channel owner</label>
+                  <label class="col-picker-item"><input type="checkbox" id="col-toggle-language"> Language</label>
+                  <label class="col-picker-item"><input type="checkbox" id="col-toggle-social" checked> Share</label>
+                  <label class="col-picker-item"><input type="checkbox" id="col-toggle-contributor"> People involved</label>
+                  <label class="col-picker-item"><input type="checkbox" id="col-toggle-category"> Content type</label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table id="main-table" class="table table-bordered table-sm align-middle" aria-label="Activity table">
+              <thead>
+                <tr>
+                  <th class="text-center">Date <button type="button" class="table-filter-trigger" data-filter-target="date-range" aria-label="Open date range filters" title="Open date range filters"><i class="fa-solid fa-filter" aria-hidden="true"></i></button></th>
+                  <th id="content-title-header">Content title
+                    <button
+                      id="featured-only-toggle"
+                      class="featured-only-toggle"
+                      type="button"
+                      aria-pressed="false"
+                      aria-label="Show featured only"
+                      title="Show featured only">☆</button>
+                  </th>
+                  <th class="text-center" data-col="author">Publisher <button type="button" class="table-filter-trigger" data-filter-target="author" aria-label="Open Publisher filters" title="Open Publisher filters"><i class="fa-solid fa-filter" aria-hidden="true"></i></button> <button type="button" class="field-help-btn field-help-btn--inline" data-definition-trigger data-definition-field="author" aria-label="Open Publisher definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></th>
+                  <th class="text-center" data-col="channel">Channel owner <button type="button" class="table-filter-trigger" data-filter-target="channel" aria-label="Open Channel owner filters" title="Open Channel owner filters"><i class="fa-solid fa-filter" aria-hidden="true"></i></button> <button type="button" class="field-help-btn field-help-btn--inline" data-definition-trigger data-definition-field="channel" aria-label="Open Channel owner definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></th>
+                  <th class="text-center" data-col="language">Language <button type="button" class="table-filter-trigger" data-filter-target="language" aria-label="Open Language filters" title="Open Language filters"><i class="fa-solid fa-filter" aria-hidden="true"></i></button></th>
+                  <th class="text-center" data-col="social">Share</th>
+                  <th class="text-center" data-col="contributor">People involved <button type="button" class="table-filter-trigger" data-filter-target="contributors" aria-label="Open People involved filters" title="Open People involved filters"><i class="fa-solid fa-filter" aria-hidden="true"></i></button> <button type="button" class="field-help-btn field-help-btn--inline" data-definition-trigger data-definition-field="contributor" aria-label="Open People involved definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></th>
+                  <th data-col="topic">Topic <button type="button" class="table-filter-trigger" data-filter-target="topics" aria-label="Open Topic filters" title="Open Topic filters"><i class="fa-solid fa-filter" aria-hidden="true"></i></button></th>
+                  <th class="text-center" data-col="category">Content type <button type="button" class="table-filter-trigger" data-filter-target="category" aria-label="Open Content type filters" title="Open Content type filters"><i class="fa-solid fa-filter" aria-hidden="true"></i></button></th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
 
       </div>
@@ -297,14 +312,18 @@
     </footer>
   </div>
 
+  <div id="share-view-feedback" class="share-view-feedback share-view-feedback--floating" role="status" aria-live="polite"></div>
+  <button id="share-view-btn" class="share-fab" type="button" aria-label="Share current view">
+    <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+    <span>Share view</span>
+  </button>
+
   <!-- Update toast — shown when background data refresh finds new content -->
   <div id="update-toast" hidden>
     <span class="update-toast__icon" aria-hidden="true">↻</span>
     <span id="update-toast-text"></span>
     <button class="update-toast__close" id="update-toast-close" aria-label="Dismiss">×</button>
   </div>
-
-  <a href="https://github.com/hhkaos/esridevs-social-activity" class="ribbon" target="_blank">CONTRIBUTE</a>
 
   <div class="modal fade chart-modal" id="chart-modal" tabindex="-1" aria-labelledby="chart-modal-title" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
@@ -342,7 +361,7 @@
       <td class="text-center" data-col="language"></td><!-- language -->
       <td class="text-center" data-col="social"></td>  <!-- social -->
       <td class="text-center" data-col="contributor"></td><!-- contributor -->
-      <td></td>                                        <!-- technology -->
+      <td data-col="topic"></td>                       <!-- topic -->
       <td class="text-center" data-col="category"></td><!-- category -->
     </tr>
   </template>
@@ -351,14 +370,14 @@
     <option value=""></option>
   </template>
 
-  <script src="./cookie-consent.js"></script>
+  <script src="./cookie-consent.js?v=v39"></script>
   <script>
     document.getElementById('cookie-settings-link')?.addEventListener('click', function (e) {
       e.preventDefault();
       window.cookieConsent?.revoke();
     });
   </script>
-  <script src="./sw-update-utils.js"></script>
+  <script src="./sw-update-utils.js?v=v39"></script>
   <script>
     if ('serviceWorker' in navigator) {
       const bannerEl = document.querySelector('#app-update-banner');
@@ -384,7 +403,7 @@
 
       window.addEventListener('load', async () => {
         try {
-          const registration = await navigator.serviceWorker.register('./sw.js');
+          const registration = await navigator.serviceWorker.register('./sw.js?v=v39');
 
           const promptIfWaiting = () => {
             if (registration.waiting) showUpdateBanner();
@@ -425,11 +444,11 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-  <script src="./activity-utils.js"></script>
-  <script src="./load-table.js"></script>
-  <script src="./apply-filters.js"></script>
-  <script src="./analytics.js"></script>
-  <script src="./charts.js"></script>
+  <script src="./activity-utils.js?v=v39"></script>
+  <script src="./load-table.js?v=v39"></script>
+  <script src="./apply-filters.js?v=v39"></script>
+  <script src="./analytics.js?v=v39"></script>
+  <script src="./charts.js?v=v39"></script>
   <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>

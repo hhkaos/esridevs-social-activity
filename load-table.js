@@ -99,6 +99,7 @@ const LOADING_MESSAGES = [
 
 const loadingStatusEl = document.querySelector('#loading-status');
 const loadingStatusTextEl = document.querySelector('#loading-status-text');
+const tableShellEl = document.querySelector('.table-shell');
 const tableContainerEl = document.querySelector('.table-container');
 const tableLoadingSkeletonEl = document.querySelector('#table-loading-skeleton');
 const tableErrorPanelEl = document.querySelector('#table-error-panel');
@@ -121,6 +122,7 @@ const setTableSurfaceState = (state, { message = '' } = {}) => {
   const isReady = state === TABLE_SURFACE_STATES.READY;
   const isError = state === TABLE_SURFACE_STATES.ERROR;
 
+  if (tableShellEl) tableShellEl.hidden = !isReady;
   if (tableContainerEl) tableContainerEl.hidden = !isReady;
   if (tableLoadingSkeletonEl) tableLoadingSkeletonEl.hidden = !isLoading;
 
@@ -452,19 +454,22 @@ const socialIconClass = (platform) => ({
 }[platform] || 'fa-solid fa-share-nodes');
 
 let socialMenuIdCounter = 0;
+let titleMenuIdCounter = 0;
 const renderSocialLink = ({ url, platform, title, targets = [] }) => {
   const safeTargets = Array.isArray(targets) && targets.length > 0 ? targets : [{ url, title, label: title }];
   if (safeTargets.length === 1) {
-    return `<a href="${safeTargets[0].url}" target="_blank" rel="noopener noreferrer" class="social-link social-link--${platform}" title="${safeTargets[0].title}" aria-label="${safeTargets[0].title}">
+    return `<a href="${escapeHtml(safeTargets[0].url)}" target="_blank" rel="noopener noreferrer" class="social-link social-link--${platform}" title="${escapeHtml(safeTargets[0].title)}" aria-label="${escapeHtml(safeTargets[0].title)}">
       <i class="${socialIconClass(platform)}" aria-hidden="true"></i>
     </a>`;
   }
 
   const menuId = `social-menu-${platform}-${socialMenuIdCounter++}`;
-  const menuItems = safeTargets.map((target) => `<li><a class="dropdown-item" href="${target.url}" target="_blank" rel="noopener noreferrer" title="${target.title}">${target.label || target.title}</a></li>`).join('');
+  const menuItems = safeTargets
+    .map((target) => `<li><a class="dropdown-item" href="${escapeHtml(target.url)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(target.title)}">${escapeHtml(target.label || target.title)}</a></li>`)
+    .join('');
 
   return `<div class="dropdown social-link-group">
-    <button class="social-link social-link--${platform} social-link--menu" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true" aria-controls="${menuId}" title="${title}" aria-label="${title}">
+    <button class="social-link social-link--${platform} social-link--menu" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true" aria-controls="${menuId}" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}">
       <i class="${socialIconClass(platform)}" aria-hidden="true"></i>
       <span class="social-link__count" aria-hidden="true">${safeTargets.length}</span>
     </button>
@@ -547,8 +552,10 @@ const initShareNudges = () => {
     }
 
     const contentLinkEl = target.closest('.table-title-link');
-    if (!contentLinkEl) return;
-    activateShareNudgeForRow(contentLinkEl.closest('tr'));
+    const contentMenuItemEl = target.closest('.table-title-menu .dropdown-item');
+    const row = contentLinkEl?.closest('tr') || contentMenuItemEl?.closest('tr');
+    if (!row) return;
+    activateShareNudgeForRow(row);
   });
 
   shareNudgeHandlersInitialized = true;
@@ -560,6 +567,62 @@ const getDomainLabel = (url) => {
   } catch {
     return 'link';
   }
+};
+
+const renderContentLinkTitle = ({ title, contentLinks, featured = false, isNew = false }) => {
+  const safeTitle = escapeHtml(title || '');
+  const featuredMarker = featured
+    ? '<span class="featured-row-star" aria-label="Featured" title="Featured">★</span>'
+    : '';
+  const newBadge = isNew
+    ? '<span class="badge-new" aria-label="New item">New</span>'
+    : '';
+
+  if (contentLinks.length === 1) {
+    const [link] = contentLinks;
+    const linkTitle = escapeHtml(link.title || `Open ${title || 'content'}`);
+    return `
+      <div class="table-title-main">
+        ${featuredMarker}
+        <a href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" class="table-title-link table-title-link--primary" title="${linkTitle}" aria-label="${linkTitle}">
+          <span class="table-title-text">${safeTitle}</span>
+        </a>
+        ${newBadge}
+      </div>
+    `;
+  }
+
+  if (contentLinks.length > 1) {
+    const menuId = `title-menu-${titleMenuIdCounter++}`;
+    const menuItems = contentLinks
+      .map((link) => `<li><a class="dropdown-item" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(link.title || 'Open content link')}">${escapeHtml(getDomainLabel(link.url))}</a></li>`)
+      .join('');
+
+    return `
+      <div class="dropdown table-title-dropdown">
+        <div class="table-title-main">
+          ${featuredMarker}
+          <button class="table-title-link table-title-link--menu" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true" aria-controls="${menuId}" aria-label="Open content links for ${safeTitle}" title="Choose where this content was posted">
+            <span class="table-title-text">${safeTitle}</span>
+            <i class="fa-solid fa-chevron-down table-title-link__caret" aria-hidden="true"></i>
+          </button>
+          ${newBadge}
+        </div>
+        <ul id="${menuId}" class="dropdown-menu table-title-menu">
+          <li><h6 class="dropdown-header">Posted in:</h6></li>
+          ${menuItems}
+        </ul>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="table-title-main">
+      ${featuredMarker}
+      <span class="table-title-text">${safeTitle}</span>
+      ${newBadge}
+    </div>
+  `;
 };
 
 const dedupeActivityRows = (rows) => {
@@ -713,6 +776,17 @@ const TABLE_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
   timeZone: 'UTC',
 });
 
+const TABLE_DATE_COMPACT_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  month: 'numeric',
+  day: 'numeric',
+  year: '2-digit',
+  timeZone: 'UTC',
+});
+
+const compactDateMediaQuery = window.matchMedia?.('(max-width: 700px)') || null;
+
+const shouldUseCompactDateFormat = () => compactDateMediaQuery?.matches === true;
+
 const parseDateInput = (value) => {
   const raw = `${value ?? ''}`.trim();
   if (!raw) return null;
@@ -848,23 +922,15 @@ function createTableRowClone(entry, template) {
   row.setAttribute('data-date', date);
   row.setAttribute('data-featured', featured ? '1' : '0');
 
-  const domainLinks = contentLinks
-    .map((link) => `<a href="${link.url}" target="_blank" rel="noopener noreferrer" class="table-title-link small">${getDomainLabel(link.url)}</a>`)
-    .join(', ');
-
-  const featuredMarker = featured
-    ? '<span class="featured-row-star" aria-label="Featured" title="Featured">★</span> '
-    : '';
-
   const rowUrl = pickFirst(entry, ['URL', 'Url', 'Link']).toLowerCase();
-  const newBadge = window.highlightedItemUrls?.has(rowUrl)
-    ? ' <span class="badge-new" aria-label="New item">New</span>'
-    : '';
+  const isNew = window.highlightedItemUrls?.has(rowUrl) === true;
 
-  td[1].innerHTML = `
-    <span>${featuredMarker}${title}${newBadge}</span>
-    ${domainLinks ? `<div class="small text-muted mt-1">Posted in: ${domainLinks}</div>` : ''}
-  `;
+  td[1].innerHTML = renderContentLinkTitle({
+    title,
+    contentLinks,
+    featured,
+    isNew,
+  });
 
   td[2].innerText = author;
   row.setAttribute('data-authors', author);
@@ -947,7 +1013,28 @@ function renderTableRows(rows) {
 function formatDate(dateString) {
   const date = parseDateInput(dateString);
   if (!date) return dateString || '';
-  return TABLE_DATE_FORMATTER.format(date);
+  const formatter = shouldUseCompactDateFormat()
+    ? TABLE_DATE_COMPACT_FORMATTER
+    : TABLE_DATE_FORMATTER;
+  return formatter.format(date);
+}
+
+const syncRenderedTableDates = () => {
+  document.querySelectorAll('#main-table tbody tr[data-date]').forEach((rowEl) => {
+    const dateCellEl = rowEl.querySelector('td');
+    const dateValue = rowEl.getAttribute('data-date');
+    if (!dateCellEl || !dateValue) return;
+    dateCellEl.textContent = formatDate(dateValue);
+  });
+};
+
+if (compactDateMediaQuery) {
+  const handleCompactDateChange = () => syncRenderedTableDates();
+  if (typeof compactDateMediaQuery.addEventListener === 'function') {
+    compactDateMediaQuery.addEventListener('change', handleCompactDateChange);
+  } else if (typeof compactDateMediaQuery.addListener === 'function') {
+    compactDateMediaQuery.addListener(handleCompactDateChange);
+  }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────

@@ -1,18 +1,20 @@
-importScripts('./sw-update-utils.js');
+const CACHE_VERSION = 'v39';
+const SHELL_ASSET_VERSION = CACHE_VERSION;
+importScripts(`./sw-update-utils.js?v=${SHELL_ASSET_VERSION}`);
 
-const CACHE_VERSION = 'v36';
 const SHELL_CACHE = `esridevs-shell-${CACHE_VERSION}`;
 
 const SHELL_ASSETS = [
   './',
   './index.html',
-  './style.css',
-  './load-table.js',
-  './apply-filters.js',
-  './charts.js',
-  './sw-update-utils.js',
-  './cookie-consent.js',
-  './analytics.js',
+  `./style.css?v=${SHELL_ASSET_VERSION}`,
+  `./activity-utils.js?v=${SHELL_ASSET_VERSION}`,
+  `./load-table.js?v=${SHELL_ASSET_VERSION}`,
+  `./apply-filters.js?v=${SHELL_ASSET_VERSION}`,
+  `./charts.js?v=${SHELL_ASSET_VERSION}`,
+  `./sw-update-utils.js?v=${SHELL_ASSET_VERSION}`,
+  `./cookie-consent.js?v=${SHELL_ASSET_VERSION}`,
+  `./analytics.js?v=${SHELL_ASSET_VERSION}`,
 ];
 
 self.addEventListener('install', (event) => {

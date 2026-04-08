@@ -15,6 +15,11 @@ test('share column labels are rendered as Share in table and column picker', () 
   assert.match(indexHtml, /data-col="social">Share<\/th>/);
 });
 
+test('share action uses floating button and floating feedback region', () => {
+  assert.match(indexHtml, /id="share-view-btn" class="share-fab"/);
+  assert.match(indexHtml, /id="share-view-feedback" class="share-view-feedback share-view-feedback--floating"/);
+});
+
 test('opening a content link activates persistent share nudge behavior for the row', () => {
   assert.match(loadTableSource, /closest\('\.table-title-link'\)/);
   assert.match(loadTableSource, /share-nudge-active/);
