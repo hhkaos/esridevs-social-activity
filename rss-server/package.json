@@ -1,0 +1,17 @@
+{
+  "name": "esridevs-rss-server",
+  "version": "1.0.0",
+  "description": "RSS feed server for esridevs-social-activity with in-memory cache and filter support",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "lz-string": "^1.5.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
