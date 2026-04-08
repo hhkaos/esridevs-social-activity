@@ -212,7 +212,7 @@ async function loadDropdownOptions() {
     ),
   ];
 
-  const contributorsFromDropdown = uniqueColumnValues(dropdownRows, ['Contributors', 'Contributor', 'Authors']);
+  const contributorsFromDropdown = uniqueColumnValues(dropdownRows, ['People involved', 'People Involved', 'People_involved', 'Contributors', 'Contributor', 'Authors']);
   const contributors = [...new Set([...contributorsFromDropdown, ...authorsFromSheet])].sort((a, b) =>
     a.localeCompare(b)
   );
@@ -220,8 +220,8 @@ async function loadDropdownOptions() {
   return {
     technologies: uniqueColumnValues(dropdownRows, ['Technologies', 'Technology', 'Topics_Product']),
     categories:   uniqueColumnValues(dropdownRows, ['Category / Content type', 'Category', 'Content type']),
-    channels:     uniqueColumnValues(dropdownRows, ['Channel']),
-    authors:      uniqueColumnValues(dropdownRows, ['Author', 'Authors']),
+    channels:     uniqueColumnValues(dropdownRows, ['Channel owner', 'Channel Owner', 'Channel_owner', 'ChannelOwner', 'Channel']),
+    authors:      uniqueColumnValues(dropdownRows, ['Publisher', 'Author', 'Authors']),
     contributors,
     languages:    uniqueColumnValues(dropdownRows, ['Languages', 'Language']),
   };

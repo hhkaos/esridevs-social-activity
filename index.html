@@ -41,7 +41,7 @@
     <div class="header-row">
       <div class="header-row__title-block">
         <h1>Esri Developer Content Tracker</h1>
-        <p class="header-row__subtitle">Track curated ArcGIS developer content and share useful resources with your network to thank the authors.</p>
+        <p class="header-row__subtitle">Track curated ArcGIS developer content and share useful resources with your network to thank the people involved.</p>
       </div>
       <a
         class="btn btn-outline-primary btn-sm"
@@ -80,18 +80,18 @@
             </label>
 
             <label class="filter-field" id="filter-channel">
-              <span class="filter-field__label">Channel <button type="button" class="field-help-btn" data-definition-trigger data-definition-field="channel" aria-label="Open Channel definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></span>
-              <select id="channel" class="form-select filter-multiselect" data-placeholder="Any channel" multiple></select>
+              <span class="filter-field__label">Channel owner <button type="button" class="field-help-btn" data-definition-trigger data-definition-field="channel" aria-label="Open Channel owner definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></span>
+              <select id="channel" class="form-select filter-multiselect" data-placeholder="Any channel owner" multiple></select>
             </label>
 
             <label class="filter-field" id="filter-author">
-              <span class="filter-field__label">Author <button type="button" class="field-help-btn" data-definition-trigger data-definition-field="author" aria-label="Open Author definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></span>
-              <select id="author" class="form-select filter-multiselect" data-placeholder="Any author" multiple></select>
+              <span class="filter-field__label">Publisher <button type="button" class="field-help-btn" data-definition-trigger data-definition-field="author" aria-label="Open Publisher definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></span>
+              <select id="author" class="form-select filter-multiselect" data-placeholder="Any publisher" multiple></select>
             </label>
 
             <label class="filter-field" id="filter-contributors">
-              <span class="filter-field__label">Contributors <button type="button" class="field-help-btn" data-definition-trigger data-definition-field="contributor" aria-label="Open Contributor definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></span>
-              <select id="contributors" class="form-select filter-multiselect" data-placeholder="Any contributor" multiple></select>
+              <span class="filter-field__label">People involved <button type="button" class="field-help-btn" data-definition-trigger data-definition-field="contributor" aria-label="Open People involved definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></span>
+              <select id="contributors" class="form-select filter-multiselect" data-placeholder="Any person involved" multiple></select>
             </label>
 
             <label class="filter-field" id="filter-language">
@@ -138,11 +138,11 @@
           </button>
           <div id="col-picker-panel" class="col-picker-panel" tabindex="-1">
             <p class="col-picker-heading">Show / hide columns</p>
-            <label class="col-picker-item"><input type="checkbox" id="col-toggle-author"> Author</label>
-            <label class="col-picker-item"><input type="checkbox" id="col-toggle-channel"> Channel</label>
+            <label class="col-picker-item"><input type="checkbox" id="col-toggle-author"> Publisher</label>
+            <label class="col-picker-item"><input type="checkbox" id="col-toggle-channel"> Channel owner</label>
             <label class="col-picker-item"><input type="checkbox" id="col-toggle-language"> Language</label>
             <label class="col-picker-item"><input type="checkbox" id="col-toggle-social" checked> Share</label>
-            <label class="col-picker-item"><input type="checkbox" id="col-toggle-contributor"> Contributor</label>
+            <label class="col-picker-item"><input type="checkbox" id="col-toggle-contributor"> People involved</label>
             <label class="col-picker-item"><input type="checkbox" id="col-toggle-category" checked> Content type</label>
           </div>
         </div>
@@ -207,11 +207,11 @@
                     aria-label="Show featured only"
                     title="Show featured only">☆</button>
                 </th>
-                <th class="text-center" data-col="author">Author <button type="button" class="field-help-btn field-help-btn--inline" data-definition-trigger data-definition-field="author" aria-label="Open Author definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></th>
-                <th class="text-center" data-col="channel">Channel <button type="button" class="field-help-btn field-help-btn--inline" data-definition-trigger data-definition-field="channel" aria-label="Open Channel definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></th>
+                <th class="text-center" data-col="author">Publisher <button type="button" class="field-help-btn field-help-btn--inline" data-definition-trigger data-definition-field="author" aria-label="Open Publisher definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></th>
+                <th class="text-center" data-col="channel">Channel owner <button type="button" class="field-help-btn field-help-btn--inline" data-definition-trigger data-definition-field="channel" aria-label="Open Channel owner definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></th>
                 <th class="text-center" data-col="language">Language</th>
                 <th class="text-center" data-col="social">Share</th>
-                <th class="text-center" data-col="contributor">Contributor <button type="button" class="field-help-btn field-help-btn--inline" data-definition-trigger data-definition-field="contributor" aria-label="Open Contributor definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></th>
+                <th class="text-center" data-col="contributor">People involved <button type="button" class="field-help-btn field-help-btn--inline" data-definition-trigger data-definition-field="contributor" aria-label="Open People involved definitions"><span class="field-help-btn__glyph" aria-hidden="true">i</span></button></th>
                 <th>Technology</th>
                 <th class="text-center" data-col="category">Content type</th>
               </tr>
@@ -236,13 +236,13 @@
         <section id="chart-section-volume" class="charts-section" aria-label="Volume charts">
           <h3 class="charts-section__title">Volume</h3>
           <div class="charts-grid">
-            <div id="chart-overtime-card" class="chart-card chart-card--wide" data-chart-id="chart-overtime" role="button" tabindex="0" aria-label="Open chart: Channel breakdown over time">
-              <h4 class="chart-title">Channel breakdown over time</h4>
+            <div id="chart-overtime-card" class="chart-card chart-card--wide" data-chart-id="chart-overtime" role="button" tabindex="0" aria-label="Open chart: Channel owner breakdown over time">
+              <h4 class="chart-title">Channel owner breakdown over time</h4>
               <p class="chart-card__hint">Click to expand</p>
               <canvas id="chart-overtime"></canvas>
             </div>
-            <div id="chart-author-card" class="chart-card chart-card--wide" data-chart-id="chart-author" role="button" tabindex="0" aria-label="Open chart: Author breakdown over time">
-              <h4 class="chart-title">Author breakdown over time</h4>
+            <div id="chart-author-card" class="chart-card chart-card--wide" data-chart-id="chart-author" role="button" tabindex="0" aria-label="Open chart: Publisher breakdown over time">
+              <h4 class="chart-title">Publisher breakdown over time</h4>
               <p class="chart-card__hint">Click to expand</p>
               <canvas id="chart-author"></canvas>
             </div>
@@ -257,8 +257,8 @@
               <p class="chart-card__hint">Click to expand</p>
               <canvas id="chart-type"></canvas>
             </div>
-            <div id="chart-channel-card" class="chart-card" data-chart-id="chart-channel" role="button" tabindex="0" aria-label="Open chart: Channel">
-              <h4 class="chart-title">Channel</h4>
+            <div id="chart-channel-card" class="chart-card" data-chart-id="chart-channel" role="button" tabindex="0" aria-label="Open chart: Channel owner">
+              <h4 class="chart-title">Channel owner</h4>
               <p class="chart-card__hint">Click to expand</p>
               <canvas id="chart-channel"></canvas>
             </div>
@@ -273,8 +273,8 @@
               <p class="chart-card__hint">Click to expand</p>
               <canvas id="chart-topic"></canvas>
             </div>
-            <div id="chart-contributors-card" class="chart-card" data-chart-id="chart-contributors" role="button" tabindex="0" aria-label="Open chart: Contributors">
-              <h4 class="chart-title">Contributors</h4>
+            <div id="chart-contributors-card" class="chart-card" data-chart-id="chart-contributors" role="button" tabindex="0" aria-label="Open chart: People involved">
+              <h4 class="chart-title">People involved</h4>
               <p class="chart-card__hint">Click to expand</p>
               <canvas id="chart-contributors"></canvas>
             </div>

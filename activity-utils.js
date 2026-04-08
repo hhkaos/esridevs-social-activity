@@ -135,6 +135,20 @@
     return '';
   };
 
+  const OPEN_SHEET_FIELD_ALIASES = {
+    date: ['Date'],
+    title: ['Title', 'Content title'],
+    url: ['URL', 'Url', 'Link'],
+    publisher: ['Publisher', 'Author', 'Authors'],
+    peopleInvolved: ['People involved', 'People Involved', 'People_involved', 'Contributors', 'Contributor', 'Authors'],
+    channelOwner: ['Channel owner', 'Channel Owner', 'Channel_owner', 'ChannelOwner', 'Channel'],
+    language: ['Language', 'Languages'],
+    technology: ['Topics_Product', 'Technology', 'Technologies'],
+    category: ['Category', 'Category / Content type', 'Content type'],
+    publisherValueDefinition: ['Publisher_value_definition', 'Publisher value definition', 'Author_value_definition'],
+    channelOwnerValueDefinition: ['Channel_owner_value_definition', 'Channel owner value definition', 'ChannelOwner_value_definition', 'Channel_value_definition'],
+  };
+
   const normalizeValueKey = (value) => normalizeCell(value).toLowerCase();
 
   const buildValueDefinitionMap = ({
@@ -313,14 +327,14 @@
   };
 
   const sanitizeActivityRows = (rows = []) => rows.filter((row) => {
-    const title = pickFirst(row, ['Title', 'Content title']);
-    const date = pickFirst(row, ['Date']);
-    const author = pickFirst(row, ['Author', 'Authors']);
-    const contributors = pickFirst(row, ['Contributors', 'Contributor', 'Authors']);
-    const channel = pickFirst(row, ['Channel']);
-    const language = pickFirst(row, ['Language', 'Languages']);
-    const technology = pickFirst(row, ['Topics_Product', 'Technology', 'Technologies']);
-    const category = pickFirst(row, ['Category', 'Category / Content type', 'Content type']);
+    const title = pickFirst(row, OPEN_SHEET_FIELD_ALIASES.title);
+    const date = pickFirst(row, OPEN_SHEET_FIELD_ALIASES.date);
+    const author = pickFirst(row, OPEN_SHEET_FIELD_ALIASES.publisher);
+    const contributors = pickFirst(row, OPEN_SHEET_FIELD_ALIASES.peopleInvolved);
+    const channel = pickFirst(row, OPEN_SHEET_FIELD_ALIASES.channelOwner);
+    const language = pickFirst(row, OPEN_SHEET_FIELD_ALIASES.language);
+    const technology = pickFirst(row, OPEN_SHEET_FIELD_ALIASES.technology);
+    const category = pickFirst(row, OPEN_SHEET_FIELD_ALIASES.category);
     const contentLinks = extractContentLinks(row);
     const socialLinks = extractSocialLinks(row);
 
@@ -379,21 +393,21 @@
 
   const OPEN_SHEET_SCHEMA = {
     activity: {
-      Date: ['Date'],
-      Title: ['Title', 'Content title'],
-      URL: ['URL', 'Url', 'Link'],
-      Author: ['Author', 'Authors'],
-      Contributor: ['Contributors', 'Contributor', 'Authors'],
-      Channel: ['Channel'],
-      Language: ['Language', 'Languages'],
-      Technology: ['Topics_Product', 'Technology', 'Technologies'],
-      Category: ['Category', 'Category / Content type', 'Content type'],
+      Date: OPEN_SHEET_FIELD_ALIASES.date,
+      Title: OPEN_SHEET_FIELD_ALIASES.title,
+      URL: OPEN_SHEET_FIELD_ALIASES.url,
+      Publisher: OPEN_SHEET_FIELD_ALIASES.publisher,
+      'People involved': OPEN_SHEET_FIELD_ALIASES.peopleInvolved,
+      'Channel owner': OPEN_SHEET_FIELD_ALIASES.channelOwner,
+      Language: OPEN_SHEET_FIELD_ALIASES.language,
+      Technology: OPEN_SHEET_FIELD_ALIASES.technology,
+      Category: OPEN_SHEET_FIELD_ALIASES.category,
     },
     dropdowns: {
-      Technology: ['Technologies', 'Technology', 'Topics_Product'],
-      Category: ['Category / Content type', 'Category', 'Content type'],
-      Channel: ['Channel'],
-      Author: ['Author', 'Authors'],
+      Technology: OPEN_SHEET_FIELD_ALIASES.technology,
+      Category: OPEN_SHEET_FIELD_ALIASES.category,
+      'Channel owner': OPEN_SHEET_FIELD_ALIASES.channelOwner,
+      Publisher: OPEN_SHEET_FIELD_ALIASES.publisher,
       Language: ['Languages', 'Language'],
     },
   };
@@ -491,6 +505,7 @@
     sanitizeActivityRows,
     runPostRefreshUiSync,
     createRenderGate,
+    OPEN_SHEET_FIELD_ALIASES,
     OPEN_SHEET_SCHEMA,
     validateSheetSchema,
     buildSchemaMismatchMessage,

@@ -1,6 +1,6 @@
 importScripts('./sw-update-utils.js');
 
-const CACHE_VERSION = 'v35';
+const CACHE_VERSION = 'v36';
 const SHELL_CACHE = `esridevs-shell-${CACHE_VERSION}`;
 
 const SHELL_ASSETS = [

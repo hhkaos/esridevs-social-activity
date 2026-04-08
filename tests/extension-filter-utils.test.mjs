@@ -218,6 +218,21 @@ test('itemMatchesFilters: matching author filter passes', () => {
   assert.ok(itemMatchesFilters(makeRow(), { authors: ['Jane'] }));
 });
 
+test('itemMatchesFilters: renamed Publisher, Channel owner, and People involved headers still match', () => {
+  assert.ok(itemMatchesFilters(makeRow({
+    Author: undefined,
+    Channel: undefined,
+    Contributors: undefined,
+    Publisher: 'Jane',
+    'Channel owner': 'Esri Blog',
+    'People involved': 'Alice, Bob',
+  }), {
+    authors: ['Jane'],
+    channels: ['Esri Blog'],
+    contributors: ['Bob'],
+  }));
+});
+
 test('itemMatchesFilters: matching technology filter passes (multi-value field)', () => {
   assert.ok(itemMatchesFilters(makeRow({ 'Topics_Product': 'ArcGIS Maps SDK, ArcGIS Online' }), {
     technologies: ['ArcGIS Online'],

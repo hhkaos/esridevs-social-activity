@@ -22,6 +22,26 @@ let expandedChartInstance = null;
 let expandedChartId = '';
 let chartModal = null;
 
+const chartPickFirst = typeof window.activityUtils?.pickFirst === 'function'
+  ? window.activityUtils.pickFirst
+  : (row, keys) => {
+    for (const key of keys) {
+      const value = `${row?.[key] ?? ''}`.trim();
+      if (value) return value;
+    }
+    return '';
+  };
+
+const CHART_FIELD_KEYS = {
+  date: window.activityUtils?.OPEN_SHEET_FIELD_ALIASES?.date || ['Date'],
+  publisher: window.activityUtils?.OPEN_SHEET_FIELD_ALIASES?.publisher || ['Publisher', 'Author', 'Authors'],
+  peopleInvolved: window.activityUtils?.OPEN_SHEET_FIELD_ALIASES?.peopleInvolved || ['People involved', 'People Involved', 'People_involved', 'Contributors', 'Contributor', 'Authors'],
+  channelOwner: window.activityUtils?.OPEN_SHEET_FIELD_ALIASES?.channelOwner || ['Channel owner', 'Channel Owner', 'Channel_owner', 'ChannelOwner', 'Channel'],
+  language: window.activityUtils?.OPEN_SHEET_FIELD_ALIASES?.language || ['Language', 'Languages'],
+  technology: window.activityUtils?.OPEN_SHEET_FIELD_ALIASES?.technology || ['Topics_Product', 'Technology', 'Technologies'],
+  category: window.activityUtils?.OPEN_SHEET_FIELD_ALIASES?.category || ['Category', 'Category / Content type', 'Content type'],
+};
+
 function destroyAll() {
   Object.values(chartInstances).forEach(c => c?.destroy());
   chartInstances = {};
@@ -153,14 +173,14 @@ function getFilteredData() {
   const fromDate = chartsParseISODate(dateRange.from);
   const toDate = chartsParseISODate(dateRange.to);
   return data.filter((row) => [
-    [channels, row['Channel'], false],
-    [technologies, row['Topics_Product'], false],
-    [categories, row['Category'], false],
-    [authors, row['Author'], false],
+    [channels, chartPickFirst(row, CHART_FIELD_KEYS.channelOwner), false],
+    [technologies, chartPickFirst(row, CHART_FIELD_KEYS.technology), false],
+    [categories, chartPickFirst(row, CHART_FIELD_KEYS.category), false],
+    [authors, chartPickFirst(row, CHART_FIELD_KEYS.publisher), false],
     [contributors, getContributorsCell(row), true],
-    [languages, row['Language'], false],
+    [languages, chartPickFirst(row, CHART_FIELD_KEYS.language), false],
   ].every(([map, val, splitValues]) => chartsPassesFilter(map, val, splitValues))
-    && chartsIsDateInRange(row['Date'], fromDate, toDate));
+    && chartsIsDateInRange(chartPickFirst(row, CHART_FIELD_KEYS.date), fromDate, toDate));
 }
 
 function chartsParseISODate(value) {
@@ -206,9 +226,9 @@ function monthKeyToLabel(key) {
 }
 
 /** Counts occurrences of each unique value for a given row key. */
-function countByKey(data, key) {
+function countByKey(data, getter, keys) {
   return data.reduce((acc, row) => {
-    const val = row[key] || 'Unknown';
+    const val = getter(row, keys) || 'Unknown';
     acc[val] = (acc[val] || 0) + 1;
     return acc;
   }, {});
@@ -222,7 +242,7 @@ function splitMultiValueCell(value) {
 }
 
 function getContributorsCell(row) {
-  return row['Authors'] || row['Contributors'] || row['Contributor'] || '';
+  return chartPickFirst(row, CHART_FIELD_KEYS.peopleInvolved);
 }
 
 function chartsPassesFilter(map, value, splitValues = false) {
@@ -277,20 +297,20 @@ window.renderCharts = function () {
   // Shared month axis (sorted chronologically)
   const monthMap = {};
   data.forEach(row => {
-    const m = toMonthKey(row['Date']);
+    const m = toMonthKey(chartPickFirst(row, CHART_FIELD_KEYS.date));
     if (m) monthMap[m] = (monthMap[m] || 0) + 1;
   });
   const sortedMonths = Object.keys(monthMap).sort();
   const monthLabels  = sortedMonths.map(monthKeyToLabel);
 
   // ── 1. Channel breakdown over time (stacked bar) ──────────────────────────
-  const allChannels = [...new Set(data.map((row) => row['Channel'] || 'Unknown'))];
+  const allChannels = [...new Set(data.map((row) => chartPickFirst(row, CHART_FIELD_KEYS.channelOwner) || 'Unknown'))];
   const byMonthChannel = {};
   data.forEach((row) => {
-    const m = toMonthKey(row['Date']);
+    const m = toMonthKey(chartPickFirst(row, CHART_FIELD_KEYS.date));
     if (!m) return;
     if (!byMonthChannel[m]) byMonthChannel[m] = {};
-    const channel = row['Channel'] || 'Unknown';
+    const channel = chartPickFirst(row, CHART_FIELD_KEYS.channelOwner) || 'Unknown';
     byMonthChannel[m][channel] = (byMonthChannel[m][channel] || 0) + 1;
   });
 
@@ -316,13 +336,13 @@ window.renderCharts = function () {
   });
 
   // ── 2. Author breakdown over time (stacked bar) ────────────────────────────
-  const allAuthors = [...new Set(data.map(r => r['Author'] || 'Unknown'))];
+  const allAuthors = [...new Set(data.map((row) => chartPickFirst(row, CHART_FIELD_KEYS.publisher) || 'Unknown'))];
   const byMonthAuthor = {};
-  data.forEach(row => {
-    const m = toMonthKey(row['Date']);
+  data.forEach((row) => {
+    const m = toMonthKey(chartPickFirst(row, CHART_FIELD_KEYS.date));
     if (!m) return;
     if (!byMonthAuthor[m]) byMonthAuthor[m] = {};
-    const a = row['Author'] || 'Unknown';
+    const a = chartPickFirst(row, CHART_FIELD_KEYS.publisher) || 'Unknown';
     byMonthAuthor[m][a] = (byMonthAuthor[m][a] || 0) + 1;
   });
 
@@ -348,7 +368,7 @@ window.renderCharts = function () {
   });
 
   // ── 3. Content type doughnut ───────────────────────────────────────────────
-  const typeEntries = Object.entries(countByKey(data, 'Category')).sort((a, b) => b[1] - a[1]);
+  const typeEntries = Object.entries(countByKey(data, chartPickFirst, CHART_FIELD_KEYS.category)).sort((a, b) => b[1] - a[1]);
   makeChart('chart-type', {
     type: 'doughnut',
     data: {
@@ -359,7 +379,7 @@ window.renderCharts = function () {
   });
 
   // ── 4. Channel doughnut ────────────────────────────────────────────────────
-  const channelEntries = Object.entries(countByKey(data, 'Channel')).sort((a, b) => b[1] - a[1]);
+  const channelEntries = Object.entries(countByKey(data, chartPickFirst, CHART_FIELD_KEYS.channelOwner)).sort((a, b) => b[1] - a[1]);
   makeChart('chart-channel', {
     type: 'doughnut',
     data: {
@@ -370,10 +390,10 @@ window.renderCharts = function () {
   });
 
   // ── 5. Top topics / technologies (stacked by author) ─────────────────────
-  const topicEntries = Object.entries(countByKey(data, 'Topics_Product'))
+  const topicEntries = Object.entries(countByKey(data, chartPickFirst, CHART_FIELD_KEYS.technology))
     .sort((a, b) => b[1] - a[1]);
   const topicLabels = topicEntries.map(([topic]) => topic);
-  const authorLabels = [...new Set(data.map((row) => row['Author'] || 'Unknown'))];
+  const authorLabels = [...new Set(data.map((row) => chartPickFirst(row, CHART_FIELD_KEYS.publisher) || 'Unknown'))];
   const topicAuthorCounts = {};
   topicLabels.forEach((topic) => {
     topicAuthorCounts[topic] = {};
@@ -382,9 +402,9 @@ window.renderCharts = function () {
     });
   });
   data.forEach((row) => {
-    const topic = row['Topics_Product'] || 'Unknown';
+    const topic = chartPickFirst(row, CHART_FIELD_KEYS.technology) || 'Unknown';
     if (!topicAuthorCounts[topic]) return;
-    const author = row['Author'] || 'Unknown';
+    const author = chartPickFirst(row, CHART_FIELD_KEYS.publisher) || 'Unknown';
     topicAuthorCounts[topic][author] = (topicAuthorCounts[topic][author] || 0) + 1;
   });
 
@@ -423,7 +443,7 @@ window.renderCharts = function () {
   });
 
   // ── 6. Language doughnut ───────────────────────────────────────────────────
-  const langEntries = Object.entries(countByKey(data, 'Language')).sort((a, b) => b[1] - a[1]);
+  const langEntries = Object.entries(countByKey(data, chartPickFirst, CHART_FIELD_KEYS.language)).sort((a, b) => b[1] - a[1]);
   makeChart('chart-language', {
     type: 'doughnut',
     data: {
@@ -438,7 +458,7 @@ window.renderCharts = function () {
     .sort((a, b) => b[1] - a[1]);
   const contributorsTitleEl = document.querySelector('#chart-contributors-card .chart-title');
   if (contributorsTitleEl) {
-    contributorsTitleEl.textContent = `Contributors (${countUniqueContributors(data)})`;
+    contributorsTitleEl.textContent = `People involved (${countUniqueContributors(data)})`;
   }
   makeChart('chart-contributors', {
     type: 'doughnut',

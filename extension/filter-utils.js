@@ -89,9 +89,9 @@ const ALIASES = {
   url:         ['URL', 'Url', 'Link'],
   technology:  ['Topics_Product', 'Technology', 'Technologies'],
   category:    ['Category', 'Category / Content type', 'Content type'],
-  channel:     ['Channel'],
-  author:      ['Author', 'Authors'],
-  contributor: ['Contributors', 'Contributor', 'Authors'],
+  channel:     ['Channel owner', 'Channel Owner', 'Channel_owner', 'ChannelOwner', 'Channel'],
+  author:      ['Publisher', 'Author', 'Authors'],
+  contributor: ['People involved', 'People Involved', 'People_involved', 'Contributors', 'Contributor', 'Authors'],
   language:    ['Language', 'Languages'],
 };
 

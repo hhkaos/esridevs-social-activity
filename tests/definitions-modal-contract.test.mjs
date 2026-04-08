@@ -36,15 +36,15 @@ test('load-table derives optional value definitions from Dropdowns and exposes r
   );
 
   assert.equal(
-    loadTableJs.includes("definitionKeys: ['Channel_value_definition']"),
+    loadTableJs.includes('CHANNEL_OWNER_DEFINITION_KEYS'),
     true,
-    'Expected Channel value definitions to be read from Dropdowns',
+    'Expected Channel owner value definitions to be read from Dropdowns aliases',
   );
 
   assert.equal(
-    loadTableJs.includes("definitionKeys: ['Author_value_definition']"),
+    loadTableJs.includes('PUBLISHER_DEFINITION_KEYS'),
     true,
-    'Expected Author value definitions to be read from Dropdowns',
+    'Expected Publisher value definitions to be read from Dropdowns aliases',
   );
 
   assert.equal(

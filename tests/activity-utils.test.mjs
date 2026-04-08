@@ -9,6 +9,7 @@ const {
   matchesSelectionMap,
   runPostRefreshUiSync,
   createRenderGate,
+  OPEN_SHEET_FIELD_ALIASES,
   validateSheetSchema,
   buildSchemaMismatchMessage,
   getFilterCollapseMeta,
@@ -45,6 +46,21 @@ test('sanitizeActivityRows keeps meaningful rows', () => {
     Author: 'Esri',
     Channel: 'Blog',
     Language: 'English',
+    Category: 'Article',
+  };
+
+  const sanitized = sanitizeActivityRows([validRow]);
+  assert.equal(sanitized.length, 1);
+});
+
+test('sanitizeActivityRows supports renamed Publisher, Channel owner, and People involved headers', () => {
+  const validRow = {
+    Date: '2026-02-23',
+    Title: 'ArcGIS Maps SDK update',
+    URL: 'https://developers.arcgis.com',
+    Publisher: 'Esri',
+    'Channel owner': 'Community',
+    'People involved': 'Jane Doe, John Doe',
     Category: 'Article',
   };
 
@@ -325,6 +341,32 @@ test('validateSheetSchema matches aliases case-insensitively', () => {
   assert.deepEqual(validation.mismatches, []);
 });
 
+test('validateSheetSchema passes when Activity and Dropdowns use renamed headers', () => {
+  const validation = validateSheetSchema({
+    activityRows: [{
+      Date: '2026-02-24',
+      Title: 'Sample',
+      URL: 'https://example.com',
+      Publisher: 'Esri',
+      'People involved': 'B',
+      'Channel owner': 'Community',
+      Language: 'English',
+      Topics_Product: 'ArcGIS',
+      Category: 'Article',
+    }],
+    dropdownRows: [{
+      Technologies: 'ArcGIS',
+      'Category / Content type': 'Article',
+      'Channel owner': 'Community',
+      Publisher: 'Esri',
+      Languages: 'English',
+    }],
+  });
+
+  assert.equal(validation.isValid, true);
+  assert.deepEqual(validation.mismatches, []);
+});
+
 test('validateSheetSchema does not require Contributor header in Dropdowns endpoint', () => {
   const validation = validateSheetSchema({
     activityRows: [{
@@ -429,4 +471,13 @@ test('resolveValueDefinition looks up values case-insensitively', () => {
 
   assert.equal(resolveValueDefinition(definitions, 'ESRI'), 'Official Esri channels');
   assert.equal(resolveValueDefinition(definitions, 'Unknown value'), '');
+});
+
+test('OPEN_SHEET_FIELD_ALIASES keeps backward-compatible and renamed headers together', () => {
+  assert.ok(OPEN_SHEET_FIELD_ALIASES.publisher.includes('Publisher'));
+  assert.ok(OPEN_SHEET_FIELD_ALIASES.publisher.includes('Author'));
+  assert.ok(OPEN_SHEET_FIELD_ALIASES.channelOwner.includes('Channel owner'));
+  assert.ok(OPEN_SHEET_FIELD_ALIASES.channelOwner.includes('Channel'));
+  assert.ok(OPEN_SHEET_FIELD_ALIASES.peopleInvolved.includes('People involved'));
+  assert.ok(OPEN_SHEET_FIELD_ALIASES.peopleInvolved.includes('Contributors'));
 });

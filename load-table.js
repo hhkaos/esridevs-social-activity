@@ -26,8 +26,8 @@ window.highlightedItemUrls = (() => {
   }
 })();
 window.definitionData = {
-  channelValueDefinitions: {},
-  authorValueDefinitions: {},
+  channelOwnerValueDefinitions: {},
+  publisherValueDefinitions: {},
 };
 
 // ── Cache helpers ─────────────────────────────────────────────────────────────
@@ -187,6 +187,7 @@ const {
   buildSchemaMismatchMessage,
   buildValueDefinitionMap,
   resolveValueDefinition,
+  OPEN_SHEET_FIELD_ALIASES,
 } = window.activityUtils || {};
 
 if (
@@ -209,21 +210,30 @@ if (
   throw new Error('activity-utils.js must be loaded before load-table.js');
 }
 
+const PUBLISHER_FIELD_KEYS = OPEN_SHEET_FIELD_ALIASES?.publisher || ['Publisher', 'Author', 'Authors'];
+const PEOPLE_INVOLVED_FIELD_KEYS = OPEN_SHEET_FIELD_ALIASES?.peopleInvolved || ['People involved', 'People Involved', 'People_involved', 'Contributors', 'Contributor', 'Authors'];
+const CHANNEL_OWNER_FIELD_KEYS = OPEN_SHEET_FIELD_ALIASES?.channelOwner || ['Channel owner', 'Channel Owner', 'Channel_owner', 'ChannelOwner', 'Channel'];
+const LANGUAGE_FIELD_KEYS = OPEN_SHEET_FIELD_ALIASES?.language || ['Language', 'Languages'];
+const TECHNOLOGY_FIELD_KEYS = OPEN_SHEET_FIELD_ALIASES?.technology || ['Topics_Product', 'Technology', 'Technologies'];
+const CATEGORY_FIELD_KEYS = OPEN_SHEET_FIELD_ALIASES?.category || ['Category', 'Category / Content type', 'Content type'];
+const PUBLISHER_DEFINITION_KEYS = OPEN_SHEET_FIELD_ALIASES?.publisherValueDefinition || ['Publisher_value_definition', 'Publisher value definition', 'Author_value_definition'];
+const CHANNEL_OWNER_DEFINITION_KEYS = OPEN_SHEET_FIELD_ALIASES?.channelOwnerValueDefinition || ['Channel_owner_value_definition', 'Channel owner value definition', 'ChannelOwner_value_definition', 'Channel_value_definition'];
+
 const schemaWarningBannerEl = document.querySelector('#schema-warning-banner');
 const definitionsModalEl = document.querySelector('#definitions-modal');
 const definitionsModalTitleEl = document.querySelector('#definitions-modal-title');
 const definitionsModalBodyEl = document.querySelector('#definitions-modal-body');
 
 const FIELD_DEFINITION_TEXT = {
-  contributor: 'People who helped create or make this content available (authors, presenters, collaborators, and other contributors).',
-  channel: 'Source side of the content: where it originates from in this dataset (for example Esri, Distributor, or Community).',
-  author: 'Publishing-side label used in this dataset for where content was posted (for example Esri, Distributor, Community, Multiple, Unknown, or AI generated).',
+  contributor: 'People who had relevant involvement in creating, publishing, or distributing this piece.',
+  channel: 'Who owns or administers the channel, site, or account where the piece appears.',
+  author: 'Who publishes, issues, or officially stands behind the piece in this resource.',
 };
 
 const FIELD_LABELS = {
-  contributor: 'Contributor',
-  channel: 'Channel',
-  author: 'Author',
+  contributor: 'People involved',
+  channel: 'Channel owner',
+  author: 'Publisher',
 };
 
 const showSchemaWarning = (message) => {
@@ -391,12 +401,12 @@ const renderDefinitionModalSection = (fieldKey) => {
   if (normalizedField === 'channel') {
     valueListHtml = buildValueDefinitionItems(
       window.dropdownData?.channels || [],
-      window.definitionData?.channelValueDefinitions || {},
+      window.definitionData?.channelOwnerValueDefinitions || {},
     );
   } else if (normalizedField === 'author') {
     valueListHtml = buildValueDefinitionItems(
       window.dropdownData?.authors || [],
-      window.definitionData?.authorValueDefinitions || {},
+      window.definitionData?.publisherValueDefinitions || {},
     );
   }
 
@@ -494,10 +504,10 @@ const buildShareNudgeText = (row) => {
   const uniqueNames = [...new Set([...authorNames, ...contributorNames])];
   if (uniqueNames.length > 0) {
     const displayNames = uniqueNames.slice(0, 3);
-    const suffix = uniqueNames.length > 3 ? ', and other contributors' : '';
+    const suffix = uniqueNames.length > 3 ? ', and other people involved' : '';
     return `Found this useful? Help ${formatPeopleList(displayNames)}${suffix} by sharing it with your network.`;
   }
-  return 'Found this useful? Help the author by sharing it with your network.';
+  return 'Found this useful? Help the people involved by sharing it with your network.';
 };
 
 const dismissShareNudgeForRow = (row) => {
@@ -564,12 +574,12 @@ const dedupeActivityRows = (rows) => {
       pickFirst(row, ['X/Twitter', 'X', 'Twitter']),
       pickFirst(row, ['Bluesky', 'BlueSky']),
       pickFirst(row, ['EsriDevs Shared', 'EsriDevs shared', 'EsriDevs\nShared']),
-      pickFirst(row, ['Author', 'Authors']),
-      pickFirst(row, ['Contributors', 'Contributor']),
-      pickFirst(row, ['Channel']),
-      pickFirst(row, ['Language', 'Languages']),
-      pickFirst(row, ['Topics_Product', 'Technology', 'Technologies']),
-      pickFirst(row, ['Category', 'Category / Content type', 'Content type']),
+      pickFirst(row, PUBLISHER_FIELD_KEYS),
+      pickFirst(row, PEOPLE_INVOLVED_FIELD_KEYS),
+      pickFirst(row, CHANNEL_OWNER_FIELD_KEYS),
+      pickFirst(row, LANGUAGE_FIELD_KEYS),
+      pickFirst(row, TECHNOLOGY_FIELD_KEYS),
+      pickFirst(row, CATEGORY_FIELD_KEYS),
     ]
       .map(normalizeForKey)
       .join('|') || `row:${index}`;
@@ -732,29 +742,29 @@ function buildDropdownData(dropdownRows, authorsRows) {
       .map((row) => Object.values(row).map(v => `${v ?? ''}`.trim()).find(Boolean))
       .filter(Boolean)
   )];
-  const contributorsFromDropdown = uniqueColumnValues(dropdownRows, ['Contributors', 'Contributor', 'Authors']);
+  const contributorsFromDropdown = uniqueColumnValues(dropdownRows, PEOPLE_INVOLVED_FIELD_KEYS);
   const contributors = [...new Set([...contributorsFromDropdown, ...authorsFromSheet])];
   return {
-    technologies: uniqueColumnValues(dropdownRows, ['Technologies', 'Technology', 'Topics_Product']),
-    categories:   uniqueColumnValues(dropdownRows, ['Category / Content type', 'Category', 'Content type']),
-    channels:     uniqueColumnValues(dropdownRows, ['Channel']),
-    authors:      uniqueColumnValues(dropdownRows, ['Author', 'Authors']),
+    technologies: uniqueColumnValues(dropdownRows, TECHNOLOGY_FIELD_KEYS),
+    categories:   uniqueColumnValues(dropdownRows, CATEGORY_FIELD_KEYS),
+    channels:     uniqueColumnValues(dropdownRows, CHANNEL_OWNER_FIELD_KEYS),
+    authors:      uniqueColumnValues(dropdownRows, PUBLISHER_FIELD_KEYS),
     contributors,
-    languages:    uniqueColumnValues(dropdownRows, ['Languages', 'Language']),
+    languages:    uniqueColumnValues(dropdownRows, LANGUAGE_FIELD_KEYS),
   };
 }
 
 function buildDefinitionData(dropdownRows) {
   return {
-    channelValueDefinitions: buildValueDefinitionMap({
+    channelOwnerValueDefinitions: buildValueDefinitionMap({
       rows: dropdownRows,
-      valueKeys: ['Channel'],
-      definitionKeys: ['Channel_value_definition'],
+      valueKeys: CHANNEL_OWNER_FIELD_KEYS,
+      definitionKeys: CHANNEL_OWNER_DEFINITION_KEYS,
     }),
-    authorValueDefinitions: buildValueDefinitionMap({
+    publisherValueDefinitions: buildValueDefinitionMap({
       rows: dropdownRows,
-      valueKeys: ['Author', 'Authors'],
-      definitionKeys: ['Author_value_definition'],
+      valueKeys: PUBLISHER_FIELD_KEYS,
+      definitionKeys: PUBLISHER_DEFINITION_KEYS,
     }),
   };
 }
@@ -811,12 +821,12 @@ function createTableRowClone(entry, template) {
   const date = pickFirst(entry, ['Date']);
   const title = pickFirst(entry, ['Title', 'Content title']);
   const contentLinks = Array.isArray(entry.__contentLinks) ? entry.__contentLinks : extractContentLinks(entry);
-  const author = pickFirst(entry, ['Author', 'Authors']);
-  const contributors = pickFirst(entry, ['Contributors', 'Contributor', 'Authors']);
-  const channel = pickFirst(entry, ['Channel']);
-  const language = pickFirst(entry, ['Language', 'Languages']);
-  const technology = pickFirst(entry, ['Topics_Product', 'Technology', 'Technologies']);
-  const category = pickFirst(entry, ['Category', 'Category / Content type', 'Content type']);
+  const author = pickFirst(entry, PUBLISHER_FIELD_KEYS);
+  const contributors = pickFirst(entry, PEOPLE_INVOLVED_FIELD_KEYS);
+  const channel = pickFirst(entry, CHANNEL_OWNER_FIELD_KEYS);
+  const language = pickFirst(entry, LANGUAGE_FIELD_KEYS);
+  const technology = pickFirst(entry, TECHNOLOGY_FIELD_KEYS);
+  const category = pickFirst(entry, CATEGORY_FIELD_KEYS);
   const socialLinks = Array.isArray(entry.__socialLinks) ? entry.__socialLinks : extractSocialLinks(entry);
 
   const hasRenderableData = [
