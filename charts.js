@@ -161,6 +161,9 @@ function getFilteredData() {
   const data = window.activityData || [];
   const f = window.flags;
   if (!f) return data;
+  if (typeof window.activityUtils?.filterActivityRows === 'function') {
+    return window.activityUtils.filterActivityRows(data, f);
+  }
   const {
     channels = {},
     technologies = {},
@@ -168,11 +171,13 @@ function getFilteredData() {
     authors = {},
     contributors = {},
     languages = {},
+    featuredOnly = false,
     dateRange = {},
   } = f;
   const fromDate = chartsParseISODate(dateRange.from);
   const toDate = chartsParseISODate(dateRange.to);
-  return data.filter((row) => [
+  return data.filter((row) => (!featuredOnly || ['true', 'yes', 'y', '1', 'x'].includes(`${row?.Featured ?? ''}`.trim().toLowerCase()))
+    && [
     [channels, chartPickFirst(row, CHART_FIELD_KEYS.channelOwner), false],
     [technologies, chartPickFirst(row, CHART_FIELD_KEYS.technology), false],
     [categories, chartPickFirst(row, CHART_FIELD_KEYS.category), false],

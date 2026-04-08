@@ -9,6 +9,7 @@ const projectRoot = path.join(__dirname, '..');
 
 const indexHtml = fs.readFileSync(path.join(projectRoot, 'index.html'), 'utf8');
 const applyFiltersSource = fs.readFileSync(path.join(projectRoot, 'apply-filters.js'), 'utf8');
+const activityUtilsSource = fs.readFileSync(path.join(projectRoot, 'activity-utils.js'), 'utf8');
 const loadTableSource = fs.readFileSync(path.join(projectRoot, 'load-table.js'), 'utf8');
 
 test('content title header includes accessible featured-only toggle button', () => {
@@ -23,7 +24,9 @@ test('featuredOnly filter flag is normalized and toggled in apply-filters', () =
   assert.match(applyFiltersSource, /featuredOnly: false/);
   assert.match(applyFiltersSource, /typeof input\.featuredOnly === 'boolean'/);
   assert.match(applyFiltersSource, /filters: flags,/);
-  assert.match(applyFiltersSource, /if \(featuredOnly && row\.dataset\.featured !== '1'\) return false;/);
+  assert.match(applyFiltersSource, /const getFilteredActivityRows = \(rows = window\.activityData \|\| \[\]\) => \{/);
+  assert.match(applyFiltersSource, /window\.activityUtils\?\.filterActivityRows/);
+  assert.match(activityUtilsSource, /if \(featuredOnly && !isTruthyFlag\(pickFirst\(row, FEATURED_FIELD_ALIASES\)\)\) return false;/);
   assert.match(applyFiltersSource, /const featuredOnlyToggleBtn = document\.querySelector\('#featured-only-toggle'\);/);
   assert.match(applyFiltersSource, /featuredOnlyToggleBtn\?\.addEventListener\('click'/);
   assert.match(applyFiltersSource, /flags\.featuredOnly = false;/);

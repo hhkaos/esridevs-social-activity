@@ -30,6 +30,32 @@ const DEFAULT_COLUMN_VISIBILITY = {
   category: false,
 };
 
+const TABLE_LAYOUT_STORAGE_KEY = 'esridevs_table_layout_v1';
+const ALL_TABLE_COLS = [
+  { key: 'date', label: 'Date', fixedVisibility: true },
+  { key: 'title', label: 'Content title', fixedVisibility: true },
+  { key: 'author', label: 'Publisher', filterId: '#filter-author' },
+  { key: 'channel', label: 'Channel owner', filterId: '#filter-channel' },
+  { key: 'language', label: 'Language', filterId: '#filter-language' },
+  { key: 'social', label: 'Share' },
+  { key: 'contributor', label: 'People involved', filterId: '#filter-contributors' },
+  { key: 'topic', label: 'Topic', filterId: '#filter-topics' },
+  { key: 'category', label: 'Content type', filterId: '#filter-category' },
+];
+const DEFAULT_COLUMN_ORDER = ALL_TABLE_COLS.map((col) => col.key);
+const TABLE_COL_KEY_SET = new Set(DEFAULT_COLUMN_ORDER);
+const COLUMN_RESIZE_LIMITS = {
+  date: { min: 84, max: 220 },
+  title: { min: 280, max: 960 },
+  author: { min: 140, max: 420 },
+  channel: { min: 150, max: 420 },
+  language: { min: 96, max: 260 },
+  social: { min: 96, max: 240 },
+  contributor: { min: 150, max: 420 },
+  topic: { min: 140, max: 460 },
+  category: { min: 120, max: 320 },
+};
+
 const createDefaultFlags = () => ({
   technologies: {},
   categories: {},
@@ -84,6 +110,47 @@ const normalizeColumnVisibility = (input) => {
   return normalized;
 };
 
+const normalizeColumnOrder = (input) => {
+  if (!Array.isArray(input)) return [...DEFAULT_COLUMN_ORDER];
+
+  const nextOrder = input
+    .map((value) => `${value ?? ''}`.trim())
+    .filter((value, index, values) => TABLE_COL_KEY_SET.has(value) && values.indexOf(value) === index);
+
+  DEFAULT_COLUMN_ORDER.forEach((key) => {
+    if (!nextOrder.includes(key)) nextOrder.push(key);
+  });
+
+  return nextOrder;
+};
+
+const normalizeColumnWidths = (input) => {
+  const normalized = {};
+  if (!input || typeof input !== 'object') return normalized;
+
+  Object.entries(input).forEach(([key, rawWidth]) => {
+    if (!TABLE_COL_KEY_SET.has(key)) return;
+    const width = Number(rawWidth);
+    if (!Number.isFinite(width)) return;
+    const limits = COLUMN_RESIZE_LIMITS[key] || { min: 72, max: 960 };
+    normalized[key] = Math.round(Math.min(limits.max, Math.max(limits.min, width)));
+  });
+
+  return normalized;
+};
+
+const loadLocalTableLayout = () => {
+  try {
+    const raw = localStorage.getItem(TABLE_LAYOUT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
 const normalizeActiveTab = (value) => (value === 'trends' ? 'trends' : 'table');
 
 const decodeShareState = (encoded) => {
@@ -133,10 +200,17 @@ const hasNestedState = parsedHashState && typeof parsedHashState === 'object' &&
 const activeTabFromState = hasNestedState
   ? parsedHashState.activeTab
   : (parsedHashState && typeof parsedHashState === 'object' ? parsedHashState.activeTab : null);
+const localTableLayout = loadLocalTableLayout();
+const shareColumns = normalizeColumnVisibility(hasNestedState ? parsedHashState.columns : null);
+const initialColumns = stateFromUrl.source
+  ? shareColumns
+  : normalizeColumnVisibility(localTableLayout?.columns);
 
 const appState = {
   filters: normalizeFlags(hasNestedState ? parsedHashState.filters : parsedHashState),
-  columns: normalizeColumnVisibility(hasNestedState ? parsedHashState.columns : null),
+  columns: initialColumns,
+  columnOrder: normalizeColumnOrder(localTableLayout?.order),
+  columnWidths: normalizeColumnWidths(localTableLayout?.widths),
   activeTab: normalizeActiveTab(activeTabFromState),
 };
 
@@ -478,15 +552,6 @@ const parseISODate = (value) => {
   return date;
 };
 
-const parseRowDate = (value) => {
-  if (!value) return null;
-  const exactIso = parseISODate(value);
-  if (exactIso) return exactIso;
-  const date = new Date(value);
-  if (isNaN(date)) return null;
-  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-};
-
 const getDateInputs = () => ({
   preset: document.querySelector('#date-preset'),
   from: document.querySelector('#date-from'),
@@ -563,27 +628,37 @@ const handleActivityDataRefresh = () => {
 window.handleActivityDataRefresh = handleActivityDataRefresh;
 
 const isDateInRange = (dateString) => {
-  const rowDate = parseRowDate(dateString);
-  if (!rowDate) return true;
+  const rowDate = parseISODate(dateString) || (dateString ? new Date(dateString) : null);
+  if (!(rowDate instanceof Date) || Number.isNaN(rowDate.getTime())) return true;
+
+  const normalizedRowDate = parseISODate(dateString)
+    || new Date(Date.UTC(rowDate.getFullYear(), rowDate.getMonth(), rowDate.getDate()));
   const fromDate = parseISODate(flags.dateRange.from);
   const toDate = parseISODate(flags.dateRange.to);
-  if (fromDate && rowDate < fromDate) return false;
-  if (toDate && rowDate > toDate) return false;
+  if (fromDate && normalizedRowDate < fromDate) return false;
+  if (toDate && normalizedRowDate > toDate) return false;
   return true;
 };
 
-const isRowVisible = (row) => {
-  const { channels, technologies, categories, authors, contributors, languages, featuredOnly } = flags;
-  if (featuredOnly && row.dataset.featured !== '1') return false;
-  return isDateInRange(row.dataset.date) && [
-    [channels, row.dataset.channels, false],
-    [technologies, row.dataset.technologies, true],
-    [categories, row.dataset.categories, false],
-    [authors, row.dataset.authors, false],
-    [contributors, row.dataset.contributors, true],
-    [languages, row.dataset.languages, false],
-  ].every(([map, val, splitValues]) => passesFilter(map, val, splitValues));
+const getFilteredActivityRows = (rows = window.activityData || []) => {
+  if (typeof window.activityUtils?.filterActivityRows === 'function') {
+    return window.activityUtils.filterActivityRows(rows, flags);
+  }
+
+  return (Array.isArray(rows) ? rows : []).filter((row) => (
+    (!flags.featuredOnly || ['true', 'yes', 'y', '1', 'x'].includes(`${row?.Featured ?? ''}`.trim().toLowerCase()))
+    && isDateInRange(row?.Date) && [
+      [flags.channels, row?.Channel, false],
+      [flags.technologies, row?.Topics_Product, true],
+      [flags.categories, row?.Category, false],
+      [flags.authors, row?.Author, false],
+      [flags.contributors, row?.Contributor, true],
+      [flags.languages, row?.Language, false],
+    ].every(([map, val, splitValues]) => passesFilter(map, val, splitValues))
+  ));
 };
+
+window.getFilteredActivityRows = getFilteredActivityRows;
 
 const trendsTabIsActive = () => document.querySelector('#tab-trends')?.classList.contains('active');
 const isTableRenderReady = () => {
@@ -626,16 +701,19 @@ const setActiveTab = (tabKey) => {
 
 const applyFilters = () => {
   if (!isTableRenderReady()) return;
-  const rows = [...document.querySelectorAll('#main-table tbody tr')];
-  let visibleRows = 0;
+  const allRows = Array.isArray(window.activityData) ? window.activityData : [];
+  const filteredRows = getFilteredActivityRows(allRows);
 
-  rows.forEach((row) => {
-    const showRow = isRowVisible(row);
-    if (showRow) visibleRows += 1;
-    row.classList.toggle('hidden', !showRow);
-  });
+  if (typeof window.updateRenderedTableRows === 'function') {
+    window.updateRenderedTableRows(filteredRows);
+  } else {
+    const rows = [...document.querySelectorAll('#main-table tbody tr')];
+    rows.forEach((row) => {
+      row.classList.remove('hidden');
+    });
+  }
 
-  updateFilterSummary(visibleRows, rows.length);
+  updateFilterSummary(filteredRows.length, allRows.length);
   syncFilterTriggerStates();
 
   if (trendsTabIsActive() && typeof window.renderCharts === 'function') {
@@ -726,15 +804,7 @@ const initApp = () => {
   });
 };
 
-const TOGGLEABLE_COLS = [
-  { key: 'topic', filterId: '#filter-topics' },
-  { key: 'author', filterId: '#filter-author' },
-  { key: 'channel', filterId: '#filter-channel' },
-  { key: 'language', filterId: '#filter-language' },
-  { key: 'social' },
-  { key: 'contributor', filterId: '#filter-contributors' },
-  { key: 'category', filterId: '#filter-category' },
-];
+const TOGGLEABLE_COLS = ALL_TABLE_COLS.filter((col) => !col.fixedVisibility);
 
 const featuredOnlyToggleBtn = document.querySelector('#featured-only-toggle');
 const featuredOnlyHeaderCell = featuredOnlyToggleBtn?.closest('th');
@@ -757,6 +827,226 @@ featuredOnlyToggleBtn?.addEventListener('click', () => {
 const colPickerBtn = document.querySelector('#col-picker-btn');
 const colPickerPanel = document.querySelector('#col-picker-panel');
 const colPickerWrap = document.querySelector('.col-picker-wrap');
+const colOrderList = document.querySelector('#col-order-list');
+const resetTableLayoutBtn = document.querySelector('#reset-table-layout-btn');
+let draggedColumnKey = '';
+let activeResizeState = null;
+
+const getCurrentColumnVisibility = () => TOGGLEABLE_COLS.reduce((acc, col) => {
+  const cb = document.querySelector(`#col-toggle-${col.key}`);
+  acc[col.key] = cb ? !!cb.checked : !!appState.columns[col.key];
+  return acc;
+}, {});
+
+const persistLocalTableLayout = () => {
+  try {
+    localStorage.setItem(TABLE_LAYOUT_STORAGE_KEY, JSON.stringify({
+      columns: getCurrentColumnVisibility(),
+      order: appState.columnOrder,
+      widths: appState.columnWidths,
+    }));
+  } catch {
+    // Ignore storage quota / privacy mode failures. The layout still works for this session.
+  }
+};
+
+const getColumnWidthLimits = (key) => COLUMN_RESIZE_LIMITS[key] || { min: 72, max: 960 };
+const clampColumnWidth = (key, width) => {
+  const limits = getColumnWidthLimits(key);
+  return Math.round(Math.min(limits.max, Math.max(limits.min, width)));
+};
+
+const getTableRowsForLayout = () => (
+  [...document.querySelectorAll('#main-table thead tr, #main-table tbody tr, #templateRow tr')]
+);
+
+const syncColumnOrderListUi = () => {
+  if (!colOrderList) return;
+  appState.columnOrder.forEach((key) => {
+    const itemEl = colOrderList.querySelector(`[data-col-key="${key}"]`);
+    if (itemEl) colOrderList.appendChild(itemEl);
+  });
+
+  TOGGLEABLE_COLS.forEach((col) => {
+    const itemEl = colOrderList.querySelector(`[data-col-key="${col.key}"]`);
+    if (!itemEl) return;
+    itemEl.classList.toggle('is-hidden-column', !appState.columns[col.key]);
+  });
+};
+
+const applyColumnOrderState = () => {
+  getTableRowsForLayout().forEach((rowEl) => {
+    const cellsByKey = new Map(
+      [...rowEl.children]
+        .filter((cellEl) => cellEl instanceof HTMLElement)
+        .map((cellEl) => [cellEl.getAttribute('data-col'), cellEl]),
+    );
+
+    appState.columnOrder.forEach((key) => {
+      const cellEl = cellsByKey.get(key);
+      if (cellEl) rowEl.appendChild(cellEl);
+    });
+  });
+
+  syncColumnOrderListUi();
+};
+
+const applyColumnWidthState = (key) => {
+  const width = appState.columnWidths[key];
+  document.querySelectorAll(`#main-table [data-col="${key}"], #templateRow [data-col="${key}"]`).forEach((cellEl) => {
+    if (!(cellEl instanceof HTMLElement)) return;
+    if (width) {
+      cellEl.style.width = `${width}px`;
+      cellEl.style.minWidth = `${width}px`;
+      return;
+    }
+
+    cellEl.style.removeProperty('width');
+    cellEl.style.removeProperty('min-width');
+  });
+};
+
+const applyAllColumnWidths = () => {
+  DEFAULT_COLUMN_ORDER.forEach((key) => applyColumnWidthState(key));
+};
+
+const stopColumnResize = () => {
+  if (!activeResizeState) return;
+  document.body.classList.remove('is-column-resizing');
+  window.removeEventListener('mousemove', handleColumnResizeMove);
+  window.removeEventListener('mouseup', stopColumnResize);
+  persistLocalTableLayout();
+  activeResizeState = null;
+};
+
+function handleColumnResizeMove(event) {
+  if (!activeResizeState) return;
+  const nextWidth = clampColumnWidth(
+    activeResizeState.key,
+    activeResizeState.startWidth + (event.clientX - activeResizeState.startX),
+  );
+  appState.columnWidths[activeResizeState.key] = nextWidth;
+  applyColumnWidthState(activeResizeState.key);
+}
+
+const beginColumnResize = (event, key) => {
+  if (event.button !== 0) return;
+  const headerEl = document.querySelector(`#main-table thead th[data-col="${key}"]`);
+  if (!headerEl) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  activeResizeState = {
+    key,
+    startX: event.clientX,
+    startWidth: headerEl.getBoundingClientRect().width,
+  };
+
+  document.body.classList.add('is-column-resizing');
+  window.addEventListener('mousemove', handleColumnResizeMove);
+  window.addEventListener('mouseup', stopColumnResize);
+};
+
+const adjustColumnWidthByStep = (key, step) => {
+  const headerEl = document.querySelector(`#main-table thead th[data-col="${key}"]`);
+  const currentWidth = appState.columnWidths[key]
+    || Math.round(headerEl?.getBoundingClientRect().width || getColumnWidthLimits(key).min);
+  const nextWidth = clampColumnWidth(key, currentWidth + step);
+  appState.columnWidths[key] = nextWidth;
+  applyColumnWidthState(key);
+  persistLocalTableLayout();
+};
+
+const resetColumnWidth = (key) => {
+  delete appState.columnWidths[key];
+  applyColumnWidthState(key);
+  persistLocalTableLayout();
+};
+
+const initColumnResizeHandles = () => {
+  document.querySelectorAll('#main-table thead th[data-col]').forEach((headerEl) => {
+    if (headerEl.querySelector('.table-col-resize-handle')) return;
+    const key = headerEl.getAttribute('data-col');
+    const label = ALL_TABLE_COLS.find((col) => col.key === key)?.label || key;
+    const handleEl = document.createElement('button');
+    handleEl.type = 'button';
+    handleEl.className = 'table-col-resize-handle';
+    handleEl.setAttribute('aria-label', `Resize ${label} column`);
+    handleEl.title = `Resize ${label}`;
+    handleEl.addEventListener('mousedown', (event) => beginColumnResize(event, key));
+    handleEl.addEventListener('dblclick', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      resetColumnWidth(key);
+    });
+    handleEl.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        adjustColumnWidthByStep(key, -16);
+      }
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        adjustColumnWidthByStep(key, 16);
+      }
+    });
+    headerEl.appendChild(handleEl);
+  });
+};
+
+const moveColumnInOrder = (dragKey, targetKey, placement = 'before') => {
+  if (!dragKey || !targetKey || dragKey === targetKey) return;
+  const nextOrder = appState.columnOrder.filter((key) => key !== dragKey);
+  const targetIndex = nextOrder.indexOf(targetKey);
+  if (targetIndex === -1) return;
+  const insertIndex = placement === 'after' ? targetIndex + 1 : targetIndex;
+  nextOrder.splice(insertIndex, 0, dragKey);
+  appState.columnOrder = normalizeColumnOrder(nextOrder);
+  applyColumnOrderState();
+  applyAllColumnWidths();
+  persistLocalTableLayout();
+};
+
+const clearColumnDropIndicators = () => {
+  colOrderList?.querySelectorAll('.col-order-item').forEach((itemEl) => {
+    itemEl.classList.remove('is-drop-before', 'is-drop-after', 'is-dragging');
+  });
+};
+
+colOrderList?.querySelectorAll('.col-order-item').forEach((itemEl) => {
+  itemEl.addEventListener('dragstart', (event) => {
+    if (event.target instanceof Element && event.target.closest('.col-order-item__toggle')) {
+      event.preventDefault();
+      return;
+    }
+    draggedColumnKey = itemEl.getAttribute('data-col-key') || '';
+    itemEl.classList.add('is-dragging');
+    event.dataTransfer?.setData('text/plain', draggedColumnKey);
+    if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+  });
+
+  itemEl.addEventListener('dragover', (event) => {
+    if (!draggedColumnKey) return;
+    event.preventDefault();
+    clearColumnDropIndicators();
+    const rect = itemEl.getBoundingClientRect();
+    const placement = event.clientY >= rect.top + (rect.height / 2) ? 'after' : 'before';
+    itemEl.classList.add(placement === 'after' ? 'is-drop-after' : 'is-drop-before');
+  });
+
+  itemEl.addEventListener('drop', (event) => {
+    event.preventDefault();
+    const targetKey = itemEl.getAttribute('data-col-key') || '';
+    const rect = itemEl.getBoundingClientRect();
+    const placement = event.clientY >= rect.top + (rect.height / 2) ? 'after' : 'before';
+    moveColumnInOrder(draggedColumnKey, targetKey, placement);
+    clearColumnDropIndicators();
+  });
+
+  itemEl.addEventListener('dragend', () => {
+    draggedColumnKey = '';
+    clearColumnDropIndicators();
+  });
+});
 
 const closeColumnPicker = () => {
   colPickerPanel?.classList.remove('open');
@@ -821,6 +1111,8 @@ TOGGLEABLE_COLS.forEach((col) => {
   cb.addEventListener('change', () => {
     appState.columns[col.key] = cb.checked;
     applyColumnToggleState(col, cb.checked);
+    syncColumnOrderListUi();
+    persistLocalTableLayout();
   });
 });
 
@@ -830,14 +1122,30 @@ const syncColumnVisibilityWithToggles = () => {
     if (!cb) return;
     applyColumnToggleState(col, cb.checked);
   });
+  syncColumnOrderListUi();
+};
+
+const syncTableColumnLayout = () => {
+  applyColumnOrderState();
+  applyAllColumnWidths();
+  syncColumnVisibilityWithToggles();
+  initColumnResizeHandles();
 };
 
 window.syncColumnVisibilityWithToggles = syncColumnVisibilityWithToggles;
+window.syncTableColumnLayout = syncTableColumnLayout;
 
-syncColumnVisibilityWithToggles();
+syncTableColumnLayout();
 syncFilterTriggerStates();
 
 const resetFiltersBtn = document.querySelector('#reset-filters-btn');
+resetTableLayoutBtn?.addEventListener('click', () => {
+  appState.columnOrder = [...DEFAULT_COLUMN_ORDER];
+  appState.columnWidths = {};
+  syncTableColumnLayout();
+  persistLocalTableLayout();
+});
+
 resetFiltersBtn?.addEventListener('click', () => {
   closeFilterPopover();
   resetMultiSelect('#topics', 'technologies');
@@ -860,13 +1168,14 @@ resetFiltersBtn?.addEventListener('click', () => {
     applyColumnToggleState(col, cb.checked);
   });
 
+  persistLocalTableLayout();
   applyFilters();
 });
 
 const previousOnDataLoaded = window.onDataLoaded;
 window.onDataLoaded = () => {
   if (typeof previousOnDataLoaded === 'function') previousOnDataLoaded();
-  syncColumnVisibilityWithToggles();
+  syncTableColumnLayout();
   syncFilterTriggerStates();
   syncFeaturedOnlyToggleUi();
   setActiveTab(appState.activeTab);

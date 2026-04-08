@@ -148,6 +148,48 @@
     publisherValueDefinition: ['Publisher_value_definition', 'Publisher value definition', 'Author_value_definition'],
     channelOwnerValueDefinition: ['Channel_owner_value_definition', 'Channel owner value definition', 'ChannelOwner_value_definition', 'Channel_value_definition'],
   };
+  const FEATURED_FIELD_ALIASES = ['Featured', 'featured', 'Featured?', 'Featured ?', 'FEATURED'];
+  const isTruthyFlag = (value) => ['true', 'yes', 'y', '1', 'x'].includes(normalizeCell(value).toLowerCase());
+
+  const isDateWithinRange = (value, dateRange = {}) => {
+    const rowDate = parseDateToLocalDay(value);
+    if (!rowDate) return true;
+    const fromDate = parseDateToLocalDay(dateRange?.from);
+    const toDate = parseDateToLocalDay(dateRange?.to);
+    if (fromDate && rowDate < fromDate) return false;
+    if (toDate && rowDate > toDate) return false;
+    return true;
+  };
+
+  const rowMatchesFilterState = (row, filterState = {}, fieldAliases = OPEN_SHEET_FIELD_ALIASES) => {
+    const aliases = fieldAliases || OPEN_SHEET_FIELD_ALIASES;
+    const {
+      channels = {},
+      technologies = {},
+      categories = {},
+      authors = {},
+      contributors = {},
+      languages = {},
+      featuredOnly = false,
+      dateRange = {},
+    } = filterState || {};
+
+    if (featuredOnly && !isTruthyFlag(pickFirst(row, FEATURED_FIELD_ALIASES))) return false;
+    if (!isDateWithinRange(pickFirst(row, aliases.date || OPEN_SHEET_FIELD_ALIASES.date), dateRange)) return false;
+
+    return [
+      [channels, pickFirst(row, aliases.channelOwner || OPEN_SHEET_FIELD_ALIASES.channelOwner), false],
+      [technologies, pickFirst(row, aliases.technology || OPEN_SHEET_FIELD_ALIASES.technology), true],
+      [categories, pickFirst(row, aliases.category || OPEN_SHEET_FIELD_ALIASES.category), false],
+      [authors, pickFirst(row, aliases.publisher || OPEN_SHEET_FIELD_ALIASES.publisher), false],
+      [contributors, pickFirst(row, aliases.peopleInvolved || OPEN_SHEET_FIELD_ALIASES.peopleInvolved), true],
+      [languages, pickFirst(row, aliases.language || OPEN_SHEET_FIELD_ALIASES.language), false],
+    ].every(([map, value, splitValues]) => matchesSelectionMap(map, value, { splitValues }));
+  };
+
+  const filterActivityRows = (rows = [], filterState = {}, fieldAliases = OPEN_SHEET_FIELD_ALIASES) => (
+    rows.filter((row) => rowMatchesFilterState(row, filterState, fieldAliases))
+  );
 
   const normalizeValueKey = (value) => normalizeCell(value).toLowerCase();
 
@@ -354,7 +396,8 @@
   });
 
   const runPostRefreshUiSync = (hooks = {}) => {
-    const { syncColumnVisibility, applyFilters } = hooks;
+    const { syncTableLayout, syncColumnVisibility, applyFilters } = hooks;
+    if (typeof syncTableLayout === 'function') syncTableLayout();
     if (typeof syncColumnVisibility === 'function') syncColumnVisibility();
     if (typeof applyFilters === 'function') applyFilters();
   };
@@ -503,6 +546,8 @@
     getLatestActivityDate,
     getDateRangeForPreset,
     sanitizeActivityRows,
+    rowMatchesFilterState,
+    filterActivityRows,
     runPostRefreshUiSync,
     createRenderGate,
     OPEN_SHEET_FIELD_ALIASES,

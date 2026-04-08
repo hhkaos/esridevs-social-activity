@@ -10,7 +10,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/morph/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="./style.css?v=v39" />
+  <link rel="stylesheet" href="./style.css?v=v43" />
 </head>
 <body>
   <!-- Cookie consent banner (hidden by default; shown by cookie-consent.js when no decision exists) -->
@@ -194,14 +194,56 @@
                   <i class="fa-solid fa-table-columns" aria-hidden="true"></i>
                 </button>
                 <div id="col-picker-panel" class="col-picker-panel" tabindex="-1">
-                  <p class="col-picker-heading">Show / hide columns</p>
-                  <label class="col-picker-item"><input type="checkbox" id="col-toggle-topic"> Topic</label>
-                  <label class="col-picker-item"><input type="checkbox" id="col-toggle-author"> Publisher</label>
-                  <label class="col-picker-item"><input type="checkbox" id="col-toggle-channel"> Channel owner</label>
-                  <label class="col-picker-item"><input type="checkbox" id="col-toggle-language"> Language</label>
-                  <label class="col-picker-item"><input type="checkbox" id="col-toggle-social" checked> Share</label>
-                  <label class="col-picker-item"><input type="checkbox" id="col-toggle-contributor"> People involved</label>
-                  <label class="col-picker-item"><input type="checkbox" id="col-toggle-category"> Content type</label>
+                  <p class="col-picker-heading">Table layout</p>
+                  <p class="col-picker-copy">Drag items to reorder the table and use the checkbox in each row to show or hide optional columns. Width changes and order are saved locally on this device.</p>
+                  <div id="col-order-list" class="col-order-list" aria-label="Column order controls">
+                    <div class="col-order-item" draggable="true" data-col-key="date" tabindex="0" aria-label="Move Date column">
+                      <span class="col-order-item__handle" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></span>
+                      <span class="col-order-item__label">Date</span>
+                      <span class="col-order-item__meta">Always shown</span>
+                    </div>
+                    <div class="col-order-item" draggable="true" data-col-key="title" tabindex="0" aria-label="Move Content title column">
+                      <span class="col-order-item__handle" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></span>
+                      <span class="col-order-item__label">Content title</span>
+                      <span class="col-order-item__meta">Always shown</span>
+                    </div>
+                    <div class="col-order-item" draggable="true" data-col-key="social" tabindex="0" aria-label="Move Share column">
+                      <span class="col-order-item__handle" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></span>
+                      <span class="col-order-item__label">Share</span>
+                      <label class="col-order-item__toggle" for="col-toggle-social"><input type="checkbox" id="col-toggle-social" checked> <span>Visible</span></label>
+                    </div>
+                    <div class="col-order-item" draggable="true" data-col-key="topic" tabindex="0" aria-label="Move Topic column">
+                      <span class="col-order-item__handle" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></span>
+                      <span class="col-order-item__label">Topic</span>
+                      <label class="col-order-item__toggle" for="col-toggle-topic"><input type="checkbox" id="col-toggle-topic"> <span>Visible</span></label>
+                    </div>
+                    <div class="col-order-item" draggable="true" data-col-key="author" tabindex="0" aria-label="Move Publisher column">
+                      <span class="col-order-item__handle" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></span>
+                      <span class="col-order-item__label">Publisher</span>
+                      <label class="col-order-item__toggle" for="col-toggle-author"><input type="checkbox" id="col-toggle-author"> <span>Visible</span></label>
+                    </div>
+                    <div class="col-order-item" draggable="true" data-col-key="channel" tabindex="0" aria-label="Move Channel owner column">
+                      <span class="col-order-item__handle" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></span>
+                      <span class="col-order-item__label">Channel owner</span>
+                      <label class="col-order-item__toggle" for="col-toggle-channel"><input type="checkbox" id="col-toggle-channel"> <span>Visible</span></label>
+                    </div>
+                    <div class="col-order-item" draggable="true" data-col-key="language" tabindex="0" aria-label="Move Language column">
+                      <span class="col-order-item__handle" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></span>
+                      <span class="col-order-item__label">Language</span>
+                      <label class="col-order-item__toggle" for="col-toggle-language"><input type="checkbox" id="col-toggle-language"> <span>Visible</span></label>
+                    </div>
+                    <div class="col-order-item" draggable="true" data-col-key="contributor" tabindex="0" aria-label="Move People involved column">
+                      <span class="col-order-item__handle" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></span>
+                      <span class="col-order-item__label">People involved</span>
+                      <label class="col-order-item__toggle" for="col-toggle-contributor"><input type="checkbox" id="col-toggle-contributor"> <span>Visible</span></label>
+                    </div>
+                    <div class="col-order-item" draggable="true" data-col-key="category" tabindex="0" aria-label="Move Content type column">
+                      <span class="col-order-item__handle" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></span>
+                      <span class="col-order-item__label">Content type</span>
+                      <label class="col-order-item__toggle" for="col-toggle-category"><input type="checkbox" id="col-toggle-category"> <span>Visible</span></label>
+                    </div>
+                  </div>
+                  <button id="reset-table-layout-btn" class="col-picker-reset-btn" type="button">Reset layout</button>
                 </div>
               </div>
             </div>
@@ -211,8 +253,8 @@
             <table id="main-table" class="table table-bordered table-sm align-middle" aria-label="Activity table">
               <thead>
                 <tr>
-                  <th class="text-center">Date <button type="button" class="table-filter-trigger" data-filter-target="date-range" aria-label="Open date range filters" title="Open date range filters"><i class="fa-solid fa-filter" aria-hidden="true"></i></button></th>
-                  <th id="content-title-header">Content title
+                  <th class="text-center" data-col="date">Date <button type="button" class="table-filter-trigger" data-filter-target="date-range" aria-label="Open date range filters" title="Open date range filters"><i class="fa-solid fa-filter" aria-hidden="true"></i></button></th>
+                  <th id="content-title-header" data-col="title">Content title
                     <button
                       id="featured-only-toggle"
                       class="featured-only-toggle"
@@ -232,6 +274,7 @@
               </thead>
               <tbody></tbody>
             </table>
+            <div id="table-scroll-sentinel" class="table-scroll-sentinel" aria-hidden="true"></div>
           </div>
         </div>
 
@@ -354,8 +397,8 @@
   <!-- Row template — data-col attributes mirror the table headers above -->
   <template id="templateRow">
     <tr>
-      <td class="text-center"></td>                    <!-- date -->
-      <td></td>                                        <!-- title -->
+      <td class="text-center" data-col="date"></td>   <!-- date -->
+      <td data-col="title"></td>                       <!-- title -->
       <td class="text-center" data-col="author"></td>  <!-- author -->
       <td class="text-center" data-col="channel"></td> <!-- channel -->
       <td class="text-center" data-col="language"></td><!-- language -->
@@ -370,14 +413,14 @@
     <option value=""></option>
   </template>
 
-  <script src="./cookie-consent.js?v=v39"></script>
+  <script src="./cookie-consent.js?v=v43"></script>
   <script>
     document.getElementById('cookie-settings-link')?.addEventListener('click', function (e) {
       e.preventDefault();
       window.cookieConsent?.revoke();
     });
   </script>
-  <script src="./sw-update-utils.js?v=v39"></script>
+  <script src="./sw-update-utils.js?v=v43"></script>
   <script>
     if ('serviceWorker' in navigator) {
       const bannerEl = document.querySelector('#app-update-banner');
@@ -403,7 +446,7 @@
 
       window.addEventListener('load', async () => {
         try {
-          const registration = await navigator.serviceWorker.register('./sw.js?v=v39');
+          const registration = await navigator.serviceWorker.register('./sw.js?v=v43');
 
           const promptIfWaiting = () => {
             if (registration.waiting) showUpdateBanner();
@@ -444,11 +487,11 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-  <script src="./activity-utils.js?v=v39"></script>
-  <script src="./load-table.js?v=v39"></script>
-  <script src="./apply-filters.js?v=v39"></script>
-  <script src="./analytics.js?v=v39"></script>
-  <script src="./charts.js?v=v39"></script>
+  <script src="./activity-utils.js?v=v43"></script>
+  <script src="./load-table.js?v=v43"></script>
+  <script src="./apply-filters.js?v=v43"></script>
+  <script src="./analytics.js?v=v43"></script>
+  <script src="./charts.js?v=v43"></script>
   <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>

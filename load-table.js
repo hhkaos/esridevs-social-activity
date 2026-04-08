@@ -688,6 +688,9 @@ const isTruthyCell = (value) => {
 };
 
 const TABLE_RENDER_CHUNK_SIZE = 50;
+const TABLE_INITIAL_RENDER_COUNT = 60;
+const TABLE_INCREMENTAL_RENDER_COUNT = 80;
+const TABLE_LAZY_RENDER_AHEAD_PX = 480;
 const renderGate = createRenderGate();
 window.tableRenderGate = renderGate;
 
@@ -695,6 +698,13 @@ const getFrameScheduler = () => (typeof window.requestAnimationFrame === 'functi
   ? window.requestAnimationFrame.bind(window)
   : (cb) => window.setTimeout(cb, 16));
 const scheduleFrame = getFrameScheduler();
+const tableScrollSentinelEl = document.querySelector('#table-scroll-sentinel');
+const virtualTableState = {
+  rows: [],
+  renderedCount: 0,
+  version: 0,
+  isBatchRendering: false,
+};
 
 const FILTER_INPUT_SELECTORS = [
   '#topics',
@@ -767,6 +777,7 @@ const completeTableRender = () => {
   setInteractiveUiEnabled(true);
   renderGate.markComplete();
   stopLoadingStatus();
+  scheduleFrame(maybeLoadMoreTableRows);
 };
 
 const TABLE_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
@@ -848,11 +859,14 @@ async function processAndRender(activityRows, dropdownRows, authorsRows) {
 
   const sanitizedActivityRows = sanitizeActivityRows(activityRows);
   const dedupedActivityRows = dedupeActivityRows(sanitizedActivityRows);
+  const rowsForTable = typeof window.getFilteredActivityRows === 'function'
+    ? window.getFilteredActivityRows(dedupedActivityRows)
+    : dedupedActivityRows;
   window.activityData = dedupedActivityRows;
   window.dropdownData = buildDropdownData(dropdownRows, authorsRows);
   window.definitionData = buildDefinitionData(dropdownRows);
-  beginTableRender(dedupedActivityRows.length);
-  await renderTableRows(dedupedActivityRows);
+  beginTableRender(rowsForTable.length);
+  await renderTableRows(rowsForTable);
   completeTableRender();
   if (typeof window.onDataLoaded === 'function') {
     window.onDataLoaded();
@@ -862,14 +876,18 @@ async function processAndRender(activityRows, dropdownRows, authorsRows) {
 async function refreshTableOnly(freshActivity) {
   const sanitizedActivityRows = sanitizeActivityRows(freshActivity);
   const dedupedActivityRows = dedupeActivityRows(sanitizedActivityRows);
+  const rowsForTable = typeof window.getFilteredActivityRows === 'function'
+    ? window.getFilteredActivityRows(dedupedActivityRows)
+    : dedupedActivityRows;
   window.activityData = dedupedActivityRows;
   if (typeof window.handleActivityDataRefresh === 'function') {
     window.handleActivityDataRefresh();
   }
-  beginTableRender(dedupedActivityRows.length);
-  await renderTableRows(dedupedActivityRows);
+  beginTableRender(rowsForTable.length);
+  await renderTableRows(rowsForTable);
   completeTableRender();
   runPostRefreshUiSync({
+    syncTableLayout: window.syncTableColumnLayout,
     syncColumnVisibility: window.syncColumnVisibilityWithToggles,
     applyFilters: window.applyFilters,
   });
@@ -966,49 +984,108 @@ function createTableRowClone(entry, template) {
   return clone;
 }
 
-function renderTableRows(rows) {
+const syncLazyRenderSentinel = () => {
+  if (!tableScrollSentinelEl) return;
+  tableScrollSentinelEl.hidden = virtualTableState.renderedCount >= virtualTableState.rows.length;
+};
+
+const maybeLoadMoreTableRows = () => {
+  if (!tableScrollSentinelEl || virtualTableState.isBatchRendering) return;
+  if (virtualTableState.renderedCount >= virtualTableState.rows.length) return;
+
+  const rect = tableScrollSentinelEl.getBoundingClientRect();
+  if (rect.top > window.innerHeight + TABLE_LAZY_RENDER_AHEAD_PX) return;
+
+  const nextTarget = Math.min(
+    virtualTableState.rows.length,
+    virtualTableState.renderedCount + TABLE_INCREMENTAL_RENDER_COUNT,
+  );
+
+  appendTableRowsUntil(nextTarget);
+};
+
+function appendTableRowsUntil(targetCount) {
   if (!('content' in document.createElement('template'))) return Promise.resolve();
 
   const liveTableBody = document.querySelector('#main-table tbody');
   const template = document.querySelector('#templateRow');
   if (!liveTableBody || !template) return Promise.resolve();
 
-  const workingTableBody = document.createElement('tbody');
-  const safeRows = Array.isArray(rows) ? rows : [];
-  const totalRows = safeRows.length;
+  const safeTargetCount = Math.min(
+    Math.max(targetCount, virtualTableState.renderedCount),
+    virtualTableState.rows.length,
+  );
+  const activeVersion = virtualTableState.version;
+
+  if (safeTargetCount <= virtualTableState.renderedCount) {
+    syncLazyRenderSentinel();
+    return Promise.resolve();
+  }
+
+  virtualTableState.isBatchRendering = true;
 
   return new Promise((resolve) => {
-    let index = 0;
+    let index = virtualTableState.renderedCount;
     const renderChunk = () => {
+      if (activeVersion !== virtualTableState.version) {
+        virtualTableState.isBatchRendering = false;
+        resolve();
+        return;
+      }
+
       const fragment = document.createDocumentFragment();
       let processedInChunk = 0;
 
-      while (index < totalRows && processedInChunk < TABLE_RENDER_CHUNK_SIZE) {
-        const clone = createTableRowClone(safeRows[index], template);
+      while (index < safeTargetCount && processedInChunk < TABLE_RENDER_CHUNK_SIZE) {
+        const clone = createTableRowClone(virtualTableState.rows[index], template);
         if (clone) fragment.appendChild(clone);
         index += 1;
         processedInChunk += 1;
       }
 
       if (fragment.childNodes.length > 0) {
-        workingTableBody.appendChild(fragment);
+        liveTableBody.appendChild(fragment);
       }
 
-      showRenderingStatus(index, totalRows);
+      if (!renderGate.isComplete()) {
+        showRenderingStatus(index, virtualTableState.rows.length);
+      }
 
-      if (index < totalRows) {
+      if (index < safeTargetCount) {
         scheduleFrame(renderChunk);
         return;
       }
 
-      liveTableBody.replaceWith(workingTableBody);
+      virtualTableState.renderedCount = index;
+      virtualTableState.isBatchRendering = false;
       initSocialTooltips();
+      if (typeof window.syncTableColumnLayout === 'function') window.syncTableColumnLayout();
+      syncLazyRenderSentinel();
       resolve();
+      scheduleFrame(maybeLoadMoreTableRows);
     };
 
     scheduleFrame(renderChunk);
   });
 }
+
+function renderTableRows(rows) {
+  if (!('content' in document.createElement('template'))) return Promise.resolve();
+
+  const liveTableBody = document.querySelector('#main-table tbody');
+  if (!liveTableBody) return Promise.resolve();
+
+  virtualTableState.version += 1;
+  virtualTableState.rows = Array.isArray(rows) ? rows : [];
+  virtualTableState.renderedCount = 0;
+  virtualTableState.isBatchRendering = false;
+  liveTableBody.replaceChildren();
+  syncLazyRenderSentinel();
+
+  return appendTableRowsUntil(Math.min(TABLE_INITIAL_RENDER_COUNT, virtualTableState.rows.length));
+}
+
+window.updateRenderedTableRows = renderTableRows;
 
 function formatDate(dateString) {
   const date = parseDateInput(dateString);
@@ -1036,6 +1113,14 @@ if (compactDateMediaQuery) {
     compactDateMediaQuery.addListener(handleCompactDateChange);
   }
 }
+
+window.addEventListener('scroll', () => {
+  scheduleFrame(maybeLoadMoreTableRows);
+}, { passive: true });
+
+window.addEventListener('resize', () => {
+  scheduleFrame(maybeLoadMoreTableRows);
+});
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 // Start the fetch immediately to maximize parallelism, regardless of cache state.

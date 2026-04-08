@@ -28,7 +28,7 @@ test('default visible columns keep the table minimal: date, content title, and s
   const indexHtml = readProjectFile('index.html');
   const applyFiltersJs = readProjectFile('apply-filters.js');
 
-  assert.match(indexHtml, /id="col-toggle-social" checked> Share<\/label>/);
+  assert.match(indexHtml, /data-col-key="social"[\s\S]*id="col-toggle-social" checked/);
   assert.doesNotMatch(indexHtml, /id="col-toggle-topic" checked/);
   assert.doesNotMatch(indexHtml, /id="col-toggle-category" checked/);
 

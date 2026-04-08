@@ -11,7 +11,7 @@ const indexHtml = fs.readFileSync(path.join(projectRoot, 'index.html'), 'utf8');
 const loadTableSource = fs.readFileSync(path.join(projectRoot, 'load-table.js'), 'utf8');
 
 test('share column labels are rendered as Share in table and column picker', () => {
-  assert.match(indexHtml, /id="col-toggle-social" checked> Share<\/label>/);
+  assert.match(indexHtml, /data-col-key="social"[\s\S]*id="col-toggle-social" checked/);
   assert.match(indexHtml, /data-col="social">Share<\/th>/);
 });
 

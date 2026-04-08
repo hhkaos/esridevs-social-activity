@@ -64,31 +64,37 @@ test('load-table defines explicit table surface states and transitions', () => {
   );
 });
 
-test('table rows are rendered via detached tbody and committed atomically', () => {
+test('table rows are rendered incrementally through a lazy render pipeline', () => {
   const loadTableJs = readProjectFile('load-table.js');
 
   assert.equal(
-    loadTableJs.includes('const workingTableBody = document.createElement(\'tbody\');'),
+    loadTableJs.includes('const TABLE_INITIAL_RENDER_COUNT = 60;'),
     true,
-    'Expected render pipeline to build rows in a detached tbody',
+    'Expected lazy render pipeline to define an initial row batch size',
   );
 
   assert.equal(
-    loadTableJs.includes('workingTableBody.appendChild(fragment);'),
+    loadTableJs.includes('const TABLE_INCREMENTAL_RENDER_COUNT = 80;'),
     true,
-    'Expected render chunks to append to the detached tbody',
+    'Expected lazy render pipeline to define an incremental row batch size',
   );
 
   assert.equal(
-    loadTableJs.includes('liveTableBody.replaceWith(workingTableBody);'),
+    loadTableJs.includes('const maybeLoadMoreTableRows = () => {'),
     true,
-    'Expected final tbody swap to happen once render is complete',
+    'Expected a lazy render helper that loads more rows near the viewport',
   );
 
   assert.equal(
-    loadTableJs.includes('tableBody.appendChild(fragment);'),
-    false,
-    'Expected no direct chunk appends into the live tbody',
+    loadTableJs.includes('liveTableBody.appendChild(fragment);'),
+    true,
+    'Expected incremental batches to append directly into the live tbody',
+  );
+
+  assert.equal(
+    loadTableJs.includes('window.updateRenderedTableRows = renderTableRows;'),
+    true,
+    'Expected table rendering to expose a shared updater for filter-driven rerenders',
   );
 });
 

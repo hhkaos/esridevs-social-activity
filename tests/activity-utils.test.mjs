@@ -7,6 +7,7 @@ const {
   sanitizeActivityRows,
   extractSocialLinks,
   matchesSelectionMap,
+  filterActivityRows,
   runPostRefreshUiSync,
   createRenderGate,
   OPEN_SHEET_FIELD_ALIASES,
@@ -220,6 +221,45 @@ test('matchesSelectionMap supports comma-delimited cells for topic matching', ()
   const activeTopicFilter = { Arcade: 1, StoryMaps: 0 };
   assert.equal(matchesSelectionMap(activeTopicFilter, 'ArcGIS Dashboards, Arcade', { splitValues: true }), true);
   assert.equal(matchesSelectionMap(activeTopicFilter, 'ArcGIS Dashboards, StoryMaps', { splitValues: true }), false);
+});
+
+test('filterActivityRows applies shared filters across aliases, date range, and featured state', () => {
+  const rows = [
+    {
+      Date: '2026-04-08',
+      Publisher: 'Esri',
+      'Channel owner': 'Community',
+      'People involved': 'Jane Doe, John Doe',
+      Language: 'English',
+      Topics_Product: 'Arcade, StoryMaps',
+      Category: 'Article',
+      Featured: 'X',
+    },
+    {
+      Date: '2026-03-01',
+      Publisher: 'Esri',
+      'Channel owner': 'Community',
+      'People involved': 'Jane Doe',
+      Language: 'English',
+      Topics_Product: 'StoryMaps',
+      Category: 'Video',
+      Featured: '',
+    },
+  ];
+
+  const filtered = filterActivityRows(rows, {
+    technologies: { Arcade: 1 },
+    categories: { Article: 1 },
+    channels: { Community: 1 },
+    authors: { Esri: 1 },
+    contributors: { 'Jane Doe': 1 },
+    languages: { English: 1 },
+    featuredOnly: true,
+    dateRange: { from: '2026-04-01', to: '2026-04-30' },
+  });
+
+  assert.equal(filtered.length, 1);
+  assert.equal(filtered[0].Date, '2026-04-08');
 });
 
 test('runPostRefreshUiSync executes column sync and filters hooks', () => {
