@@ -1340,6 +1340,7 @@ const moveColumnInOrder = (dragKey, targetKey, placement = 'before') => {
   appState.columnOrder = normalizeColumnOrder(nextOrder);
   applyColumnOrderState();
   applyAllColumnWidths();
+  syncColumnResizeHandleVisibility();
   persistLocalTableLayout();
 };
 
@@ -1450,6 +1451,7 @@ TOGGLEABLE_COLS.forEach((col) => {
     applyAllColumnWidths();
     resetTableHorizontalScroll();
     syncColumnOrderListUi();
+    syncColumnResizeHandleVisibility();
     persistLocalTableLayout();
   });
 });
@@ -1511,6 +1513,7 @@ resetFiltersBtn?.addEventListener('click', () => {
     appState.columns[col.key] = cb.checked;
     applyColumnToggleState(col, cb.checked);
   });
+  syncColumnResizeHandleVisibility();
 
   persistLocalTableLayout();
   applyFilters();
