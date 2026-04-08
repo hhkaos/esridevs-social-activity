@@ -12,6 +12,7 @@
  */
 
 import http from 'node:http';
+import { pathToFileURL } from 'node:url';
 import pkg from 'lz-string';
 const { decompressFromBase64 } = pkg;
 
@@ -24,6 +25,7 @@ const PORT = Number(process.env.PORT) || 3001;
 const CACHE_TTL_MS = Number(process.env.CACHE_TTL_MS) || 10 * 60 * 1000;
 const FEED_BASE_URL = (process.env.FEED_BASE_URL || 'https://www.rauljimenez.info/esridevs-social-activity/').replace(/\/$/, '') + '/';
 const MAX_ITEMS = Number(process.env.MAX_ITEMS) || 100;
+export const DEFAULT_FEED_DESCRIPTION = 'Track curated ArcGIS developer content and share useful resources with your network to thank the people involved.';
 
 // ── Logging ────────────────────────────────────────────────────────────────────
 // Structured logs to stdout/stderr. PM2 (or systemd) captures these to files.
@@ -358,7 +360,7 @@ function escapeXml(str) {
     .replace(/'/g, '&apos;');
 }
 
-function buildRSS(items, { feedTitle, feedDescription, feedLink, selfUrl }) {
+export function buildRSS(items, { feedTitle, feedDescription, feedLink, selfUrl }) {
   const now = new Date().toUTCString();
   const itemsXml = items.map((row) => {
     const title = pickFirst(row, FIELD.title);
@@ -390,7 +392,7 @@ function buildRSS(items, { feedTitle, feedDescription, feedLink, selfUrl }) {
       `      <link>${escapeXml(url)}</link>`,
       `      <guid isPermaLink="true">${escapeXml(url)}</guid>`,
       pubDateStr && `      <pubDate>${escapeXml(pubDateStr)}</pubDate>`,
-      author && `      <author>${escapeXml(author)}</author>`,
+      author && `      <dc:creator>${escapeXml(author)}</dc:creator>`,
       category && `      <category>${escapeXml(category)}</category>`,
       meta && `      <description>${escapeXml(meta)}</description>`,
       '    </item>',
@@ -399,7 +401,7 @@ function buildRSS(items, { feedTitle, feedDescription, feedLink, selfUrl }) {
 
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">',
+    '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">',
     '  <channel>',
     `    <title>${escapeXml(feedTitle)}</title>`,
     `    <link>${escapeXml(feedLink)}</link>`,
@@ -460,8 +462,8 @@ async function handleRequest(req, res) {
       ? `Esri Developers Activity — ${filterDesc}`
       : 'Esri Developers Activity';
     const feedDescription = filterDesc
-      ? `Esri developer content filtered by: ${filterDesc}`
-      : 'Latest content and activity from Esri developers';
+      ? `${DEFAULT_FEED_DESCRIPTION} Filtered by: ${filterDesc}.`
+      : DEFAULT_FEED_DESCRIPTION;
 
     // Self URL: points to this server, not the static web app.
     // Override via RSS_SERVER_URL env var when deployed (e.g. https://home.example.com:3001).
@@ -495,28 +497,32 @@ async function handleRequest(req, res) {
 
 // ── Start ──────────────────────────────────────────────────────────────────────
 
-const server = http.createServer(handleRequest);
+const isMainModule = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 
-server.on('error', (err) => {
-  logger.error('HTTP server error', err);
-  // EADDRINUSE means port is taken — no point retrying, exit so PM2 can alert
-  if (err.code === 'EADDRINUSE') process.exit(1);
-});
+if (isMainModule) {
+  const server = http.createServer(handleRequest);
 
-server.listen(PORT, () => {
-  logger.info(`RSS server started — http://localhost:${PORT}/feed.xml`);
-  logger.info(`Cache TTL: ${CACHE_TTL_MS / 1000}s | Max items: ${MAX_ITEMS}`);
-});
-
-// Graceful shutdown: finish in-flight requests before exiting
-function shutdown(signal) {
-  logger.info(`${signal} received — shutting down gracefully`);
-  server.close(() => {
-    logger.info('Server closed');
-    process.exit(0);
+  server.on('error', (err) => {
+    logger.error('HTTP server error', err);
+    // EADDRINUSE means port is taken — no point retrying, exit so PM2 can alert
+    if (err.code === 'EADDRINUSE') process.exit(1);
   });
-  // Force exit if requests don't finish in 10s
-  setTimeout(() => { logger.warn('Forced exit after timeout'); process.exit(1); }, 10_000).unref();
+
+  server.listen(PORT, () => {
+    logger.info(`RSS server started — http://localhost:${PORT}/feed.xml`);
+    logger.info(`Cache TTL: ${CACHE_TTL_MS / 1000}s | Max items: ${MAX_ITEMS}`);
+  });
+
+  // Graceful shutdown: finish in-flight requests before exiting
+  function shutdown(signal) {
+    logger.info(`${signal} received — shutting down gracefully`);
+    server.close(() => {
+      logger.info('Server closed');
+      process.exit(0);
+    });
+    // Force exit if requests don't finish in 10s
+    setTimeout(() => { logger.warn('Forced exit after timeout'); process.exit(1); }, 10_000).unref();
+  }
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
