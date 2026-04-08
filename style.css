@@ -1917,6 +1917,12 @@ body.is-column-resizing {
     padding: 0.25rem 0;
   }
 
+  /* ── Subscribe dropdown: hide browser extension option on mobile ── */
+  .subscribe-dropdown .subscribe-option:first-of-type,
+  .subscribe-dropdown hr {
+    display: none;
+  }
+
   /* ── Hide share nudge ("Found this useful?") ── */
   .share-nudge {
     display: none;
