@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.*
+
+# Logs
+*.log
+
+# macOS
+.DS_Store
+
+# Editor / tool artifacts
+.vscode/
+.codex
+.playwright-mcp/
+
+# Local secrets / keys
+*.pem
+*.key

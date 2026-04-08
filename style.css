@@ -1692,3 +1692,256 @@ body.is-column-resizing {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
+
+/* ── Mobile filter button: hidden on desktop ──────────────────────────────── */
+.mobile-filter-btn {
+  display: none;
+}
+
+/* ── Mobile filters offcanvas styles ──────────────────────────────────────── */
+.offcanvas.offcanvas-bottom.mobile-filters-offcanvas {
+  border-radius: 1rem 1rem 0 0;
+  height: 82vh !important;
+}
+
+.mobile-filters-offcanvas .offcanvas-body {
+  overflow-y: auto;
+  padding-bottom: env(safe-area-inset-bottom, 1rem);
+}
+
+/* ── Mobile feed layout (≤ 640px) ─────────────────────────────────────────── */
+/*
+ * Transforms the multi-column table into a 2-line feed list:
+ *   Line 1: content title (full width, clickable)
+ *   Line 2: date (left) · social share icons (right)
+ * Desktop table is untouched — all changes are inside this media query.
+ */
+@media (max-width: 640px) {
+  .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  /* ── Filter button: visible on mobile ── */
+  .mobile-filter-btn {
+    display: inline-flex;
+  }
+
+  /* Stack filter slots vertically inside the offcanvas body */
+  #mobile-filters-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  #mobile-filters-body .filter-field,
+  #mobile-filters-body .date-range-filter {
+    max-width: none;
+    flex: 1 1 auto;
+  }
+
+  /* Force-show all filter slots regardless of column visibility state.
+     applyColumnToggleState sets style="display:none" on the inner label/wrapper,
+     so we need to override both the slot div and its direct child. */
+  /* Force-show all filter slots regardless of column visibility state.
+     applyColumnToggleState sets style="display:none" on the inner .filter-field label,
+     so we need to override it here. */
+  #mobile-filters-body > div > .filter-field {
+    display: flex !important;
+  }
+
+  #mobile-filters-body > div > .date-range-filter {
+    display: flex !important;
+  }
+
+  /* ── Override the 700px breakpoint that enables horizontal scroll ── */
+  #main-table {
+    min-width: unset;
+    table-layout: auto;
+  }
+
+  #main-table th[data-col="social"],
+  #main-table td[data-col="social"] {
+    position: static;
+    box-shadow: none;
+    min-width: unset;
+    white-space: normal;
+  }
+
+  /* ── Table → block list ── */
+  #main-table,
+  #main-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  #main-table thead {
+    display: none;
+  }
+
+  /* Reset inline widths set by the column resizer JS */
+  #main-table td {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  /* Each row: 2-line grid (title full-width, then date + topic + social) */
+  #main-table tbody tr {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto auto;
+    column-gap: 0.5rem;
+    padding: 0.7rem 0.75rem;
+    border-bottom: 1px solid #e2eaf8;
+  }
+
+  #main-table tbody tr.hidden {
+    display: none;
+  }
+
+  /* Zebra / hover colors on the row itself instead of individual cells */
+  #main-table tbody tr:nth-child(odd):not(.hidden):not(.selected) > td,
+  #main-table tbody tr:nth-child(even):not(.hidden):not(.selected) > td {
+    background: transparent;
+  }
+
+  #main-table tbody tr:nth-child(odd):not(.hidden) {
+    background: #f7faff;
+  }
+
+  #main-table tbody tr:nth-child(even):not(.hidden) {
+    background: #ffffff;
+  }
+
+  #main-table tbody tr:hover:not(.hidden) {
+    background: #edf4ff;
+  }
+
+  #main-table tbody tr.selected {
+    background: #dfeeff;
+  }
+
+  /* ── Title cell: row 1, full width ── */
+  #main-table td[data-col="title"] {
+    display: block;
+    grid-column: 1 / -1;
+    grid-row: 1;
+    padding: 0 0 0.35rem;
+    text-align: left;
+    border: none;
+  }
+
+  #main-table td[data-col="title"] .table-title-link {
+    font-size: 0.95rem;
+    line-height: 1.4;
+  }
+
+  /* ── Date cell: row 2, col 1 ── */
+  #main-table td[data-col="date"] {
+    display: block;
+    grid-column: 1;
+    grid-row: 2;
+    padding: 0;
+    text-align: left;
+    border: none;
+    font-size: 0.78rem;
+    color: #5f6f96;
+    align-self: center;
+    white-space: nowrap;
+  }
+
+  /* ── Author cell: row 2, col 2 (center, grows) ── */
+  #main-table td[data-col="author"]::before {
+    content: 'Published by: ';
+    color: #8a9bbf;
+  }
+
+  #main-table td[data-col="author"] {
+    display: block;
+    grid-column: 2;
+    grid-row: 2;
+    padding: 0;
+    border: none;
+    font-size: 0.72rem;
+    color: #5f6f96;
+    align-self: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+  }
+
+  /* ── Social cell: row 2, col 3 ── */
+  #main-table td[data-col="social"] {
+    display: block;
+    grid-column: 3;
+    grid-row: 2;
+    padding: 0;
+    border: none;
+    text-align: right;
+    align-self: center;
+  }
+
+  /* Social icons: slightly smaller in the metadata row */
+  #main-table td[data-col="social"] .social-link {
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
+    min-height: 2rem;
+    font-size: 0.9rem;
+  }
+
+  /* ── Hide secondary columns ── */
+  #main-table td[data-col="topic"],
+  #main-table td[data-col="channel"],
+  #main-table td[data-col="language"],
+  #main-table td[data-col="contributor"],
+  #main-table td[data-col="category"] {
+    display: none;
+  }
+
+  /* ── Table container: cleaner flat look ── */
+  .table-container {
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  /* ── Col-picker irrelevant in feed layout — hide it ── */
+  .col-picker-wrap {
+    display: none;
+  }
+
+  /* ── Tighten the table shell header ── */
+  .table-shell__header {
+    padding: 0.25rem 0;
+  }
+
+  /* ── Hide share nudge ("Found this useful?") ── */
+  .share-nudge {
+    display: none;
+  }
+
+  /* ── Featured rows: left accent border ── */
+  #main-table tbody tr[data-featured="1"] {
+    border-left: 3px solid #2a4682;
+    padding-left: calc(0.75rem - 3px);
+  }
+
+  /* ── Header: hide subtitle, make Subscribe icon-only ── */
+  .header-row__subtitle {
+    display: none;
+  }
+
+  .header-row h1 {
+    font-size: 1.15rem;
+  }
+
+  .subscribe-btn__label {
+    display: none;
+  }
+
+  #subscribe-btn {
+    padding: 0.45rem 0.6rem;
+  }
+}

@@ -46,7 +46,7 @@
       </div>
       <div class="dropdown">
         <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" id="subscribe-btn" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
-          <i class="fa-regular fa-bell" aria-hidden="true"></i> Subscribe
+          <i class="fa-regular fa-bell" aria-hidden="true"></i> <span class="subscribe-btn__label">Subscribe</span>
         </button>
         <div class="dropdown-menu subscribe-dropdown p-3" aria-labelledby="subscribe-btn">
           <div class="subscribe-option">
@@ -132,7 +132,6 @@
         <div class="date-range-filter" id="date-range-filter">
           <span class="filter-field__label">Date range</span>
           <label class="date-preset-wrap" for="date-preset">
-            <span>Preset</span>
             <select id="date-preset" class="form-select" aria-label="Date range preset">
               <option value="showAll" selected>Show all</option>
               <option value="last30">Last 30 days</option>
@@ -157,6 +156,17 @@
             </label>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Mobile-only filters offcanvas (filter slots are moved here on open) -->
+    <div class="offcanvas offcanvas-bottom mobile-filters-offcanvas" id="mobile-filters-offcanvas" tabindex="-1" aria-labelledby="mobile-filters-label">
+      <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="mobile-filters-label"><i class="fa-solid fa-sliders" aria-hidden="true"></i> Filters</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close filters"></button>
+      </div>
+      <div class="offcanvas-body" id="mobile-filters-body">
+        <!-- filter slots are moved here by mobile-filters.js -->
       </div>
     </div>
 
@@ -210,6 +220,16 @@
           <div class="table-shell__header">
             <div id="filters-summary" class="table-results-summary" role="status" aria-live="polite"></div>
             <div class="table-shell__tools">
+              <button
+                class="table-tool-btn table-tool-btn--secondary mobile-filter-btn"
+                type="button"
+                data-bs-toggle="offcanvas"
+                data-bs-target="#mobile-filters-offcanvas"
+                aria-controls="mobile-filters-offcanvas"
+                aria-label="Open filters">
+                <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+                <span>Filters</span>
+              </button>
               <button id="reset-filters-btn" class="table-tool-btn table-tool-btn--secondary" type="button" title="Reset filters and column visibility">
                 <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
                 <span>Reset</span>
@@ -526,6 +546,7 @@
   <script src="./analytics.js?v=v55"></script>
   <script src="./charts.js?v=v55"></script>
   <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+  <script src="./mobile-filters.js?v=v57"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
 </html>

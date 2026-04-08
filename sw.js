@@ -15,6 +15,7 @@ const SHELL_ASSETS = [
   `./sw-update-utils.js?v=${SHELL_ASSET_VERSION}`,
   `./cookie-consent.js?v=${SHELL_ASSET_VERSION}`,
   `./analytics.js?v=${SHELL_ASSET_VERSION}`,
+  `./mobile-filters.js?v=${SHELL_ASSET_VERSION}`,
 ];
 
 self.addEventListener('install', (event) => {
