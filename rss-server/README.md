@@ -76,7 +76,16 @@ curl http://tu-servidor:3001/health
 
 ---
 
-## Mantener el servidor siempre activo
+## Despliegue y reinicios
+
+### Aplicar cambios tras un `git pull`
+
+- **Arranque directo / PM2 / systemd:** el proceso ejecuta `server.js` desde el directorio de trabajo. Después de hacer `git pull`, basta con reiniciar el proceso (`pm2 restart rss-feed`, `sudo systemctl restart rss-feed` o volver a lanzar `node server.js`). Si el servicio arranca automáticamente al reiniciar la máquina, ese reinicio también cargará el código nuevo.
+- **Docker con imagen local (`docker build`)**: el código queda empaquetado dentro de la imagen. Después de hacer `git pull`, `docker restart rss-feed` o reiniciar la máquina solo vuelven a arrancar la **misma imagen antigua**. Para aplicar los cambios hay que reconstruir la imagen y recrear el contenedor.
+
+---
+
+### Mantener el servidor siempre activo
 
 Se recomienda usar **PM2**, un gestor de procesos para Node.js que:
 
@@ -115,7 +124,7 @@ Desde ese momento el servidor arrancará solo cuando la máquina se encienda, si
 ```bash
 pm2 list                   # Ver estado de todos los procesos
 pm2 show rss-feed          # Ver detalles del proceso (uptime, restarts, memoria)
-pm2 restart rss-feed       # Reiniciar (ej. tras cambiar .env)
+pm2 restart rss-feed       # Reiniciar (ej. tras cambiar .env o hacer git pull)
 pm2 stop rss-feed          # Detener
 pm2 delete rss-feed        # Eliminar de PM2
 ```
@@ -232,6 +241,12 @@ sudo systemctl start rss-feed      # arrancar ahora
 sudo systemctl status rss-feed     # ver estado
 ```
 
+Si haces `git pull` en un despliegue con `systemd`, aplica el código nuevo con:
+
+```bash
+sudo systemctl restart rss-feed
+```
+
 ### Ver logs con journalctl
 
 ```bash
@@ -274,6 +289,8 @@ docker run -d \
 
 `--restart unless-stopped` hace que Docker reinicie el contenedor automáticamente si se cae o si la máquina se reinicia, sin necesidad de PM2 ni systemd.
 
+Importante: ese reinicio automático vuelve a arrancar la imagen ya existente. Si has hecho `git pull`, el contenedor seguirá ejecutando el código antiguo hasta que reconstruyas la imagen y recrees el contenedor.
+
 ### Ver logs
 
 ```bash
@@ -290,6 +307,8 @@ docker restart rss-feed          # tras cambiar variables de entorno
 ```
 
 ### Actualizar a una nueva versión
+
+Si el servidor está desplegado con Docker y has hecho `git pull`, estos son los pasos necesarios para aplicar el código nuevo:
 
 ```bash
 docker stop rss-feed
@@ -336,5 +355,6 @@ Independientemente de usar Docker o no:
 | El feed devuelve 503 | `pm2 logs rss-feed --err` para ver si falló la conexión con opensheet |
 | El servidor no arranca | Comprobar que el puerto no esté ocupado: `lsof -i :3001` |
 | Los datos parecen desactualizados | Normal si está dentro del TTL. Forzar refresco: `pm2 restart rss-feed` |
+| He hecho `git pull` pero sigo viendo la versión antigua | Si usas PM2/systemd, reinicia el proceso. Si usas Docker, `docker restart` o reiniciar la máquina no basta: reconstruye la imagen y recrea el contenedor |
 | PM2 reinicia el proceso en bucle | El proceso está fallando al arrancar: `pm2 logs rss-feed --lines 50` para ver el error |
 | El servidor no arranca tras reinicio | Verificar que se ejecutó `pm2 startup` y `pm2 save` |
