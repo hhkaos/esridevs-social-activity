@@ -3,6 +3,7 @@
 This is just a simple web app to simplify people insterested in Esri Developer related content to keep up to date and socialize relevant content.
 
 **Check**: [EsriDevs Social Activity](https://hhkaos.github.io/esridevs-social-activity)
+**How this works**: [Livestream on Monday, the 13th of 2026](https://www.youtube.com/live/slfAHeByFFs)
 
 [![Interface screenshot](./assets/images/esridevs-social-activity-screenshot.png)](https://hhkaos.github.io/esridevs-social-activity)
 
