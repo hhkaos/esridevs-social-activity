@@ -4,6 +4,7 @@ const SEEN_URLS_KEY = 'esridevs_seen_urls';
 
 window.activityData = [];
 window.dropdownData = {};
+window.authorsData = [];
 
 // ── Extension "New" item highlighting ─────────────────────────────────────────
 // When the extension opens the web app via "Open feed", it appends
@@ -221,6 +222,8 @@ const TECHNOLOGY_FIELD_KEYS = OPEN_SHEET_FIELD_ALIASES?.technology || ['Topics_P
 const CATEGORY_FIELD_KEYS = OPEN_SHEET_FIELD_ALIASES?.category || ['Category', 'Category / Content type', 'Content type'];
 const PUBLISHER_DEFINITION_KEYS = OPEN_SHEET_FIELD_ALIASES?.publisherValueDefinition || ['Publisher_value_definition', 'Publisher value definition', 'Author_value_definition'];
 const CHANNEL_OWNER_DEFINITION_KEYS = OPEN_SHEET_FIELD_ALIASES?.channelOwnerValueDefinition || ['Channel_owner_value_definition', 'Channel owner value definition', 'ChannelOwner_value_definition', 'Channel_value_definition'];
+const AUTHOR_SHEET_NAME_KEYS = ['name', 'Name', 'Full name', 'Full Name', 'Author', 'Authors', 'Contributor', 'Person', 'Person name', 'People involved'];
+const RELATIONSHIP_FIELD_KEYS = ['RelationshipWithEsri', 'Relationship', 'Relationships', 'Relantionship', 'Contributor relationship', 'Contributor Relationship'];
 
 const schemaWarningBannerEl = document.querySelector('#schema-warning-banner');
 const definitionsModalEl = document.querySelector('#definitions-modal');
@@ -721,6 +724,7 @@ const FILTER_INPUT_SELECTORS = [
   '#share-view-btn',
   '#col-picker-btn',
   '#tab-trends-trigger',
+  '#tab-contributors-trigger',
 ];
 
 const setSelectEnabledState = (select, enabled) => {
@@ -739,7 +743,7 @@ const setInteractiveUiEnabled = (enabled) => {
     const el = document.querySelector(selector);
     if (!el) return;
     el.disabled = !enabled;
-    if (selector === '#tab-trends-trigger') {
+    if (selector === '#tab-trends-trigger' || selector === '#tab-contributors-trigger') {
       el.classList.toggle('disabled', !enabled);
       el.setAttribute('aria-disabled', String(!enabled));
     }
@@ -822,10 +826,10 @@ const parseDateInput = (value) => {
 
 // ── Data processing ───────────────────────────────────────────────────────────
 
-function buildDropdownData(dropdownRows, authorsRows) {
+function buildDropdownData(dropdownRows = [], authorsRows = []) {
   const authorsFromSheet = [...new Set(
     authorsRows
-      .map((row) => Object.values(row).map(v => `${v ?? ''}`.trim()).find(Boolean))
+      .map((row) => pickFirst(row, AUTHOR_SHEET_NAME_KEYS) || Object.values(row).map(v => `${v ?? ''}`.trim()).find(Boolean))
       .filter(Boolean)
   )];
   const contributorsFromDropdown = uniqueColumnValues(dropdownRows, PEOPLE_INVOLVED_FIELD_KEYS);
@@ -837,6 +841,7 @@ function buildDropdownData(dropdownRows, authorsRows) {
     authors:      uniqueColumnValues(dropdownRows, PUBLISHER_FIELD_KEYS),
     contributors,
     languages:    uniqueColumnValues(dropdownRows, LANGUAGE_FIELD_KEYS),
+    relationships: uniqueColumnValues(dropdownRows, RELATIONSHIP_FIELD_KEYS),
   };
 }
 
@@ -911,6 +916,7 @@ async function processAndRender(activityRows, dropdownRows, authorsRows) {
     ? window.getFilteredActivityRows(dedupedActivityRows)
     : dedupedActivityRows;
   window.activityData = dedupedActivityRows;
+  window.authorsData = Array.isArray(authorsRows) ? authorsRows : [];
   window.dropdownData = buildDropdownData(dropdownRows, authorsRows);
   window.definitionData = buildDefinitionData(dropdownRows);
   computeNativeNewItems(rowsForTable);

@@ -25,6 +25,7 @@ test('shell asset version stays in sync between index.html and sw.js', () => {
     './apply-filters.js',
     './analytics.js',
     './charts.js',
+    './contributors.js',
     './sw.js',
   ].forEach((assetPath) => {
     assert.equal(
@@ -40,6 +41,7 @@ test('shell asset version stays in sync between index.html and sw.js', () => {
     './load-table.js',
     './apply-filters.js',
     './charts.js',
+    './contributors.js',
     './sw-update-utils.js',
     './cookie-consent.js',
     './analytics.js',
