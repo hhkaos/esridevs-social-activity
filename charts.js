@@ -179,7 +179,7 @@ function getFilteredData() {
   return data.filter((row) => (!featuredOnly || ['true', 'yes', 'y', '1', 'x'].includes(`${row?.Featured ?? ''}`.trim().toLowerCase()))
     && [
     [channels, chartPickFirst(row, CHART_FIELD_KEYS.channelOwner), false],
-    [technologies, chartPickFirst(row, CHART_FIELD_KEYS.technology), false],
+    [technologies, chartPickFirst(row, CHART_FIELD_KEYS.technology), true],
     [categories, chartPickFirst(row, CHART_FIELD_KEYS.category), false],
     [authors, chartPickFirst(row, CHART_FIELD_KEYS.publisher), false],
     [contributors, getContributorsCell(row), true],
@@ -250,10 +250,25 @@ function getContributorsCell(row) {
   return chartPickFirst(row, CHART_FIELD_KEYS.peopleInvolved);
 }
 
+function getTechnologyTopics(row) {
+  const topics = splitMultiValueCell(chartPickFirst(row, CHART_FIELD_KEYS.technology));
+  return topics.length ? topics : ['Unknown'];
+}
+
 function chartsPassesFilter(map, value, splitValues = false) {
   if (!value) return true;
   if (!splitValues) return map[value] !== 0;
   return splitMultiValueCell(value).some((item) => map[item] !== 0);
+}
+
+function countTechnologyTopics(data) {
+  const counts = {};
+  data.forEach((row) => {
+    getTechnologyTopics(row).forEach((topic) => {
+      counts[topic] = (counts[topic] || 0) + 1;
+    });
+  });
+  return counts;
 }
 
 function countContributors(data) {
@@ -395,9 +410,10 @@ window.renderCharts = function () {
   });
 
   // ── 5. Top topics / technologies (stacked by author) ─────────────────────
-  const topicEntries = Object.entries(countByKey(data, chartPickFirst, CHART_FIELD_KEYS.technology))
+  const topicEntries = Object.entries(countTechnologyTopics(data))
     .sort((a, b) => b[1] - a[1]);
   const topicLabels = topicEntries.map(([topic]) => topic);
+  const topicDisplayLabels = topicEntries.map(([topic, total]) => `${topic} (${total})`);
   const authorLabels = [...new Set(data.map((row) => chartPickFirst(row, CHART_FIELD_KEYS.publisher) || 'Unknown'))];
   const topicAuthorCounts = {};
   topicLabels.forEach((topic) => {
@@ -407,16 +423,17 @@ window.renderCharts = function () {
     });
   });
   data.forEach((row) => {
-    const topic = chartPickFirst(row, CHART_FIELD_KEYS.technology) || 'Unknown';
-    if (!topicAuthorCounts[topic]) return;
     const author = chartPickFirst(row, CHART_FIELD_KEYS.publisher) || 'Unknown';
-    topicAuthorCounts[topic][author] = (topicAuthorCounts[topic][author] || 0) + 1;
+    getTechnologyTopics(row).forEach((topic) => {
+      if (!topicAuthorCounts[topic]) return;
+      topicAuthorCounts[topic][author] = (topicAuthorCounts[topic][author] || 0) + 1;
+    });
   });
 
   makeChart('chart-topic', {
     type: 'bar',
     data: {
-      labels: topicLabels,
+      labels: topicDisplayLabels,
       datasets: authorLabels.map((author, i) => ({
         label: author,
         data: topicLabels.map((topic) => topicAuthorCounts[topic]?.[author] || 0),
