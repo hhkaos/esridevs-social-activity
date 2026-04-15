@@ -1745,23 +1745,26 @@ body.is-column-resizing {
 }
 
 .contributors-group__title {
+  --group-color: #eef5ff;
+  --group-text-color: #24314f;
   display: grid;
   align-items: center;
   align-content: center;
   justify-content: center;
-  gap: 0.12rem;
+  gap: 0.18rem;
   margin: 0;
   min-width: 0;
-  padding: 0.35rem 0.55rem;
+  padding: 0.32rem 0.45rem;
+  border: 1px solid var(--group-color);
   border-radius: 8px;
-  background: #eef5ff;
-  font-size: 0.82rem;
+  background: var(--group-color);
+  font-size: 0.76rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
-  line-height: 1.2;
+  letter-spacing: 0.035em;
+  line-height: 1.12;
   text-align: center;
   text-transform: uppercase;
-  color: #5f6f96;
+  color: var(--group-text-color);
   overflow-wrap: anywhere;
 }
 
@@ -1770,11 +1773,17 @@ body.is-column-resizing {
   min-width: 0;
 }
 
+.contributors-group__stats {
+  display: grid;
+  justify-items: center;
+  gap: 0.16rem;
+  min-width: 0;
+}
+
 .contributors-group__total {
   display: block;
-  margin-top: 0.15rem;
-  color: #24314f;
-  font-size: 1.45rem;
+  color: var(--group-text-color);
+  font-size: 1.25rem;
   font-weight: 900;
   letter-spacing: 0;
   line-height: 1;
@@ -1784,11 +1793,32 @@ body.is-column-resizing {
   content: " contrib.";
   display: block;
   margin-top: 0.06rem;
-  color: #6c7ba0;
-  font-size: 0.62rem;
+  color: color-mix(in srgb, var(--group-text-color), transparent 14%);
+  font-size: 0.56rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   line-height: 1;
+}
+
+.contributors-group__people {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.22rem;
+  min-height: 1.05rem;
+  padding: 0 0.36rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--group-text-color), transparent 86%);
+  color: var(--group-text-color);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.contributors-group__people .fa-solid {
+  color: currentColor;
+  font-size: 0.62rem;
 }
 
 .contributors-group__grid {

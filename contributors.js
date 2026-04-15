@@ -89,6 +89,17 @@
     colorMap.get(value) || colorMap.get(normalizeKey(value)) || fallback
   );
 
+  const getReadableTextColor = (color) => {
+    const match = `${color || ''}`.trim().match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+    if (!match) return '#fff';
+    const [, redHex, greenHex, blueHex] = match;
+    const red = Number.parseInt(redHex, 16) / 255;
+    const green = Number.parseInt(greenHex, 16) / 255;
+    const blue = Number.parseInt(blueHex, 16) / 255;
+    const luminance = (0.2126 * red) + (0.7152 * green) + (0.0722 * blue);
+    return luminance > 0.62 ? '#24314f' : '#fff';
+  };
+
   const uniqueOrdered = (values) => {
     const seen = new Set();
     return values
@@ -276,6 +287,12 @@
     return totals;
   }, new Map());
 
+  const countPeopleByGroup = (people) => people.reduce((totals, person) => {
+    const key = getGroupSortKey(person);
+    totals.set(key, (totals.get(key) || 0) + 1);
+    return totals;
+  }, new Map());
+
   const hasToggle = (toggleSet, value) => toggleSet.has(normalizeKey(value));
 
   const toggleValue = (toggleSet, value) => {
@@ -309,10 +326,22 @@
     ));
   };
 
-  const renderGroupTitle = (groupLabel, groupContributionTotal) => `
-    <h3 class="contributors-group__title">
+  const getPersonGroupColor = (person, relationshipColors, teamColors) => (
+    isEsriEmployee(person.relationship)
+      ? getMappedColor(teamColors, person.team || UNKNOWN_TEAM)
+      : getMappedColor(relationshipColors, person.relationship || UNKNOWN_RELATIONSHIP)
+  );
+
+  const renderGroupTitle = (groupLabel, groupContributionTotal, groupPeopleTotal, groupColor) => `
+    <h3 class="contributors-group__title" style="--group-color: ${escapeHtml(groupColor)}; --group-text-color: ${escapeHtml(getReadableTextColor(groupColor))}">
       <span class="contributors-group__name">${escapeHtml(groupLabel)}</span>
-      <span class="contributors-group__total">${groupContributionTotal || 0}</span>
+      <span class="contributors-group__stats">
+        <span class="contributors-group__total">${groupContributionTotal || 0}</span>
+        <span class="contributors-group__people" aria-label="${groupPeopleTotal || 0} ${groupPeopleTotal === 1 ? 'person' : 'people'}">
+          <i class="fa-solid fa-user-group" aria-hidden="true"></i>
+          <span>${groupPeopleTotal || 0}</span>
+        </span>
+      </span>
     </h3>
   `;
 
@@ -460,6 +489,7 @@
     const count = document.querySelector('#contributors-count');
     if (!grid || !empty) return;
     const groupContributionTotals = sumContributionsByGroup(people);
+    const groupPeopleTotals = countPeopleByGroup(people);
 
     grid.replaceChildren();
     if (count) {
@@ -474,15 +504,14 @@
       const groupLabel = getGroupLabel(person);
       if (groupLabel !== currentGroup) {
         currentGroup = groupLabel;
+        const groupColor = getPersonGroupColor(person, relationshipColors, teamColors);
         const section = document.createElement('section');
         section.className = 'contributors-group';
-        section.innerHTML = `${renderGroupTitle(groupLabel, groupContributionTotals.get(getGroupSortKey(person)))}<div class="contributors-group__grid"></div>`;
+        section.innerHTML = `${renderGroupTitle(groupLabel, groupContributionTotals.get(getGroupSortKey(person)), groupPeopleTotals.get(getGroupSortKey(person)), groupColor)}<div class="contributors-group__grid"></div>`;
         grid.appendChild(section);
         currentGroupGrid = section.querySelector('.contributors-group__grid');
       }
-      const borderColor = isEsriEmployee(person.relationship)
-        ? getMappedColor(teamColors, person.team || UNKNOWN_TEAM)
-        : getMappedColor(relationshipColors, person.relationship || UNKNOWN_RELATIONSHIP);
+      const borderColor = getPersonGroupColor(person, relationshipColors, teamColors);
       currentGroupGrid?.appendChild(renderPersonCard(person, borderColor));
     });
   };
