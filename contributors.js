@@ -24,6 +24,7 @@
   const TEAM_FIELD_KEYS = ['Team', 'Teams', 'Product team', 'Product Team', 'Esri team', 'Esri Team', 'Team / Product', 'Team/Product', 'Product', 'Area'];
   const PROFILE_FIELD_KEYS = ['Profile URL', 'Profile Url', 'Profile', 'URL', 'Url', 'Link'];
   const PEOPLE_INVOLVED_FIELD_KEYS = window.activityUtils?.OPEN_SHEET_FIELD_ALIASES?.peopleInvolved || ['People involved', 'People Involved', 'People_involved', 'Contributors', 'Contributor', 'Authors'];
+  const EVENT_PEOPLE_FIELD_KEYS = ['Who (PoC)', 'Who(PoC)', 'Who (POC)', 'Who(POC)', 'Who / PoC', 'Who / POC', 'Who'];
   const EMPTY_VALUE_KEYS = new Set(['n/a', 'na', 'none', '-', '--', 'tbd']);
 
   const state = {
@@ -44,6 +45,7 @@
     };
 
   const normalizeKey = (value) => `${value ?? ''}`.trim().toLowerCase();
+  const hasActiveSelections = (map) => Object.values(map || {}).some((selection) => selection === 1);
   const isEmptySheetValue = (value) => {
     const key = normalizeKey(value);
     return !key || EMPTY_VALUE_KEYS.has(key);
@@ -67,6 +69,49 @@
     .split(/[,;|]/)
     .map((item) => item.trim())
     .filter(Boolean);
+
+  const matchesSelectionMap = (map, value, { splitValues = false } = {}) => {
+    if (!hasActiveSelections(map)) return true;
+    const candidates = splitValues
+      ? splitMultiValueCell(value)
+      : [`${value ?? ''}`.trim()].filter(Boolean);
+    if (candidates.length === 0) return false;
+    return candidates.some((candidate) => map[candidate] === 1);
+  };
+
+  const parseDateToLocalDay = (value) => {
+    const raw = `${value ?? ''}`.trim();
+    if (!raw) return null;
+
+    const isoDate = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (isoDate) {
+      const [, yearStr, monthStr, dayStr] = isoDate;
+      const year = Number(yearStr);
+      const month = Number(monthStr);
+      const day = Number(dayStr);
+      const parsed = new Date(year, month - 1, day);
+      if (
+        parsed.getFullYear() !== year
+        || parsed.getMonth() !== month - 1
+        || parsed.getDate() !== day
+      ) return null;
+      return parsed;
+    }
+
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+  };
+
+  const isDateWithinRange = (value, dateRange = {}) => {
+    const rowDate = parseDateToLocalDay(value);
+    if (!rowDate) return true;
+    const fromDate = parseDateToLocalDay(dateRange?.from);
+    const toDate = parseDateToLocalDay(dateRange?.to);
+    if (fromDate && rowDate < fromDate) return false;
+    if (toDate && rowDate > toDate) return false;
+    return true;
+  };
 
   const isEsriEmployee = (relationship) => normalizeKey(relationship) === normalizeKey(ESRI_EMPLOYEE_RELATIONSHIP);
 
@@ -217,10 +262,39 @@
     return rows;
   };
 
-  const countContributions = (rows) => {
-    const counts = new Map();
+  const eventMatchesFilters = (row, filterState = window.flags || {}) => {
+    const {
+      channels = {},
+      technologies = {},
+      categories = {},
+      authors = {},
+      contributors = {},
+      languages = {},
+      featuredOnly = false,
+      dateRange = {},
+    } = filterState || {};
+
+    if (featuredOnly) return false;
+    if (!isDateWithinRange(pickFirst(row, ['Date']), dateRange)) return false;
+
+    return [
+      [channels, '', false],
+      [technologies, '', true],
+      [categories, '', false],
+      [authors, '', false],
+      [contributors, pickFirst(row, EVENT_PEOPLE_FIELD_KEYS), true],
+      [languages, '', false],
+    ].every(([map, value, splitValues]) => matchesSelectionMap(map, value, { splitValues }));
+  };
+
+  const getFilteredEventRows = () => {
+    const rows = Array.isArray(window.eventsData) ? window.eventsData : [];
+    return rows.filter((row) => eventMatchesFilters(row, window.flags || {}));
+  };
+
+  const countRowsByPeopleField = (rows, fieldKeys, counts = new Map()) => {
     rows.forEach((row) => {
-      splitMultiValueCell(pickFirst(row, PEOPLE_INVOLVED_FIELD_KEYS)).forEach((name) => {
+      splitMultiValueCell(pickFirst(row, fieldKeys)).forEach((name) => {
         const key = normalizeKey(name);
         if (!key) return;
         const current = counts.get(key) || { name, total: 0 };
@@ -231,9 +305,13 @@
     return counts;
   };
 
+  const countContributions = (rows, counts = new Map()) => countRowsByPeopleField(rows, PEOPLE_INVOLVED_FIELD_KEYS, counts);
+
+  const countEventParticipations = (rows, counts = new Map()) => countRowsByPeopleField(rows, EVENT_PEOPLE_FIELD_KEYS, counts);
+
   const buildPeople = () => {
     const authorMap = buildAuthorMap();
-    const counts = countContributions(getFilteredRows());
+    const counts = countEventParticipations(getFilteredEventRows(), countContributions(getFilteredRows()));
     return [...counts.values()].map((entry) => {
       const author = authorMap.get(normalizeKey(entry.name)) || {};
       return {
@@ -438,9 +516,49 @@
       : '<span class="contributor-card__menu-empty">No contact links</span>';
     return `
       <div class="contributor-card__menu" role="menu" ${state.openContactKey === person.key ? '' : 'hidden'}>
+        <button class="contributor-card__menu-link contributor-card__menu-action contributor-card__view-contributions" type="button">
+          View contributions
+        </button>
         ${menuItems}
       </div>
     `;
+  };
+
+  const applyContributorFilter = (personName) => {
+    const normalizedName = `${personName ?? ''}`.trim();
+    if (!normalizedName) return;
+    if (window.flags && typeof window.flags === 'object') {
+      window.flags.contributors = { [normalizedName]: 1 };
+    }
+
+    const select = document.querySelector('#contributors');
+    if (select && Array.isArray(select.options)) {
+      let matchingOption = [...select.options].find((option) => normalizeKey(option.value) === normalizeKey(normalizedName));
+      if (!matchingOption) {
+        matchingOption = document.createElement('option');
+        matchingOption.value = normalizedName;
+        matchingOption.textContent = normalizedName;
+        select.appendChild(matchingOption);
+      }
+
+      [...select.options].forEach((option) => {
+        option.selected = option === matchingOption;
+      });
+
+      if (select.tomselect) {
+        select.tomselect.setValue([matchingOption.value], true);
+      }
+
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    } else {
+      window.applyFilters?.();
+    }
+
+    updateOpenContactMenu('');
+    const tableTrigger = document.querySelector('#tab-table-trigger');
+    if (tableTrigger && typeof tableTrigger.click === 'function') {
+      tableTrigger.click();
+    }
   };
 
   const updateOpenContactMenu = (nextKey) => {
@@ -473,6 +591,11 @@
       event.preventDefault();
       event.stopPropagation();
       updateOpenContactMenu(state.openContactKey === person.key ? '' : person.key);
+    });
+    card.querySelector('.contributor-card__view-contributions')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      applyContributorFilter(person.name);
     });
     card.querySelector('img')?.addEventListener('error', (event) => {
       const avatarEl = event.currentTarget.closest('.contributor-card__avatar');

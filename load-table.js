@@ -5,6 +5,7 @@ const SEEN_URLS_KEY = 'esridevs_seen_urls';
 window.activityData = [];
 window.dropdownData = {};
 window.authorsData = [];
+window.eventsData = [];
 
 // ── Extension "New" item highlighting ─────────────────────────────────────────
 // When the extension opens the web app via "Open feed", it appends
@@ -43,20 +44,43 @@ function loadDataCache() {
   }
 }
 
-function saveDataCache(activityRows, dropdownRows, authorsRows) {
+function saveDataCache(activityRows, dropdownRows, authorsRows, eventsRows) {
   try {
-    localStorage.setItem(DATA_CACHE_KEY, JSON.stringify({ activityRows, dropdownRows, authorsRows }));
+    localStorage.setItem(DATA_CACHE_KEY, JSON.stringify({
+      activityRows,
+      dropdownRows,
+      authorsRows,
+      eventsRows,
+    }));
   } catch (err) {
     console.warn('Cache write failed (storage quota?):', err);
   }
 }
 
-function dataHasChanged(freshActivity, cachedActivity) {
+const normalizeRowsSnapshot = (rows = []) => JSON.stringify(
+  (Array.isArray(rows) ? rows : []).map((row) => {
+    if (!row || typeof row !== 'object') return {};
+    return Object.keys(row)
+      .sort((a, b) => a.localeCompare(b))
+      .reduce((snapshot, key) => {
+        snapshot[key] = `${row[key] ?? ''}`.trim();
+        return snapshot;
+      }, {});
+  }),
+);
+
+function dataHasChanged({
+  freshActivity = [],
+  cachedActivity = [],
+  freshEvents = [],
+  cachedEvents = [],
+}) {
   const sanitizedFresh = sanitizeActivityRows(freshActivity);
   const sanitizedCached = sanitizeActivityRows(cachedActivity);
   const freshSig = JSON.stringify(sanitizedFresh);
   const cachedSig = JSON.stringify(sanitizedCached);
-  return freshSig !== cachedSig;
+  if (freshSig !== cachedSig) return true;
+  return normalizeRowsSnapshot(freshEvents) !== normalizeRowsSnapshot(cachedEvents);
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
@@ -224,6 +248,7 @@ const PUBLISHER_DEFINITION_KEYS = OPEN_SHEET_FIELD_ALIASES?.publisherValueDefini
 const CHANNEL_OWNER_DEFINITION_KEYS = OPEN_SHEET_FIELD_ALIASES?.channelOwnerValueDefinition || ['Channel_owner_value_definition', 'Channel owner value definition', 'ChannelOwner_value_definition', 'Channel_value_definition'];
 const AUTHOR_SHEET_NAME_KEYS = ['name', 'Name', 'Full name', 'Full Name', 'Author', 'Authors', 'Contributor', 'Person', 'Person name', 'People involved'];
 const RELATIONSHIP_FIELD_KEYS = ['RelationshipWithEsri', 'Relationship', 'Relationships', 'Relantionship', 'Contributor relationship', 'Contributor Relationship'];
+const EVENT_PEOPLE_FIELD_KEYS = ['Who (PoC)', 'Who(PoC)', 'Who (POC)', 'Who(POC)', 'Who / PoC', 'Who / POC', 'Who'];
 
 const schemaWarningBannerEl = document.querySelector('#schema-warning-banner');
 const definitionsModalEl = document.querySelector('#definitions-modal');
@@ -826,14 +851,15 @@ const parseDateInput = (value) => {
 
 // ── Data processing ───────────────────────────────────────────────────────────
 
-function buildDropdownData(dropdownRows = [], authorsRows = []) {
+function buildDropdownData(dropdownRows = [], authorsRows = [], eventsRows = []) {
   const authorsFromSheet = [...new Set(
     authorsRows
       .map((row) => pickFirst(row, AUTHOR_SHEET_NAME_KEYS) || Object.values(row).map(v => `${v ?? ''}`.trim()).find(Boolean))
       .filter(Boolean)
   )];
   const contributorsFromDropdown = uniqueColumnValues(dropdownRows, PEOPLE_INVOLVED_FIELD_KEYS);
-  const contributors = [...new Set([...contributorsFromDropdown, ...authorsFromSheet])];
+  const contributorsFromEvents = uniqueColumnValues(eventsRows, EVENT_PEOPLE_FIELD_KEYS);
+  const contributors = [...new Set([...contributorsFromDropdown, ...authorsFromSheet, ...contributorsFromEvents])];
   return {
     technologies: uniqueColumnValues(dropdownRows, TECHNOLOGY_FIELD_KEYS),
     categories:   uniqueColumnValues(dropdownRows, CATEGORY_FIELD_KEYS),
@@ -907,7 +933,7 @@ function saveAllUrlsAsSeen(allRows) {
   }
 }
 
-async function processAndRender(activityRows, dropdownRows, authorsRows) {
+async function processAndRender(activityRows, dropdownRows, authorsRows, eventsRows = []) {
   validateOpenSheetSchemaOrThrow({ activityRows, dropdownRows });
 
   const sanitizedActivityRows = sanitizeActivityRows(activityRows);
@@ -917,7 +943,8 @@ async function processAndRender(activityRows, dropdownRows, authorsRows) {
     : dedupedActivityRows;
   window.activityData = dedupedActivityRows;
   window.authorsData = Array.isArray(authorsRows) ? authorsRows : [];
-  window.dropdownData = buildDropdownData(dropdownRows, authorsRows);
+  window.eventsData = Array.isArray(eventsRows) ? eventsRows : [];
+  window.dropdownData = buildDropdownData(dropdownRows, authorsRows, eventsRows);
   window.definitionData = buildDefinitionData(dropdownRows);
   computeNativeNewItems(rowsForTable);
   beginTableRender(rowsForTable.length);
@@ -929,13 +956,17 @@ async function processAndRender(activityRows, dropdownRows, authorsRows) {
   }
 }
 
-async function refreshTableOnly(freshActivity) {
+async function refreshTableOnly(freshActivity, freshDropdowns = [], freshAuthors = [], freshEvents = []) {
   const sanitizedActivityRows = sanitizeActivityRows(freshActivity);
   const dedupedActivityRows = dedupeActivityRows(sanitizedActivityRows);
   const rowsForTable = typeof window.getFilteredActivityRows === 'function'
     ? window.getFilteredActivityRows(dedupedActivityRows)
     : dedupedActivityRows;
   window.activityData = dedupedActivityRows;
+  window.authorsData = Array.isArray(freshAuthors) ? freshAuthors : [];
+  window.dropdownData = buildDropdownData(freshDropdowns, freshAuthors, freshEvents);
+  window.definitionData = buildDefinitionData(freshDropdowns);
+  window.eventsData = Array.isArray(freshEvents) ? freshEvents : [];
   if (typeof window.handleActivityDataRefresh === 'function') {
     window.handleActivityDataRefresh();
   }
@@ -951,6 +982,12 @@ async function refreshTableOnly(freshActivity) {
     const trendsPane = document.querySelector('#tab-trends');
     if (trendsPane?.classList.contains('active')) {
       window.renderCharts();
+    }
+  }
+  if (typeof window.renderContributors === 'function') {
+    const contributorsPane = document.querySelector('#tab-contributors');
+    if (contributorsPane?.classList.contains('active')) {
+      window.renderContributors();
     }
   }
 }
@@ -1191,6 +1228,7 @@ const dataFetchPromise = Promise.all([
   fetchJsonOrThrow(`https://opensheet.elk.sh/${SPREADSHEET_ID}/Activity`),
   fetchJsonOrThrow(`https://opensheet.elk.sh/${SPREADSHEET_ID}/Dropdowns`),
   fetchJsonOrThrow(`https://opensheet.elk.sh/${SPREADSHEET_ID}/Authors`),
+  fetchJsonOrThrow(`https://opensheet.elk.sh/${SPREADSHEET_ID}/Events`),
 ]);
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -1200,7 +1238,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   if (cachedData) {
     // Render from cache immediately — all other scripts are now ready
-    processAndRender(cachedData.activityRows, cachedData.dropdownRows, cachedData.authorsRows)
+    processAndRender(cachedData.activityRows, cachedData.dropdownRows, cachedData.authorsRows, cachedData.eventsRows)
       .catch((err) => {
         console.error('Failed to render cached data:', err);
         showLoadingError();
@@ -1208,16 +1246,21 @@ window.addEventListener('DOMContentLoaded', () => {
     showToast('Checking for updates\u2026', 'checking');
 
     dataFetchPromise
-      .then(([freshActivity, freshDropdowns, freshAuthors]) => {
+      .then(([freshActivity, freshDropdowns, freshAuthors, freshEvents]) => {
         validateOpenSheetSchemaOrThrow({
           activityRows: freshActivity,
           dropdownRows: freshDropdowns,
         });
-        saveDataCache(sanitizeActivityRows(freshActivity), freshDropdowns, freshAuthors);
-        if (dataHasChanged(freshActivity, cachedData.activityRows)) {
+        saveDataCache(sanitizeActivityRows(freshActivity), freshDropdowns, freshAuthors, freshEvents);
+        if (dataHasChanged({
+          freshActivity,
+          cachedActivity: cachedData.activityRows,
+          freshEvents,
+          cachedEvents: cachedData.eventsRows,
+        })) {
           showToast('New data available \u2014 refreshing\u2026', 'updating');
           setTimeout(() => {
-            refreshTableOnly(freshActivity)
+            refreshTableOnly(freshActivity, freshDropdowns, freshAuthors, freshEvents)
               .then(() => {
                 showToast('Activity feed updated', 'uptodate', 3000);
               })
@@ -1239,9 +1282,9 @@ window.addEventListener('DOMContentLoaded', () => {
   } else {
     // No cache — wait for fresh data before rendering
     dataFetchPromise
-      .then(([activityRows, dropdownRows, authorsRows]) => {
-        saveDataCache(sanitizeActivityRows(activityRows), dropdownRows, authorsRows);
-        return processAndRender(activityRows, dropdownRows, authorsRows);
+      .then(([activityRows, dropdownRows, authorsRows, eventsRows]) => {
+        saveDataCache(sanitizeActivityRows(activityRows), dropdownRows, authorsRows, eventsRows);
+        return processAndRender(activityRows, dropdownRows, authorsRows, eventsRows);
       })
       .catch(err => {
         console.error('Failed to load data:', err);

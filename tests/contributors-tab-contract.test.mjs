@@ -27,25 +27,35 @@ test('contributors tab is feature-flagged by contributor=true and has a grid she
   assert.match(applyFiltersJs, /window\.renderContributors\(\)/);
 });
 
-test('load-table exposes Authors sheet rows and Dropdowns relationship options to contributors view', () => {
+test('load-table exposes Authors sheet rows, Events rows, and relationship options to contributors view', () => {
   const loadTableJs = readProjectFile('load-table.js');
 
   assert.match(loadTableJs, /window\.authorsData = \[\];/);
+  assert.match(loadTableJs, /window\.eventsData = \[\];/);
   assert.match(loadTableJs, /AUTHOR_SHEET_NAME_KEYS = \['name', 'Name'/);
+  assert.match(loadTableJs, /EVENT_PEOPLE_FIELD_KEYS = \['Who \(PoC\)'/);
   assert.match(loadTableJs, /const RELATIONSHIP_FIELD_KEYS = \[/);
   assert.match(loadTableJs, /RelationshipWithEsri/);
   assert.match(loadTableJs, /Relantionship/);
+  assert.match(loadTableJs, /fetchJsonOrThrow\(`https:\/\/opensheet\.elk\.sh\/\$\{SPREADSHEET_ID\}\/Events`\)/);
+  assert.match(loadTableJs, /window\.eventsData = Array\.isArray\(eventsRows\) \? eventsRows : \[\];/);
+  assert.match(loadTableJs, /const contributorsFromEvents = uniqueColumnValues\(eventsRows, EVENT_PEOPLE_FIELD_KEYS\);/);
+  assert.match(loadTableJs, /const contributors = \[\.\.\.new Set\(\[\.\.\.contributorsFromDropdown, \.\.\.authorsFromSheet, \.\.\.contributorsFromEvents\]\)\];/);
   assert.match(loadTableJs, /relationships: uniqueColumnValues\(dropdownRows, RELATIONSHIP_FIELD_KEYS\)/);
   assert.match(loadTableJs, /window\.authorsData = Array\.isArray\(authorsRows\) \? authorsRows : \[\];/);
 });
 
-test('contributors view counts filtered people involved and supports relationship and team chips', () => {
+test('contributors view counts filtered people involved, event participants, and supports relationship and team chips', () => {
   const contributorsJs = readProjectFile('contributors.js');
   const styleCss = readProjectFile('style.css');
 
   assert.match(contributorsJs, /window\.getFilteredActivityRows/);
   assert.match(contributorsJs, /countContributions/);
+  assert.match(contributorsJs, /countEventParticipations/);
   assert.match(contributorsJs, /PEOPLE_INVOLVED_FIELD_KEYS/);
+  assert.match(contributorsJs, /EVENT_PEOPLE_FIELD_KEYS = \['Who \(PoC\)'/);
+  assert.match(contributorsJs, /const getFilteredEventRows = \(\) => \{/);
+  assert.match(contributorsJs, /pickFirst\(row, EVENT_PEOPLE_FIELD_KEYS\)/);
   assert.match(contributorsJs, /const UNKNOWN_RELATIONSHIP = 'Unknown'/);
   assert.match(contributorsJs, /ESRI_EMPLOYEE_RELATIONSHIP = 'Esri employee'/);
   assert.match(contributorsJs, /NAME_FIELD_KEYS = \['name', 'Name'/);
