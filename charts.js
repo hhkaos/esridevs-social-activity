@@ -387,15 +387,76 @@ window.renderCharts = function () {
     },
   });
 
-  // ── 3. Content type doughnut ───────────────────────────────────────────────
-  const typeEntries = Object.entries(countByKey(data, chartPickFirst, CHART_FIELD_KEYS.category)).sort((a, b) => b[1] - a[1]);
+  // ── 3. Content type (stacked bar by publisher) ────────────────────────────
+  const CONTENT_TYPE_SMALL_THRESHOLD = 0.02;
+  const OTHERS_BUCKET_LABEL = 'Others';
+  const typeCountsRaw = countByKey(data, chartPickFirst, CHART_FIELD_KEYS.category);
+  const totalTypeCount = Object.values(typeCountsRaw).reduce((sum, v) => sum + v, 0);
+  const sortedTypeEntries = Object.entries(typeCountsRaw).sort((a, b) => b[1] - a[1]);
+  const smallTypeNames = new Set();
+  const mainTypeEntries = [];
+  sortedTypeEntries.forEach(([type, count]) => {
+    const ratio = totalTypeCount ? count / totalTypeCount : 0;
+    if (ratio < CONTENT_TYPE_SMALL_THRESHOLD) smallTypeNames.add(type);
+    else mainTypeEntries.push([type, count]);
+  });
+  const othersTotal = sortedTypeEntries
+    .filter(([type]) => smallTypeNames.has(type))
+    .reduce((sum, [, v]) => sum + v, 0);
+  const groupedTypeEntries = othersTotal > 0
+    ? [...mainTypeEntries, [OTHERS_BUCKET_LABEL, othersTotal]]
+    : mainTypeEntries;
+
+  const contentPublishers = [...new Set(data.map(
+    (row) => chartPickFirst(row, CHART_FIELD_KEYS.publisher) || 'Unknown',
+  ))];
+  const contentTypePublisherCounts = {};
+  groupedTypeEntries.forEach(([type]) => {
+    contentTypePublisherCounts[type] = {};
+    contentPublishers.forEach((publisher) => {
+      contentTypePublisherCounts[type][publisher] = 0;
+    });
+  });
+  data.forEach((row) => {
+    const rawType = chartPickFirst(row, CHART_FIELD_KEYS.category) || 'Unknown';
+    const bucket = smallTypeNames.has(rawType) ? OTHERS_BUCKET_LABEL : rawType;
+    if (!contentTypePublisherCounts[bucket]) return;
+    const publisher = chartPickFirst(row, CHART_FIELD_KEYS.publisher) || 'Unknown';
+    contentTypePublisherCounts[bucket][publisher] = (contentTypePublisherCounts[bucket][publisher] || 0) + 1;
+  });
+
+  const contentTypeKeys = groupedTypeEntries.map(([type]) => type);
+  const contentTypeDisplayLabels = groupedTypeEntries.map(([type, count]) => {
+    const pct = totalTypeCount ? Math.round((count / totalTypeCount) * 1000) / 10 : 0;
+    return `${type} (${count}, ${pct}%)`;
+  });
+
   makeChart('chart-type', {
-    type: 'doughnut',
+    type: 'bar',
     data: {
-      labels: typeEntries.map(([k]) => k),
-      datasets: [{ data: typeEntries.map(([, v]) => v), backgroundColor: PALETTE }],
+      labels: contentTypeDisplayLabels,
+      datasets: contentPublishers.map((publisher, i) => ({
+        label: publisher,
+        data: contentTypeKeys.map((type) => contentTypePublisherCounts[type]?.[publisher] || 0),
+        backgroundColor: PALETTE[i % PALETTE.length],
+      })),
     },
-    options: { ...baseOptions, plugins: { legend: { position: 'bottom' } } },
+    options: {
+      ...baseOptions,
+      indexAxis: 'y',
+      scales: {
+        x: { stacked: true, beginAtZero: true, ticks: { precision: 0 } },
+        y: { stacked: true },
+      },
+      plugins: {
+        legend: { position: 'bottom' },
+        tooltip: {
+          callbacks: {
+            label: (context) => `${context.dataset.label}: ${context.parsed.x || 0}`,
+          },
+        },
+      },
+    },
   });
 
   // ── 4. Channel doughnut ────────────────────────────────────────────────────
