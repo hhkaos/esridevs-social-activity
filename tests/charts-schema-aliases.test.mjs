@@ -58,9 +58,9 @@ test('charts filters and aggregations use alias-aware accessors instead of legac
   );
 
   assert.equal(
-    chartsJs.includes('countByKey(data, chartPickFirst, CHART_FIELD_KEYS.channelOwner)'),
+    chartsJs.includes('countByKey(data, chartPickFirst, CHART_FIELD_KEYS.publisher)'),
     true,
-    'Expected doughnut charts to aggregate channel owner values through aliases',
+    'Expected publishers chart to aggregate publisher values through aliases',
   );
 
   assert.equal(

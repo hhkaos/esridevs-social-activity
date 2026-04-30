@@ -459,15 +459,61 @@ window.renderCharts = function () {
     },
   });
 
-  // ── 4. Channel doughnut ────────────────────────────────────────────────────
-  const channelEntries = Object.entries(countByKey(data, chartPickFirst, CHART_FIELD_KEYS.channelOwner)).sort((a, b) => b[1] - a[1]);
-  makeChart('chart-channel', {
-    type: 'doughnut',
+  // ── 4. Publishers stacked bar (segmented by content type) ────────────────
+  const publisherCountsRaw = countByKey(data, chartPickFirst, CHART_FIELD_KEYS.publisher);
+  const totalPublisherCount = Object.values(publisherCountsRaw).reduce((sum, v) => sum + v, 0);
+  const sortedPublisherEntries = Object.entries(publisherCountsRaw).sort((a, b) => b[1] - a[1]);
+  const publisherKeys = sortedPublisherEntries.map(([name]) => name);
+  const publisherDisplayLabels = sortedPublisherEntries.map(([name, count]) => {
+    const pct = totalPublisherCount ? Math.round((count / totalPublisherCount) * 1000) / 10 : 0;
+    return `${name} (${count}, ${pct}%)`;
+  });
+
+  const publisherCategorySet = new Set();
+  data.forEach((row) => {
+    publisherCategorySet.add(chartPickFirst(row, CHART_FIELD_KEYS.category) || 'Unknown');
+  });
+  const publisherCategoryKeys = [...publisherCategorySet];
+  const publisherCategoryCounts = {};
+  publisherKeys.forEach((publisher) => {
+    publisherCategoryCounts[publisher] = {};
+    publisherCategoryKeys.forEach((category) => {
+      publisherCategoryCounts[publisher][category] = 0;
+    });
+  });
+  data.forEach((row) => {
+    const publisher = chartPickFirst(row, CHART_FIELD_KEYS.publisher) || 'Unknown';
+    if (!publisherCategoryCounts[publisher]) return;
+    const category = chartPickFirst(row, CHART_FIELD_KEYS.category) || 'Unknown';
+    publisherCategoryCounts[publisher][category] = (publisherCategoryCounts[publisher][category] || 0) + 1;
+  });
+
+  makeChart('chart-publishers', {
+    type: 'bar',
     data: {
-      labels: channelEntries.map(([k]) => k),
-      datasets: [{ data: channelEntries.map(([, v]) => v), backgroundColor: PALETTE }],
+      labels: publisherDisplayLabels,
+      datasets: publisherCategoryKeys.map((category, i) => ({
+        label: category,
+        data: publisherKeys.map((publisher) => publisherCategoryCounts[publisher]?.[category] || 0),
+        backgroundColor: PALETTE[i % PALETTE.length],
+      })),
     },
-    options: { ...baseOptions, plugins: { legend: { position: 'bottom' } } },
+    options: {
+      ...baseOptions,
+      indexAxis: 'y',
+      scales: {
+        x: { stacked: true, beginAtZero: true, ticks: { precision: 0 } },
+        y: { stacked: true },
+      },
+      plugins: {
+        legend: { position: 'bottom' },
+        tooltip: {
+          callbacks: {
+            label: (context) => `${context.dataset.label}: ${context.parsed.x || 0}`,
+          },
+        },
+      },
+    },
   });
 
   // ── 5. Top topics / technologies (stacked by author) ─────────────────────
