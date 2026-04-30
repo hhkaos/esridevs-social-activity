@@ -127,6 +127,52 @@
     };
   };
 
+  const computePreviousRange = (dateRange = {}) => {
+    const fromDate = parseDateToLocalDay(dateRange?.from);
+    const toDate = parseDateToLocalDay(dateRange?.to);
+    if (!fromDate || !toDate) return null;
+    if (fromDate > toDate) return null;
+
+    const dayMs = 24 * 60 * 60 * 1000;
+    const lengthDays = Math.round((toDate.getTime() - fromDate.getTime()) / dayMs) + 1;
+    const previousTo = addDaysLocal(fromDate, -1);
+    const previousFrom = addDaysLocal(previousTo, -(lengthDays - 1));
+    return {
+      from: toISODateLocal(previousFrom),
+      to: toISODateLocal(previousTo),
+    };
+  };
+
+  const computeDelta = (current, previous) => {
+    const curr = Number.isFinite(current) ? current : 0;
+    const prev = Number.isFinite(previous) ? previous : null;
+
+    if (prev === null) {
+      return { pct: null, status: 'na', label: '—' };
+    }
+    if (prev === 0 && curr === 0) {
+      return { pct: 0, status: 'flat', label: '0%' };
+    }
+    if (prev === 0 && curr > 0) {
+      return { pct: null, status: 'new', label: 'new' };
+    }
+    if (curr === 0 && prev > 0) {
+      return { pct: -100, status: 'gone', label: '−100%' };
+    }
+    const pct = ((curr - prev) / prev) * 100;
+    const rounded = Math.round(pct);
+    const sign = rounded > 0 ? '+' : (rounded < 0 ? '−' : '');
+    const absRounded = Math.abs(rounded);
+    if (rounded === 0) {
+      return { pct, status: 'flat', label: '0%' };
+    }
+    return {
+      pct,
+      status: rounded > 0 ? 'up' : 'down',
+      label: `${sign}${absRounded}%`,
+    };
+  };
+
   const pickFirst = (row, keys) => {
     for (const key of keys) {
       const normalized = normalizeCell(row?.[key]);
@@ -545,6 +591,8 @@
     parseDateToLocalDay,
     getLatestActivityDate,
     getDateRangeForPreset,
+    computePreviousRange,
+    computeDelta,
     sanitizeActivityRows,
     rowMatchesFilterState,
     filterActivityRows,

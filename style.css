@@ -1424,9 +1424,127 @@ body.is-column-resizing {
 
 /* ── Trends tab ─────────────────────────────────────────────────────────────── */
 .charts-note {
-  margin: 0.75rem 0 1rem;
+  margin: 0;
   font-size: 0.85rem;
   color: #6e6e6e;
+}
+
+.insights-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.insights-compare-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  color: #2c3a5f;
+  margin: 0;
+}
+
+.insights-compare-control__label {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.insights-compare-control select {
+  width: auto;
+  min-width: 220px;
+}
+
+.insights-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin: 0 0 1.1rem;
+}
+
+.insights-kpis[hidden] {
+  display: none;
+}
+
+.insights-kpi {
+  background: #fff;
+  border: 1px solid #d9e1f2;
+  border-radius: 10px;
+  padding: 0.7rem 0.85rem 0.6rem;
+  box-shadow: 0 4px 16px rgba(31, 42, 68, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-height: 92px;
+}
+
+.insights-kpi__label {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #5f6f96;
+}
+
+.insights-kpi__value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #1f2a44;
+  line-height: 1.1;
+}
+
+.insights-kpi__delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-top: 0.05rem;
+}
+
+.insights-kpi__delta--up    { color: #1f7a3a; }
+.insights-kpi__delta--down  { color: #b03021; }
+.insights-kpi__delta--flat  { color: #5f6f96; }
+.insights-kpi__delta--new   { color: #007AC2; }
+.insights-kpi__delta--gone  { color: #b03021; }
+.insights-kpi__delta--na    { color: #98a3bf; }
+
+.insights-kpi__previous {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #5f6f96;
+  margin-top: 0.05rem;
+}
+
+.insights-kpi__sparkline {
+  margin-top: 0.3rem;
+  height: 28px;
+}
+
+.chart-drill-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0 0 0.4rem;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #2c3a5f;
+  background: #eef2ff;
+  border: 1px solid #c9d4ef;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.chart-drill-back:hover,
+.chart-drill-back:focus-visible {
+  background: #dde6ff;
+  border-color: #9eb8f2;
+  outline: none;
 }
 
 .charts-index {
