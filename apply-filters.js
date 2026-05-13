@@ -529,7 +529,13 @@ window.addEventListener('resize', () => {
   closeFilterPopover();
 });
 
-window.addEventListener('scroll', () => {
+window.addEventListener('scroll', (event) => {
+  if (!activeFilterTargetKey || filterPopoverEl?.hidden) return;
+  const target = event.target;
+  if (target instanceof Element) {
+    if (filterPopoverEl?.contains(target)) return;
+    if (target.closest('.ts-dropdown') || target.closest('.ts-wrapper')) return;
+  }
   closeFilterPopover();
 }, true);
 
