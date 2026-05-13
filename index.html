@@ -55,10 +55,9 @@
               <div>
                 <div class="fw-semibold">Browser Extension</div>
                 <div class="text-muted small mt-1">Get badge alerts when new items match your saved filters.</div>
-                <div class="text-muted small fst-italic mt-1">Manual install required — not yet on extension stores.</div>
-                <a href="https://github.com/hhkaos/esridevs-social-activity/releases" class="btn btn-sm btn-outline-secondary mt-2" target="_blank" rel="noopener noreferrer">
-                  <i class="fa-brands fa-github" aria-hidden="true"></i> Install from GitHub
-                </a>
+                <button type="button" class="btn btn-sm btn-outline-secondary mt-2" data-bs-toggle="modal" data-bs-target="#install-instructions-modal">
+                  <i class="fa-solid fa-circle-info" aria-hidden="true"></i> Install instructions
+                </button>
               </div>
             </div>
           </div>
@@ -465,6 +464,36 @@
     </div>
   </div>
 
+  <div class="modal fade install-instructions-modal" id="install-instructions-modal" tabindex="-1" aria-labelledby="install-instructions-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="install-instructions-modal-title">Install the browser extension</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="small text-muted">The extension is not yet published to the Chrome Web Store or other extension stores, so it must be loaded manually as an unpacked extension.</p>
+          <ol class="install-instructions-steps">
+            <li>Download the latest release ZIP from <a href="https://github.com/hhkaos/esridevs-social-activity/releases" target="_blank" rel="noopener noreferrer">GitHub Releases</a> and unzip it, or clone the repository and use the <code>extension/</code> folder.</li>
+            <li>Open your browser's extensions page:
+              <ul>
+                <li>Chrome / Edge / Brave: <code>chrome://extensions</code></li>
+                <li>Firefox: <code>about:debugging#/runtime/this-firefox</code></li>
+              </ul>
+            </li>
+            <li>Enable <strong>Developer mode</strong> (top-right toggle in Chromium-based browsers).</li>
+            <li>Click <strong>Load unpacked</strong> (Chromium) or <strong>Load Temporary Add-on…</strong> (Firefox) and select the unzipped <code>extension/</code> folder (in Firefox, select the <code>manifest.json</code> file).</li>
+            <li>Open the extension's options page to configure your filters and refresh interval.</li>
+          </ol>
+          <p class="small text-muted mb-2">Watch the walkthrough:</p>
+          <div class="ratio ratio-16x9 install-instructions-video">
+            <iframe id="install-instructions-video" src="https://www.youtube.com/embed/slfAHeByFFs?start=754&enablejsapi=1" title="Manual browser extension install walkthrough" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" loading="lazy"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="modal fade definitions-modal" id="definitions-modal" tabindex="-1" aria-labelledby="definitions-modal-title" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content">
@@ -579,5 +608,16 @@
   <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
   <script src="./mobile-filters.js?v=v82"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <script>
+    (() => {
+      const modal = document.getElementById('install-instructions-modal');
+      if (!modal) return;
+      modal.addEventListener('hidden.bs.modal', () => {
+        const iframe = document.getElementById('install-instructions-video');
+        if (!iframe?.contentWindow) return;
+        iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+      });
+    })();
+  </script>
 </body>
 </html>
