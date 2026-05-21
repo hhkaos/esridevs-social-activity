@@ -1701,6 +1701,27 @@ document.getElementById('subscribe-btn')?.closest('.dropdown')
   ?.querySelector('.subscribe-dropdown')
   ?.addEventListener('click', (e) => e.stopPropagation());
 
+// Browser Extension subscribe option: on desktop Chrome the Chrome Web Store
+// is the easiest install path, so surface it as a one-click primary action
+// and demote the manual "Install instructions" trigger (kept for other
+// browsers and in-development builds) to a subtle secondary link.
+(function initExtensionInstallCta() {
+  const chromeCta = document.getElementById('chrome-webstore-btn');
+  const instructionsBtn = document.getElementById('install-instructions-btn');
+  if (!chromeCta || !instructionsBtn) return;
+
+  const onChrome = !!(window.browserDetect
+    && typeof window.browserDetect.isChromeWebStoreBrowser === 'function'
+    && window.browserDetect.isChromeWebStoreBrowser());
+
+  if (!onChrome) return; // keep "Install instructions" as the primary action
+
+  chromeCta.hidden = false;
+  instructionsBtn.classList.remove('btn-outline-secondary');
+  instructionsBtn.classList.add('btn-link', 'subscribe-extension__instructions-link');
+  instructionsBtn.textContent = 'Using another browser or a dev build?';
+})();
+
 if (window.tableRenderGate && typeof window.tableRenderGate.onComplete === 'function') {
   window.tableRenderGate.onComplete(() => {
     setActiveTab(appState.activeTab);

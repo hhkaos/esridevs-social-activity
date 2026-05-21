@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v82';
+const CACHE_VERSION = 'v83';
 const SHELL_ASSET_VERSION = CACHE_VERSION;
 importScripts(`./sw-update-utils.js?v=${SHELL_ASSET_VERSION}`);
 
@@ -10,6 +10,7 @@ const SHELL_ASSETS = [
   `./style.css?v=${SHELL_ASSET_VERSION}`,
   `./activity-utils.js?v=${SHELL_ASSET_VERSION}`,
   `./load-table.js?v=${SHELL_ASSET_VERSION}`,
+  `./browser-detect.js?v=${SHELL_ASSET_VERSION}`,
   `./apply-filters.js?v=${SHELL_ASSET_VERSION}`,
   `./charts.js?v=${SHELL_ASSET_VERSION}`,
   `./contributors.js?v=${SHELL_ASSET_VERSION}`,

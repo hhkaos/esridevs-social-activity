@@ -239,12 +239,14 @@ chrome.notifications.create('new-items', {
 - [ ] Persistencia en storage (guardar/leer) — sin tests automatizados (requiere chrome API mock)
 - [ ] Carga de opciones desde Dropdowns sheet — sin tests automatizados
 
-**Publicación Chrome Web Store:** ✅ Enviado a revisión
+**Publicación Chrome Web Store:** ✅ Publicada — <https://chromewebstore.google.com/detail/esri-developer-content-tr/npcmemlmaclhlkdhjjnojbofnkmboklk>
 
 1. ~~Cuenta de desarrollador ($5 único pago en payments.google.com)~~
 2. ZIP de `/extension/`: `zip -r esri-dev-tracker.zip manifest.json background.js popup.html popup.js popup.css options.html options.js options.css filter-utils.js lzstring.min.js icons/`
 3. Assets de store: descripción, screenshots (1280×800 o 640×400), icono promo (440×280)
 4. ~~Enviar a revisión → ~3-7 días hábiles~~
+
+**Integración en la web app:** `browser-detect.js` (`isChromeWebStoreBrowser`) detecta Chrome de escritorio. En el dropdown _Subscribe → Browser Extension_ y en el modal de instrucciones, los usuarios de Chrome ven un botón directo "Add to Chrome" a la Chrome Web Store; el resto ve las instrucciones de instalación manual (otros navegadores / build de desarrollo).
 
 **Publicación Firefox AMO** (gratuito) — ⬜ Pendiente:
 
