@@ -67,9 +67,8 @@ extension/
 ```json
 {
   "manifest_version": 3,
-  "permissions": ["storage", "alarms", "tabs"],
+  "permissions": ["storage", "alarms"],
   "optional_permissions": ["notifications"],
-  "host_permissions": ["https://opensheet.elk.sh/*"],
   "background": { "service_worker": "background.js" },
   "action": { "default_popup": "popup.html" },
   "options_ui": { "page": "options.html", "open_in_tab": true },
@@ -78,6 +77,19 @@ extension/
   }
 }
 ```
+
+> **Permisos mínimos — sin avisos en la instalación.** `storage` y `alarms`
+> no generan advertencia. `notifications` es opcional (el aviso solo aparece
+> si el usuario lo activa en la options page).
+>
+> - **No usar `"tabs"`**: dispara el aviso "Read your browsing history".
+>   `chrome.tabs.create({ url })` funciona sin ese permiso.
+> - **No usar `host_permissions`**: dispara "Read and change your data on
+>   opensheet.elk.sh". opensheet sirve `Access-Control-Allow-Origin: *`, así
+>   que los `fetch()` del service worker y la options page funcionan por CORS
+>   sin necesidad de declarar el host.
+>
+> Regresión cubierta en `tests/extension-manifest-permissions.test.mjs`.
 
 ---
 
