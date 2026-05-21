@@ -22,6 +22,34 @@ export const pickFirst = (row, keys) => {
   return '';
 };
 
+/** Lowercased, normalized lookup key for a filter value's definition. */
+const normalizeValueKey = (value) => normalizeCell(value).toLowerCase();
+
+/**
+ * Build a map of normalized-value → definition text from spreadsheet rows.
+ * Mirrors buildValueDefinitionMap() in activity-utils.js so the extension can
+ * surface the same per-value "what does this mean" copy as the web app.
+ */
+export const buildValueDefinitionMap = ({ rows = [], valueKeys = [], definitionKeys = [] } = {}) => {
+  const definitions = {};
+  for (const row of rows) {
+    const value = pickFirst(row, valueKeys);
+    const definition = pickFirst(row, definitionKeys);
+    if (!value || !definition) continue;
+    const key = normalizeValueKey(value);
+    if (!key || definitions[key]) continue; // first definition wins
+    definitions[key] = definition;
+  }
+  return definitions;
+};
+
+/** Look up a value's definition in a map built by buildValueDefinitionMap(). */
+export const resolveValueDefinition = (definitions = {}, value = '') => {
+  const key = normalizeValueKey(value);
+  if (!key) return '';
+  return definitions[key] || '';
+};
+
 /**
  * Parse a date string (ISO YYYY-MM-DD or M/D/YYYY) to a local-midnight Date.
  * Returns null if the value cannot be parsed.

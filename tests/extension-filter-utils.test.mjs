@@ -27,6 +27,8 @@ import {
   isItemUnseen,
   countNewItemsByKey,
   findEarliestUnseenDate,
+  buildValueDefinitionMap,
+  resolveValueDefinition,
 } from '../extension/filter-utils.js';
 
 // ── normalizeCell ──────────────────────────────────────────────────────────────
@@ -585,4 +587,83 @@ test('collectUnseenItemUrls: skips non-countable rows', () => {
   ];
   const seenKeys = new Set();
   assert.deepEqual(collectUnseenItemUrls(rows, seenKeys), ['https://a.com']);
+});
+
+// ── buildValueDefinitionMap ────────────────────────────────────────────────────
+
+test('buildValueDefinitionMap: maps normalized value → definition text', () => {
+  const rows = [
+    { Publisher: 'Esri', Publisher_value_definition: 'Published by an official Esri source.' },
+    { Publisher: 'Community', Publisher_value_definition: 'Published by a non-Esri source.' },
+  ];
+  const map = buildValueDefinitionMap({
+    rows,
+    valueKeys: ['Publisher', 'Author'],
+    definitionKeys: ['Publisher_value_definition'],
+  });
+  assert.deepEqual(map, {
+    esri: 'Published by an official Esri source.',
+    community: 'Published by a non-Esri source.',
+  });
+});
+
+test('buildValueDefinitionMap: skips rows missing a value or a definition', () => {
+  const rows = [
+    { Publisher: 'Esri', Publisher_value_definition: 'Official Esri.' },
+    { Publisher: 'Community' },                                  // no definition
+    { Publisher_value_definition: 'Orphan definition.' },        // no value
+  ];
+  const map = buildValueDefinitionMap({
+    rows,
+    valueKeys: ['Publisher'],
+    definitionKeys: ['Publisher_value_definition'],
+  });
+  assert.deepEqual(map, { esri: 'Official Esri.' });
+});
+
+test('buildValueDefinitionMap: first definition wins for duplicate values', () => {
+  const rows = [
+    { Channel: 'Esri', Channel_owner_value_definition: 'First.' },
+    { Channel: 'Esri', Channel_owner_value_definition: 'Second.' },
+  ];
+  const map = buildValueDefinitionMap({
+    rows,
+    valueKeys: ['Channel'],
+    definitionKeys: ['Channel_owner_value_definition'],
+  });
+  assert.deepEqual(map, { esri: 'First.' });
+});
+
+test('buildValueDefinitionMap: resolves legacy and renamed definition headers', () => {
+  const rows = [
+    { Publisher: 'Esri', 'Publisher value definition': 'Renamed header.' },
+    { Publisher: 'Distributor', Author_value_definition: 'Legacy header.' },
+  ];
+  const map = buildValueDefinitionMap({
+    rows,
+    valueKeys: ['Publisher', 'Author', 'Authors'],
+    definitionKeys: ['Publisher_value_definition', 'Publisher value definition', 'Author_value_definition'],
+  });
+  assert.deepEqual(map, { esri: 'Renamed header.', distributor: 'Legacy header.' });
+});
+
+test('buildValueDefinitionMap: returns empty object for empty/absent rows', () => {
+  assert.deepEqual(buildValueDefinitionMap(), {});
+  assert.deepEqual(buildValueDefinitionMap({ rows: [], valueKeys: ['Publisher'], definitionKeys: ['x'] }), {});
+});
+
+// ── resolveValueDefinition ─────────────────────────────────────────────────────
+
+test('resolveValueDefinition: looks up a definition case-insensitively', () => {
+  const map = { esri: 'Official Esri source.' };
+  assert.equal(resolveValueDefinition(map, 'Esri'), 'Official Esri source.');
+  assert.equal(resolveValueDefinition(map, '  ESRI  '), 'Official Esri source.');
+});
+
+test('resolveValueDefinition: returns empty string when value is unknown or blank', () => {
+  const map = { esri: 'Official Esri source.' };
+  assert.equal(resolveValueDefinition(map, 'Community'), '');
+  assert.equal(resolveValueDefinition(map, ''), '');
+  assert.equal(resolveValueDefinition(map), '');
+  assert.equal(resolveValueDefinition(undefined, 'Esri'), '');
 });

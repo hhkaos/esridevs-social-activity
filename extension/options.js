@@ -6,8 +6,57 @@
  * widget (searchable dropdown + chips) for each filter dimension.
  */
 
+import { buildValueDefinitionMap, resolveValueDefinition } from './filter-utils.js';
+
 const SPREADSHEET_ID = '1oKkHCNbOUpfERu1xC4ePU2XwDSvalEfE0YmTN39cyNg';
 const BASE_URL = `https://opensheet.elk.sh/${SPREADSHEET_ID}`;
+
+// Column aliases for the spreadsheet's per-value definition text.
+// Mirrors the *_DEFINITION_KEYS in load-table.js.
+const PUBLISHER_VALUE_KEYS = ['Publisher', 'Author', 'Authors'];
+const PUBLISHER_DEFINITION_KEYS = ['Publisher_value_definition', 'Publisher value definition', 'Author_value_definition'];
+const CHANNEL_VALUE_KEYS = ['Channel owner', 'Channel Owner', 'Channel_owner', 'ChannelOwner', 'Channel'];
+const CHANNEL_DEFINITION_KEYS = ['Channel_owner_value_definition', 'Channel owner value definition', 'ChannelOwner_value_definition', 'Channel_value_definition'];
+
+/**
+ * Per-filter "what does this mean" copy shown in the info modal.
+ * `label`   — heading shown in the modal.
+ * `meaning` — describes the filter dimension itself.
+ * `hasValueDefinitions` — true when the spreadsheet supplies per-value
+ *   definitions (Publisher / Channel owner), so the modal lists each value.
+ */
+const FIELD_INFO = {
+  technologies: {
+    label: 'Topics / Products',
+    meaning: 'The Esri products, APIs, SDKs, or technologies the content is about. A single item can be tagged with several.',
+    hasValueDefinitions: false,
+  },
+  categories: {
+    label: 'Content Type',
+    meaning: 'The format or kind of resource — for example a blog post, video, course, book, or sample app.',
+    hasValueDefinitions: false,
+  },
+  languages: {
+    label: 'Language',
+    meaning: 'The natural language the content is written or presented in.',
+    hasValueDefinitions: false,
+  },
+  authors: {
+    label: 'Publisher',
+    meaning: 'Who publishes, issues, or officially stands behind the content.',
+    hasValueDefinitions: true,
+  },
+  contributors: {
+    label: 'People involved',
+    meaning: 'People who had relevant involvement in creating, publishing, or distributing the content.',
+    hasValueDefinitions: false,
+  },
+  channels: {
+    label: 'Channel owner',
+    meaning: 'Who owns or administers the channel, site, or account where the content appears.',
+    hasValueDefinitions: true,
+  },
+};
 
 const DEFAULT_SETTINGS = {
   refreshIntervalMinutes: 15,
@@ -224,7 +273,96 @@ async function loadDropdownOptions() {
     authors:      uniqueColumnValues(dropdownRows, ['Publisher', 'Author', 'Authors']),
     contributors,
     languages:    uniqueColumnValues(dropdownRows, ['Languages', 'Language']),
+    // Per-value definition text — only Publisher and Channel owner have it.
+    definitions: {
+      authors:  buildValueDefinitionMap({ rows: dropdownRows, valueKeys: PUBLISHER_VALUE_KEYS, definitionKeys: PUBLISHER_DEFINITION_KEYS }),
+      channels: buildValueDefinitionMap({ rows: dropdownRows, valueKeys: CHANNEL_VALUE_KEYS, definitionKeys: CHANNEL_DEFINITION_KEYS }),
+    },
   };
+}
+
+// ── Filter info modal ─────────────────────────────────────────────────────────
+
+/** HTML-escape a string for safe insertion via innerHTML. */
+function escapeHtml(value) {
+  return `${value ?? ''}`
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Build the "Values" section markup for a filter that has per-value
+ * definitions (Publisher / Channel owner). Mirrors the web app's definitions
+ * modal: each value is listed alongside its meaning.
+ */
+function renderValueDefinitionsSection(values, definitions) {
+  if (!Array.isArray(values) || values.length === 0) {
+    return '<p class="def-empty">Values are still loading…</p>';
+  }
+  const items = values.map((value) => {
+    const meaning = resolveValueDefinition(definitions, value) || 'No definition provided yet.';
+    return '<li class="def-list-item">'
+      + `<span class="def-list-value">${escapeHtml(value)}</span>`
+      + `<span class="def-list-meaning">${escapeHtml(meaning)}</span>`
+      + '</li>';
+  }).join('');
+  return `<ul class="def-list">${items}</ul>`;
+}
+
+/**
+ * Wire the filter info modal: the "i" button next to each filter label opens
+ * a modal explaining what that filter means — and, for Publisher / Channel
+ * owner, what each individual value means (sourced from the spreadsheet).
+ *
+ * @param {() => (object|null)} getOptions returns the loaded API response,
+ *   or null before it has resolved.
+ */
+function setupInfoModal(getOptions) {
+  const modal   = document.querySelector('#info-modal');
+  const titleEl = document.querySelector('#info-modal-title');
+  const bodyEl  = document.querySelector('#info-modal-body');
+  if (!modal || !titleEl || !bodyEl) return;
+
+  const render = (fieldKey) => {
+    const info = FIELD_INFO[fieldKey];
+    if (!info) return;
+    titleEl.textContent = `${info.label} filter`;
+
+    let html = '<section class="def-section">'
+      + '<h3 class="def-section-title">What it means</h3>'
+      + `<p class="def-text">${escapeHtml(info.meaning)}</p>`
+      + '</section>';
+
+    if (info.hasValueDefinitions) {
+      const options = getOptions();
+      const values = options?.[fieldKey] ?? [];
+      const definitions = options?.definitions?.[fieldKey] ?? {};
+      html += '<section class="def-section">'
+        + '<h3 class="def-section-title">Values</h3>'
+        + renderValueDefinitionsSection(values, definitions)
+        + '</section>';
+    }
+    bodyEl.innerHTML = html;
+  };
+
+  const open = (fieldKey) => {
+    render(fieldKey);
+    modal.hidden = false;
+  };
+  const close = () => { modal.hidden = true; };
+
+  document.querySelectorAll('[data-info-field]').forEach((btn) => {
+    btn.addEventListener('click', () => open(btn.dataset.infoField));
+  });
+  modal.querySelectorAll('[data-info-close]').forEach((el) => {
+    el.addEventListener('click', close);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.hidden) close();
+  });
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
@@ -265,11 +403,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     ms.setSelected(settings.filters?.[key] ?? []);
   }
 
+  // ── Filter info modal ─────────────────────────────────────────────────────
+  // `loadedOptions` holds the API response so the modal can list per-value
+  // definitions; the modal renders meaning-only copy until it resolves.
+  let loadedOptions = null;
+  setupInfoModal(() => loadedOptions);
+
   // ── Load dropdown options from API ────────────────────────────────────────
   try {
-    const options = await loadDropdownOptions();
+    loadedOptions = await loadDropdownOptions();
     for (const [key, ms] of Object.entries(fields)) {
-      ms.setOptions(options[key] ?? []);
+      ms.setOptions(loadedOptions[key] ?? []);
     }
   } catch {
     showStatus('Could not load filter options — check your connection. Saved selections still apply.', 'error');

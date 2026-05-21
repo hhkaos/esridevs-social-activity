@@ -26,7 +26,10 @@
       <div class="fields">
 
         <div class="field-row">
-          <label class="field-label">Topics / Products</label>
+          <label class="field-label">Topics / Products
+            <button type="button" class="field-help-btn" data-info-field="technologies"
+                    aria-label="About the Topics / Products filter" title="What does this filter mean?">i</button>
+          </label>
           <div class="ms-field" id="ms-technologies">
             <div class="ms-control">
               <div class="ms-chips-area">
@@ -39,7 +42,10 @@
         </div>
 
         <div class="field-row">
-          <label class="field-label">Content Type</label>
+          <label class="field-label">Content Type
+            <button type="button" class="field-help-btn" data-info-field="categories"
+                    aria-label="About the Content Type filter" title="What does this filter mean?">i</button>
+          </label>
           <div class="ms-field" id="ms-categories">
             <div class="ms-control">
               <div class="ms-chips-area">
@@ -52,7 +58,10 @@
         </div>
 
         <div class="field-row">
-          <label class="field-label">Language</label>
+          <label class="field-label">Language
+            <button type="button" class="field-help-btn" data-info-field="languages"
+                    aria-label="About the Language filter" title="What does this filter mean?">i</button>
+          </label>
           <div class="ms-field" id="ms-languages">
             <div class="ms-control">
               <div class="ms-chips-area">
@@ -65,7 +74,10 @@
         </div>
 
         <div class="field-row">
-          <label class="field-label">Publisher</label>
+          <label class="field-label">Publisher
+            <button type="button" class="field-help-btn" data-info-field="authors"
+                    aria-label="About the Publisher filter" title="What does this filter mean?">i</button>
+          </label>
           <div class="ms-field" id="ms-authors">
             <div class="ms-control">
               <div class="ms-chips-area">
@@ -78,7 +90,10 @@
         </div>
 
         <div class="field-row">
-          <label class="field-label">People involved</label>
+          <label class="field-label">People involved
+            <button type="button" class="field-help-btn" data-info-field="contributors"
+                    aria-label="About the People involved filter" title="What does this filter mean?">i</button>
+          </label>
           <div class="ms-field" id="ms-contributors">
             <div class="ms-control">
               <div class="ms-chips-area">
@@ -91,7 +106,10 @@
         </div>
 
         <div class="field-row">
-          <label class="field-label">Channel owner</label>
+          <label class="field-label">Channel owner
+            <button type="button" class="field-help-btn" data-info-field="channels"
+                    aria-label="About the Channel owner filter" title="What does this filter mean?">i</button>
+          </label>
           <div class="ms-field" id="ms-channels">
             <div class="ms-control">
               <div class="ms-chips-area">
@@ -163,6 +181,18 @@
 
   </div><!-- /page -->
 
-  <script src="options.js"></script>
+  <!-- ── Filter info modal ─────────────────────────────────────────────────── -->
+  <div id="info-modal" class="info-modal" hidden>
+    <div class="info-modal-backdrop" data-info-close></div>
+    <div class="info-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="info-modal-title">
+      <div class="info-modal-header">
+        <h2 id="info-modal-title" class="info-modal-title">Filter definitions</h2>
+        <button type="button" class="info-modal-close" data-info-close aria-label="Close">&times;</button>
+      </div>
+      <div id="info-modal-body" class="info-modal-body"></div>
+    </div>
+  </div>
+
+  <script type="module" src="options.js"></script>
 </body>
 </html>
