@@ -19,3 +19,4 @@ node_modules/
 # Local secrets / keys
 *.pem
 *.key
+tests/extension-options-definitions.test.mjs

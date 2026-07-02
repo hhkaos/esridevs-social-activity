@@ -19,16 +19,18 @@ const CHANNEL_VALUE_KEYS = ['Channel owner', 'Channel Owner', 'Channel_owner', '
 const CHANNEL_DEFINITION_KEYS = ['Channel_owner_value_definition', 'Channel owner value definition', 'ChannelOwner_value_definition', 'Channel_value_definition'];
 
 /**
- * Per-filter "what does this mean" copy shown in the info modal.
+ * Per-filter copy shown in the info modal.
  * `label`   — heading shown in the modal.
  * `meaning` — describes the filter dimension itself.
  * `hasValueDefinitions` — true when the spreadsheet supplies per-value
- *   definitions (Publisher / Channel owner), so the modal lists each value.
+ *   definitions (Publisher / Channel owner). Every filter still lists its
+ *   values dynamically from opensheet; only these two annotate each value
+ *   with a definition.
  */
 const FIELD_INFO = {
   technologies: {
     label: 'Topics / Products',
-    meaning: 'The Esri products, APIs, SDKs, or technologies the content is about. A single item can be tagged with several.',
+    meaning: 'The Esri products, APIs, SDKs, or technologies the piece is about. A single piece can cover several.',
     hasValueDefinitions: false,
   },
   categories: {
@@ -38,22 +40,22 @@ const FIELD_INFO = {
   },
   languages: {
     label: 'Language',
-    meaning: 'The natural language the content is written or presented in.',
+    meaning: 'The natural language the piece is written or presented in.',
     hasValueDefinitions: false,
   },
   authors: {
     label: 'Publisher',
-    meaning: 'Who publishes, issues, or officially stands behind the content.',
+    meaning: 'Who publishes, issues, or officially stands behind the piece in this resource.',
     hasValueDefinitions: true,
   },
   contributors: {
     label: 'People involved',
-    meaning: 'People who had relevant involvement in creating, publishing, or distributing the content.',
+    meaning: 'People who had relevant involvement in creating, publishing, or distributing this piece.',
     hasValueDefinitions: false,
   },
   channels: {
     label: 'Channel owner',
-    meaning: 'Who owns or administers the channel, site, or account where the content appears.',
+    meaning: 'Who owns or administers the channel, site, or account where the piece appears.',
     hasValueDefinitions: true,
   },
 };
@@ -294,19 +296,31 @@ function escapeHtml(value) {
 }
 
 /**
- * Build the "Values" section markup for a filter that has per-value
- * definitions (Publisher / Channel owner). Mirrors the web app's definitions
- * modal: each value is listed alongside its meaning.
+ * Build the "Values" section markup, listing the values that opensheet
+ * currently exposes for a filter. When `definitions` is supplied (Publisher /
+ * Channel owner) each value is annotated with its meaning, mirroring the web
+ * app's definitions modal; otherwise only the value names are listed.
+ *
+ * @param {string[]} values       values pulled live from opensheet.
+ * @param {object|null} definitions normalized-value → definition map, or null.
+ * @param {boolean} loaded         whether the opensheet response has resolved.
  */
-function renderValueDefinitionsSection(values, definitions) {
+function renderValuesSection(values, definitions, loaded) {
+  if (!loaded) {
+    return '<p class="def-empty">Loading values from the spreadsheet…</p>';
+  }
   if (!Array.isArray(values) || values.length === 0) {
-    return '<p class="def-empty">Values are still loading…</p>';
+    return '<p class="def-empty">No values available.</p>';
   }
   const items = values.map((value) => {
-    const meaning = resolveValueDefinition(definitions, value) || 'No definition provided yet.';
+    let meaningHtml = '';
+    if (definitions) {
+      const meaning = resolveValueDefinition(definitions, value) || 'No definition provided yet.';
+      meaningHtml = `<span class="def-list-meaning">${escapeHtml(meaning)}</span>`;
+    }
     return '<li class="def-list-item">'
       + `<span class="def-list-value">${escapeHtml(value)}</span>`
-      + `<span class="def-list-meaning">${escapeHtml(meaning)}</span>`
+      + meaningHtml
       + '</li>';
   }).join('');
   return `<ul class="def-list">${items}</ul>`;
@@ -329,22 +343,26 @@ function setupInfoModal(getOptions) {
   const render = (fieldKey) => {
     const info = FIELD_INFO[fieldKey];
     if (!info) return;
-    titleEl.textContent = `${info.label} filter`;
+    titleEl.textContent = `${info.label} definitions`;
 
+    // Meaning — describes the filter dimension itself.
     let html = '<section class="def-section">'
-      + '<h3 class="def-section-title">What it means</h3>'
+      + '<h3 class="def-section-title">Meaning</h3>'
       + `<p class="def-text">${escapeHtml(info.meaning)}</p>`
       + '</section>';
 
-    if (info.hasValueDefinitions) {
-      const options = getOptions();
-      const values = options?.[fieldKey] ?? [];
-      const definitions = options?.definitions?.[fieldKey] ?? {};
-      html += '<section class="def-section">'
-        + '<h3 class="def-section-title">Values</h3>'
-        + renderValueDefinitionsSection(values, definitions)
-        + '</section>';
-    }
+    // Values — listed dynamically from opensheet for every filter.
+    // Publisher / Channel owner also annotate each value with its definition.
+    const options = getOptions();
+    const values = options?.[fieldKey] ?? [];
+    const definitions = info.hasValueDefinitions
+      ? (options?.definitions?.[fieldKey] ?? {})
+      : null;
+    html += '<section class="def-section">'
+      + '<h3 class="def-section-title">Values</h3>'
+      + renderValuesSection(values, definitions, options != null)
+      + '</section>';
+
     bodyEl.innerHTML = html;
   };
 
