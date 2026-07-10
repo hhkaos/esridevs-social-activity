@@ -544,25 +544,43 @@ const buildShareNudgeText = (row) => {
   return 'Found this useful? Help the people involved by sharing it with your network.';
 };
 
-const dismissShareNudgeForRow = (row) => {
-  if (!row) return;
-  row.classList.remove('share-nudge-active');
-  const nudgeEl = row.querySelector('.share-nudge');
-  if (nudgeEl) nudgeEl.hidden = true;
+// The share nudge is rendered as a floating Bootstrap popover anchored to the
+// row's share icons, so it never affects table layout. Only one is open at a
+// time; it auto-dismisses on any outside click or Escape.
+let activeShareNudge = null;
+
+const dismissShareNudge = () => {
+  if (!activeShareNudge) return;
+  const { popover, row } = activeShareNudge;
+  activeShareNudge = null;
+  row?.classList.remove('share-nudge-active');
+  try {
+    popover?.dispose();
+  } catch {
+    // Anchor may already be detached after a re-render; ignore.
+  }
 };
 
 const activateShareNudgeForRow = (row) => {
   if (!row || row.classList.contains('hidden')) return;
-  if (!row.querySelector('.social-links .social-link')) return;
+  const anchor = row.querySelector('.social-links');
+  if (!anchor || !anchor.querySelector('.social-link')) return;
+  if (typeof bootstrap === 'undefined' || !bootstrap.Popover) return;
 
-  const nudgeEl = row.querySelector('.share-nudge');
-  if (nudgeEl) {
-    const textEl = nudgeEl.querySelector('.share-nudge__text');
-    if (textEl) textEl.textContent = buildShareNudgeText(row);
-    nudgeEl.hidden = false;
-  }
+  dismissShareNudge();
+
+  const popover = new bootstrap.Popover(anchor, {
+    content: buildShareNudgeText(row),
+    trigger: 'manual',
+    placement: 'top',
+    container: 'body',
+    html: false,
+    customClass: 'share-nudge-popover',
+  });
+  popover.show();
 
   row.classList.add('share-nudge-active');
+  activeShareNudge = { popover, row };
 };
 
 const initShareNudges = () => {
@@ -574,17 +592,27 @@ const initShareNudges = () => {
     const target = event.target;
     if (!(target instanceof Element)) return;
 
-    const closeBtnEl = target.closest('.share-nudge__close');
-    if (closeBtnEl) {
-      dismissShareNudgeForRow(closeBtnEl.closest('tr'));
-      return;
-    }
-
     const contentLinkEl = target.closest('.table-title-link');
     const contentMenuItemEl = target.closest('.table-title-menu .dropdown-item');
     const row = contentLinkEl?.closest('tr') || contentMenuItemEl?.closest('tr');
     if (!row) return;
     activateShareNudgeForRow(row);
+  });
+
+  // Dismiss when the user clicks anywhere that is not the popover itself or the
+  // content link that opens it (those are handled above / keep it open).
+  document.addEventListener('click', (event) => {
+    if (!activeShareNudge) return;
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest('.share-nudge-popover')) return;
+    if (target.closest('.table-title-link')) return;
+    if (target.closest('.table-title-menu .dropdown-item')) return;
+    dismissShareNudge();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') dismissShareNudge();
   });
 
   shareNudgeHandlersInitialized = true;
@@ -628,19 +656,19 @@ const renderContentLinkTitle = ({ title, contentLinks, featured = false, isNew =
       .join('');
 
     return `
-      <div class="dropdown table-title-dropdown">
-        <div class="table-title-main">
-          ${featuredMarker}
+      <div class="table-title-main">
+        ${featuredMarker}
+        <div class="dropdown table-title-dropdown">
           <button class="table-title-link table-title-link--menu" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true" aria-controls="${menuId}" aria-label="Open content links for ${safeTitle}" title="Choose where this content was posted">
             <span class="table-title-text">${safeTitle}</span>
             <i class="fa-solid fa-chevron-down table-title-link__caret" aria-hidden="true"></i>
           </button>
-          ${newBadge}
+          <ul id="${menuId}" class="dropdown-menu table-title-menu">
+            <li><h6 class="dropdown-header">Posted in:</h6></li>
+            ${menuItems}
+          </ul>
         </div>
-        <ul id="${menuId}" class="dropdown-menu table-title-menu">
-          <li><h6 class="dropdown-header">Posted in:</h6></li>
-          ${menuItems}
-        </ul>
+        ${newBadge}
       </div>
     `;
   }
@@ -1054,13 +1082,7 @@ function createTableRowClone(entry, template) {
   row.setAttribute('data-languages', language);
 
   if (socialLinks.length) {
-    td[5].innerHTML = `
-      <div class="social-links">${socialLinks.map(renderSocialLink).join('')}</div>
-      <div class="share-nudge" hidden aria-live="polite">
-        <span class="share-nudge__text"></span>
-        <button class="share-nudge__close" type="button" aria-label="Dismiss share suggestion">×</button>
-      </div>
-    `;
+    td[5].innerHTML = `<div class="social-links">${socialLinks.map(renderSocialLink).join('')}</div>`;
   } else {
     const socialHelpTooltipHtml = `No social links available.<br>If you know this content was shared, <a href='https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit?usp=sharing' target='_blank' rel='noopener noreferrer'>add it via Add new activity</a> or contact <a href='mailto:developers@esri.com'>developers@esri.com</a>.`;
     td[5].innerHTML = `<span class="social-na" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="${socialHelpTooltipHtml}" aria-label="No social links available. Hover for details.">N/A <i class="fa-solid fa-circle-info social-na__icon" aria-hidden="true"></i></span>`;

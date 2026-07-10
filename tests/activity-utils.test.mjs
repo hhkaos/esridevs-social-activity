@@ -6,6 +6,8 @@ const require = createRequire(import.meta.url);
 const {
   sanitizeActivityRows,
   extractSocialLinks,
+  extractContentLinks,
+  splitContentUrls,
   matchesSelectionMap,
   runPostRefreshUiSync,
   createRenderGate,
@@ -429,4 +431,50 @@ test('resolveValueDefinition looks up values case-insensitively', () => {
 
   assert.equal(resolveValueDefinition(definitions, 'ESRI'), 'Official Esri channels');
   assert.equal(resolveValueDefinition(definitions, 'Unknown value'), '');
+});
+
+test('extractContentLinks returns a single link for a normal URL cell', () => {
+  const links = extractContentLinks({ URL: 'https://example.com/post' });
+  assert.deepEqual(links, [{ url: 'https://example.com/post', title: 'Open content link' }]);
+});
+
+test('extractContentLinks splits two URLs separated by a newline', () => {
+  const links = extractContentLinks({
+    URL: 'https://medium.com/@a/article\nhttps://youtube.com/watch?v=abc',
+  });
+  assert.deepEqual(links.map((l) => l.url), [
+    'https://medium.com/@a/article',
+    'https://youtube.com/watch?v=abc',
+  ]);
+});
+
+test('extractContentLinks splits two URLs separated by a comma and space, trimming the separator', () => {
+  const links = extractContentLinks({
+    URL: 'https://medium.com/@a/article, https://youtube.com/watch?v=abc',
+  });
+  assert.deepEqual(links.map((l) => l.url), [
+    'https://medium.com/@a/article',
+    'https://youtube.com/watch?v=abc',
+  ]);
+});
+
+test('extractContentLinks preserves commas inside a single Esri URL', () => {
+  const esriUrl = 'https://www.arcgis.com/apps/mapviewer/index.html?center=-100,40&level=5';
+  const links = extractContentLinks({ URL: esriUrl });
+  assert.deepEqual(links, [{ url: esriUrl, title: 'Open content link' }]);
+});
+
+test('extractContentLinks keeps a bare non-http value verbatim', () => {
+  const links = extractContentLinks({ URL: 'example.com/post' });
+  assert.deepEqual(links, [{ url: 'example.com/post', title: 'Open content link' }]);
+});
+
+test('extractContentLinks returns empty for N/A or blank cells', () => {
+  assert.deepEqual(extractContentLinks({ URL: 'N/A' }), []);
+  assert.deepEqual(extractContentLinks({ URL: '' }), []);
+});
+
+test('splitContentUrls splits three whitespace-separated URLs', () => {
+  const urls = splitContentUrls('https://a.com https://b.com  https://c.com');
+  assert.deepEqual(urls, ['https://a.com', 'https://b.com', 'https://c.com']);
 });

@@ -381,10 +381,25 @@
     return links;
   };
 
+  // A single spreadsheet URL cell can hold several links (e.g. the same content
+  // published as an article + video). Split on whitespace/newlines only — Esri
+  // URLs legitimately contain commas (bbox coordinates), so comma is not a safe
+  // separator. Cells with 0 or 1 scheme-based URL are kept verbatim to preserve
+  // the legacy behaviour for bare-domain or non-http values.
+  const splitContentUrls = (raw) => {
+    const value = normalizeCell(raw);
+    if (!value) return [];
+    const matches = value.match(/https?:\/\/\S+/gi);
+    if (!matches || matches.length <= 1) return [value];
+    return matches
+      .map((url) => normalizeCell(url).replace(/[,;]+$/, ''))
+      .filter(Boolean);
+  };
+
   const extractContentLinks = (row) => {
     const directUrl = pickFirst(row, ['URL', 'Url', 'Link']);
     return hasLink(directUrl)
-      ? [{ url: directUrl, title: 'Open content link' }]
+      ? splitContentUrls(directUrl).map((url) => ({ url, title: 'Open content link' }))
       : [];
   };
 
@@ -586,6 +601,7 @@
     isMeaningfulValue,
     pickFirst,
     extractContentLinks,
+    splitContentUrls,
     extractSocialLinks,
     toISODateLocal,
     parseDateToLocalDay,

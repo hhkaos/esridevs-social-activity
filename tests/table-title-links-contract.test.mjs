@@ -19,6 +19,15 @@ test('content titles absorb the primary link and use a menu for multiple source 
   assert.match(loadTableSource, /class="dropdown-menu table-title-menu"/);
   assert.match(loadTableSource, /<li><h6 class="dropdown-header">Posted in:<\/h6><\/li>/);
   assert.doesNotMatch(loadTableSource, /<div class="small text-muted mt-1">Posted in:/);
+
+  // Bootstrap 5 resolves the menu via the toggle's next sibling, so the
+  // dropdown button and its `.dropdown-menu` must be direct siblings inside the
+  // `.dropdown` wrapper — otherwise the caret renders but the menu never opens.
+  assert.match(
+    loadTableSource,
+    /data-bs-toggle="dropdown"[\s\S]*?<\/button>\s*<ul id="\$\{menuId\}" class="dropdown-menu table-title-menu"/,
+    'dropdown toggle button must be immediately followed by its .dropdown-menu sibling',
+  );
 });
 
 test('table dates can switch to a compact mobile formatter and visible columns stay content-sized', () => {
