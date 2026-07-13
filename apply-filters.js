@@ -1584,8 +1584,30 @@ document.querySelector('#tab-contributors-trigger')?.addEventListener('click', (
   if (typeof window.renderContributors === 'function') window.renderContributors();
 });
 
+// Share links only need the selected values: every decoder (web app, RSS server,
+// extension) treats a missing key as unselected. Serializing the unselected
+// options too made the `?state=` param grow with the dataset (3k+ chars).
+const FILTER_DIMENSIONS = ['technologies', 'categories', 'channels', 'authors', 'contributors', 'languages'];
+
+const compactShareFlags = (sourceFlags) => {
+  const compacted = {
+    featuredOnly: !!sourceFlags.featuredOnly,
+    datePreset: sourceFlags.datePreset,
+    dateRange: { ...sourceFlags.dateRange },
+  };
+
+  FILTER_DIMENSIONS.forEach((key) => {
+    const selected = Object.entries(sourceFlags[key] || {}).filter(([, value]) => value === 1);
+    if (selected.length > 0) {
+      compacted[key] = Object.fromEntries(selected.map(([value]) => [value, 1]));
+    }
+  });
+
+  return compacted;
+};
+
 const getSerializableShareState = () => ({
-  filters: flags,
+  filters: compactShareFlags(flags),
   columns: TOGGLEABLE_COLS.reduce((acc, col) => {
     const cb = document.querySelector(`#col-toggle-${col.key}`);
     acc[col.key] = cb ? !!cb.checked : !!appState.columns[col.key];
@@ -1650,7 +1672,7 @@ window.addEventListener('load', () => {
 const RSS_BASE_URL = 'https://rss.rauljimenez.info/feed.xml';
 
 const buildRssUrl = () => {
-  const encoded = LZString.compressToBase64(JSON.stringify(flags));
+  const encoded = LZString.compressToBase64(JSON.stringify(compactShareFlags(flags)));
   const hasActiveFilters = Object.values(flags).some((v) => {
     if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
       // dateRange object

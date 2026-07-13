@@ -23,7 +23,8 @@ test('content title header includes accessible featured-only toggle button', () 
 test('featuredOnly filter flag is normalized and toggled in apply-filters', () => {
   assert.match(applyFiltersSource, /featuredOnly: false/);
   assert.match(applyFiltersSource, /typeof input\.featuredOnly === 'boolean'/);
-  assert.match(applyFiltersSource, /filters: flags,/);
+  assert.match(applyFiltersSource, /filters: compactShareFlags\(flags\),/);
+  assert.match(applyFiltersSource, /featuredOnly: !!sourceFlags\.featuredOnly,/);
   assert.match(applyFiltersSource, /const getFilteredActivityRows = \(rows = window\.activityData \|\| \[\]\) => \{/);
   assert.match(applyFiltersSource, /window\.activityUtils\?\.filterActivityRows/);
   assert.match(activityUtilsSource, /if \(featuredOnly && !isTruthyFlag\(pickFirst\(row, FEATURED_FIELD_ALIASES\)\)\) return false;/);
