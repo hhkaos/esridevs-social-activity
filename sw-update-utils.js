@@ -3,6 +3,13 @@
     workerState === 'installed' && !!hasController
   );
 
+  // A controllerchange fired without a previous controller is the first-ever
+  // activation, not an update. Reloading there discards URL state that the app
+  // has already consumed and stripped (for example `?state=` share links).
+  const shouldReloadOnControllerChange = ({ hadControllerAtStartup, didRequestReload }) => (
+    !!hadControllerAtStartup && !didRequestReload
+  );
+
   const isNavigationRequest = (request) => (
     request?.mode === 'navigate' || request?.destination === 'document'
   );
@@ -35,6 +42,7 @@
 
   const api = {
     shouldShowUpdatePrompt,
+    shouldReloadOnControllerChange,
     isNavigationRequest,
     queueCachePut,
   };

@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v86';
+const CACHE_VERSION = 'v87';
 const SHELL_ASSET_VERSION = CACHE_VERSION;
 importScripts(`./sw-update-utils.js?v=${SHELL_ASSET_VERSION}`);
 
@@ -20,11 +20,13 @@ const SHELL_ASSETS = [
   `./mobile-filters.js?v=${SHELL_ASSET_VERSION}`,
 ];
 
+// No skipWaiting() here: an updated worker must wait for the user to accept the
+// update banner (SKIP_WAITING message). Taking over silently reloads open pages
+// and drops in-page state.
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(SHELL_CACHE)
       .then(cache => cache.addAll(SHELL_ASSETS))
-      .then(() => self.skipWaiting())
   );
 });
 
